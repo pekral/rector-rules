@@ -1,0 +1,2 @@
+includes:
+    - %rootDir%/../../../vendor/pekral/phpstan-rules/phpstan.neon

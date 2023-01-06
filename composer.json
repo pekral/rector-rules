@@ -1,0 +1,24 @@
+{
+  "name": "pekral/rector-rules",
+  "description": "Rector - custom rule set",
+  "license": ["MIT"],
+  "require": {
+    "php": "^8.1",
+    "rector/rector": "^0.15.2"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "PekralRectorRule\\": "rules"
+    }
+  },
+  "require-dev": {
+    "pekral/phpstan-rules": "^0.1.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "phpstan/extension-installer": true
+    }
+  }
+}
