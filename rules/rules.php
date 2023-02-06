@@ -40,6 +40,8 @@ use Rector\Php80\Rector\Identical\StrEndsWithRector;
 use Rector\Php80\Rector\Identical\StrStartsWithRector;
 use Rector\Php80\Rector\NotIdentical\StrContainsRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
+use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
+use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromStrictTernaryRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnDirectArrayRector;
@@ -94,4 +96,6 @@ return [
     ReturnTypeFromStrictConstantReturnRector::class,
     SimplifyEmptyCheckOnEmptyArrayRector::class,
     NullifyUnionNullableRector::class,
+    PropertyTypeFromStrictSetterGetterRector::class,
+    ReturnTypeFromStrictTernaryRector::class,
 ];
