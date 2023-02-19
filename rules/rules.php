@@ -40,15 +40,34 @@ use Rector\Php80\Rector\Identical\StrEndsWithRector;
 use Rector\Php80\Rector\Identical\StrStartsWithRector;
 use Rector\Php80\Rector\NotIdentical\StrContainsRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
+use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
+use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
 use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromStrictTernaryRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ArrayShapeFromConstantArrayReturnRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnAnnotationIncorrectNullableRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnNeverTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnDirectArrayRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnNewRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictBoolReturnExprRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictConstantReturnRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNativeCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNewArrayRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedCallRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyRector;
+use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
+use Rector\TypeDeclaration\Rector\Param\ParamTypeFromStrictTypedPropertyRector;
+use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
+use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictGetterMethodReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
+use Rector\TypeDeclaration\Rector\Property\VarAnnotationIncorrectNullableRector;
 
 return [
     ArrayKeyExistsTernaryThenValueToCoalescingRector::class,
@@ -98,4 +117,26 @@ return [
     NullifyUnionNullableRector::class,
     PropertyTypeFromStrictSetterGetterRector::class,
     ReturnTypeFromStrictTernaryRector::class,
+    ReturnTypeFromStrictNativeCallRector::class,
+    AddArrowFunctionReturnTypeRector::class,
+    AddClosureReturnTypeRector::class,
+    AddMethodCallBasedStrictParamTypeRector::class,
+    AddParamTypeFromPropertyTypeRector::class,
+    AddReturnTypeDeclarationBasedOnParentClassMethodRector::class,
+    AddReturnTypeDeclarationFromYieldsRector::class,
+    ArrayShapeFromConstantArrayReturnRector::class,
+    ParamTypeByMethodCallTypeRector::class,
+    ParamTypeByParentCallTypeRector::class,
+    ParamTypeFromStrictTypedPropertyRector::class,
+    ReturnAnnotationIncorrectNullableRector::class,
+    ReturnNeverTypeRector::class,
+    ReturnTypeFromReturnDirectArrayRector::class,
+    ReturnTypeFromReturnNewRector::class,
+    ReturnTypeFromStrictBoolReturnExprRector::class,
+    ReturnTypeFromStrictTypedCallRector::class,
+    ReturnTypeFromStrictTypedPropertyRector::class,
+    TypedPropertyFromStrictConstructorRector::class,
+    TypedPropertyFromStrictGetterMethodReturnTypeRector::class,
+    VarAnnotationIncorrectNullableRector::class,
+    ReadOnlyPropertyRector::class,
 ];
