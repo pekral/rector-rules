@@ -28,6 +28,7 @@ use Rector\CodeQuality\Rector\If_\SimplifyIfNotNullReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNullableReturnRector;
 use Rector\CodeQuality\Rector\LogicalAnd\LogicalToBooleanRector;
 use Rector\CodeQuality\Rector\NotEqual\CommonNotEqualRector;
+use Rector\CodeQuality\Rector\Switch_\SwitchTrueToIfRector;
 use Rector\CodeQuality\Rector\Ternary\ArrayKeyExistsTernaryThenValueToCoalescingRector;
 use Rector\CodeQuality\Rector\Ternary\SimplifyTautologyTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
@@ -139,4 +140,5 @@ return [
     TypedPropertyFromStrictGetterMethodReturnTypeRector::class,
     VarAnnotationIncorrectNullableRector::class,
     ReadOnlyPropertyRector::class,
+    SwitchTrueToIfRector::class,
 ];
