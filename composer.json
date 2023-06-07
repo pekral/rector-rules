@@ -3,8 +3,8 @@
   "description": "Rector - custom rule set",
   "license": ["MIT"],
   "require": {
-    "php": "^8.1",
-    "rector/rector": "^0.15.23"
+    "php": "^8.2",
+    "rector/rector": "^0.17"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
