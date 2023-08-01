@@ -15,7 +15,6 @@ use Rector\CodeQuality\Rector\Expression\InlineIfToExplicitIfRector;
 use Rector\CodeQuality\Rector\Expression\TernaryFalseExpressionToIfRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachItemsAssignToEmptyArrayToAssignRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachToInArrayRector;
-use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToArrayFilterRector;
 use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToCoalescingRector;
 use Rector\CodeQuality\Rector\Foreach_\UnusedForeachValueToArrayKeysRector;
 use Rector\CodeQuality\Rector\FuncCall\ChangeArrayPushToArrayAssignRector;
@@ -81,7 +80,6 @@ use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
-use Rector\RemovingStatic\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
 use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromStrictTernaryRector;
@@ -130,7 +128,6 @@ return [
     LogicalToBooleanRector::class,
     RemoveSoleValueSprintfRector::class,
     ShortenElseIfRector::class,
-    SimplifyForeachToArrayFilterRector::class,
     SimplifyIfElseToTernaryRector::class,
     SimplifyIfNotNullReturnRector::class,
     SimplifyIfReturnBoolRector::class,
@@ -145,7 +142,6 @@ return [
     ReturnTypeFromStrictNewArrayRector::class,
     ReturnTypeFromStrictScalarReturnExprRector::class,
     ReturnEarlyIfVariableRector::class,
-    RemoveJustVariableAssignRector::class,
     TypedPropertyFromStrictSetUpRector::class,
     AddParamBasedOnParentClassMethodRector::class,
     ChangeSwitchToMatchRector::class,
@@ -194,7 +190,6 @@ return [
     Utf8DecodeEncodeToMbConvertEncodingRector::class,
     PrivatizeFinalClassMethodRector::class,
     PrivatizeFinalClassPropertyRector::class,
-    LocallyCalledStaticMethodToNonStaticRector::class,
     AddParamTypeSplFixedArrayRector::class,
     BoolReturnTypeFromStrictScalarReturnsRector::class,
     ParamAnnotationIncorrectNullableRector::class,
