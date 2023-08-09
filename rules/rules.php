@@ -89,6 +89,7 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ArrayShapeFromConstantArrayReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromStrictScalarReturnsRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamAnnotationIncorrectNullableRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
@@ -100,8 +101,10 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictBoolReturnExpr
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictConstantReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNativeCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNewArrayRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictParamRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\StrictStringParamConcatRector;
 use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
@@ -222,4 +225,7 @@ return [
     TernaryToBooleanOrFalseToBooleanAndRector::class,
     RemoveAlwaysElseRector::class,
     RenamePropertyToMatchTypeRector::class,
+    ReturnTypeFromStrictParamRector::class,
+    StrictStringParamConcatRector::class,
+    NumericReturnTypeFromStrictScalarReturnsRector::class,
 ];
