@@ -8,7 +8,6 @@ use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
 use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
 use Rector\CodeQuality\Rector\ClassConstFetch\ConvertStaticPrivateConstantToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
-use Rector\CodeQuality\Rector\ClassMethod\ReturnTypeFromStrictScalarReturnExprRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
 use Rector\CodeQuality\Rector\Expression\InlineIfToExplicitIfRector;
@@ -44,7 +43,6 @@ use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
 use Rector\CodingStyle\Rector\ArrowFunction\StaticArrowFunctionRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
-use Rector\CodingStyle\Rector\Property\NullifyUnionNullableRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
 use Rector\DeadCode\Rector\Assign\RemoveUnusedVariableAssignRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
@@ -59,8 +57,6 @@ use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
 use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
-use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveJustPropertyFetchRector;
-use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveJustVariableAssignRector;
 use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
@@ -87,13 +83,10 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeR
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ArrayShapeFromConstantArrayReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ParamAnnotationIncorrectNullableRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ReturnAnnotationIncorrectNullableRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnNeverTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnDirectArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnNewRector;
@@ -105,14 +98,12 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictParamRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\StrictStringParamConcatRector;
-use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
 use Rector\TypeDeclaration\Rector\Param\ParamTypeFromStrictTypedPropertyRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictGetterMethodReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
-use Rector\TypeDeclaration\Rector\Property\VarAnnotationIncorrectNullableRector;
 
 return [
     ArrayKeyExistsTernaryThenValueToCoalescingRector::class,
@@ -143,7 +134,6 @@ return [
     UnusedForeachValueToArrayKeysRector::class,
     UnwrapSprintfOneArgumentRector::class,
     ReturnTypeFromStrictNewArrayRector::class,
-    ReturnTypeFromStrictScalarReturnExprRector::class,
     ReturnEarlyIfVariableRector::class,
     TypedPropertyFromStrictSetUpRector::class,
     AddParamBasedOnParentClassMethodRector::class,
@@ -158,21 +148,17 @@ return [
     ReturnTypeFromReturnDirectArrayRector::class,
     ReturnTypeFromStrictConstantReturnRector::class,
     SimplifyEmptyCheckOnEmptyArrayRector::class,
-    NullifyUnionNullableRector::class,
     PropertyTypeFromStrictSetterGetterRector::class,
     ReturnTypeFromStrictTernaryRector::class,
     ReturnTypeFromStrictNativeCallRector::class,
     AddArrowFunctionReturnTypeRector::class,
-    AddClosureReturnTypeRector::class,
     AddMethodCallBasedStrictParamTypeRector::class,
     AddParamTypeFromPropertyTypeRector::class,
     AddReturnTypeDeclarationBasedOnParentClassMethodRector::class,
     AddReturnTypeDeclarationFromYieldsRector::class,
-    ArrayShapeFromConstantArrayReturnRector::class,
     ParamTypeByMethodCallTypeRector::class,
     ParamTypeByParentCallTypeRector::class,
     ParamTypeFromStrictTypedPropertyRector::class,
-    ReturnAnnotationIncorrectNullableRector::class,
     ReturnNeverTypeRector::class,
     ReturnTypeFromReturnDirectArrayRector::class,
     ReturnTypeFromReturnNewRector::class,
@@ -181,7 +167,6 @@ return [
     ReturnTypeFromStrictTypedPropertyRector::class,
     TypedPropertyFromStrictConstructorRector::class,
     TypedPropertyFromStrictGetterMethodReturnTypeRector::class,
-    VarAnnotationIncorrectNullableRector::class,
     ReadOnlyPropertyRector::class,
     SwitchTrueToIfRector::class,
     FinalizePublicClassConstantRector::class,
@@ -195,7 +180,6 @@ return [
     PrivatizeFinalClassPropertyRector::class,
     AddParamTypeSplFixedArrayRector::class,
     BoolReturnTypeFromStrictScalarReturnsRector::class,
-    ParamAnnotationIncorrectNullableRector::class,
     AndAssignsToSeparateLinesRector::class,
     ChangeArrayPushToArrayAssignRector::class,
     ConvertStaticPrivateConstantToSelfRector::class,
@@ -211,7 +195,6 @@ return [
     RemoveDeadTryCatchRector::class,
     RemoveDoubleAssignRector::class,
     RemoveEmptyClassMethodRector::class,
-    RemoveJustPropertyFetchRector::class,
     RemoveNonExistingVarAnnotationRector::class,
     RemoveParentCallWithoutParentRector::class,
     RemoveUnreachableStatementRector::class,
