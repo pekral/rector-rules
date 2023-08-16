@@ -170,7 +170,6 @@ return [
     ReadOnlyPropertyRector::class,
     SwitchTrueToIfRector::class,
     FinalizePublicClassConstantRector::class,
-    IntersectionTypesRector::class,
     NewInInitializerRector::class,
     IfIssetToCoalescingRector::class,
     CleanupUnneededNullsafeOperatorRector::class,
