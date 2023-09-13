@@ -61,7 +61,6 @@ use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
-use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
 use Rector\Php80\Rector\Catch_\RemoveUnusedVariableInCatchRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
@@ -219,7 +218,6 @@ return [
     RemoveUselessVarTagRector::class,
     TernaryToBooleanOrFalseToBooleanAndRector::class,
     RemoveAlwaysElseRector::class,
-    RenamePropertyToMatchTypeRector::class,
     ReturnTypeFromStrictParamRector::class,
     StrictStringParamConcatRector::class,
     NumericReturnTypeFromStrictScalarReturnsRector::class,
