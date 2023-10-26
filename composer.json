@@ -13,9 +13,6 @@
       "PekralRectorRule\\": "rules"
     }
   },
-  "require-dev": {
-    "pekral/phpstan-rules": "^0.1.0"
-  },
   "config": {
     "allow-plugins": {
       "phpstan/extension-installer": true
