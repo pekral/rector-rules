@@ -74,6 +74,7 @@ use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
+use Rector\Php82\Rector\New_\FilesystemIteratorSkipDotsRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
@@ -86,6 +87,7 @@ use Rector\PHPUnit\PHPUnit100\Rector\MethodCall\PropertyExistsWithoutAssertRecto
 use Rector\PHPUnit\PHPUnit70\Rector\Class_\RemoveDataProviderTestPrefixRector;
 use Rector\PHPUnit\Rector\Class_\PreferPHPUnitSelfCallRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
+use Rector\Privatization\Rector\MethodCall\PrivatizeLocalGetterToPropertyRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
 use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
@@ -232,4 +234,9 @@ return [
     RemoveEmptyTestMethodRector::class,
     PreferPHPUnitSelfCallRector::class,
     TestWithAnnotationToAttributeRector::class,
+    FilesystemIteratorSkipDotsRector::class,
+    ReadOnlyClassRector::class,
+    Utf8DecodeEncodeToMbConvertEncodingRector::class,
+    PrivatizeFinalClassMethodRector::class,
+    PrivatizeLocalGetterToPropertyRector::class,
 ];
