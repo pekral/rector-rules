@@ -113,9 +113,7 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyR
 use Rector\TypeDeclaration\Rector\ClassMethod\StrictStringParamConcatRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
-use Rector\TypeDeclaration\Rector\Param\ParamTypeFromStrictTypedPropertyRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
-use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictGetterMethodReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
 return [
     RemoveUnusedVariableInCatchRector::class,
@@ -172,7 +170,6 @@ return [
     AddReturnTypeDeclarationFromYieldsRector::class,
     ParamTypeByMethodCallTypeRector::class,
     ParamTypeByParentCallTypeRector::class,
-    ParamTypeFromStrictTypedPropertyRector::class,
     ReturnNeverTypeRector::class,
     ReturnTypeFromReturnDirectArrayRector::class,
     ReturnTypeFromReturnNewRector::class,
@@ -180,7 +177,6 @@ return [
     ReturnTypeFromStrictTypedCallRector::class,
     ReturnTypeFromStrictTypedPropertyRector::class,
     TypedPropertyFromStrictConstructorRector::class,
-    TypedPropertyFromStrictGetterMethodReturnTypeRector::class,
     ReadOnlyPropertyRector::class,
     SwitchTrueToIfRector::class,
     FinalizePublicClassConstantRector::class,
