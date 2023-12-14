@@ -75,6 +75,7 @@ use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Php82\Rector\New_\FilesystemIteratorSkipDotsRector;
+use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
@@ -235,4 +236,5 @@ return [
     Utf8DecodeEncodeToMbConvertEncodingRector::class,
     PrivatizeFinalClassMethodRector::class,
     PrivatizeLocalGetterToPropertyRector::class,
+    AddTypeToConstRector::class,
 ];
