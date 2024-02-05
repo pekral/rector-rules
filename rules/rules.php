@@ -65,6 +65,7 @@ use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
+use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\Catch_\RemoveUnusedVariableInCatchRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
 use Rector\Php80\Rector\FunctionLike\MixedTypeRector;
@@ -243,4 +244,5 @@ return [
     RemoveUselessReturnTagRector::class,
     RemoveUselessParamTagRector::class,
     RemoveNullTagValueNodeRector::class,
+    RestoreDefaultNullToNullableTypePropertyRector::class,
 ];
