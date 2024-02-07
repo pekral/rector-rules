@@ -91,6 +91,7 @@ use Rector\PHPUnit\PHPUnit100\Rector\Class_\StaticDataProviderClassMethodRector;
 use Rector\PHPUnit\PHPUnit100\Rector\MethodCall\PropertyExistsWithoutAssertRector;
 use Rector\PHPUnit\PHPUnit70\Rector\Class_\RemoveDataProviderTestPrefixRector;
 use Rector\PHPUnit\Rector\Class_\PreferPHPUnitSelfCallRector;
+use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
 use Rector\Privatization\Rector\MethodCall\PrivatizeLocalGetterToPropertyRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
@@ -245,4 +246,5 @@ return [
     RemoveUselessParamTagRector::class,
     RemoveNullTagValueNodeRector::class,
     RestoreDefaultNullToNullableTypePropertyRector::class,
+    FinalizeTestCaseClassRector::class,
 ];
