@@ -56,7 +56,9 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPromotedPropertyRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\DeadCode\Rector\FunctionLike\RemoveDeadReturnRector;
+use Rector\DeadCode\Rector\If_\ReduceAlwaysFalseIfOrRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
+use Rector\DeadCode\Rector\Property\RemoveUselessReadOnlyTagRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
 use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
@@ -73,13 +75,14 @@ use Rector\Php80\Rector\Identical\StrEndsWithRector;
 use Rector\Php80\Rector\Identical\StrStartsWithRector;
 use Rector\Php80\Rector\NotIdentical\StrContainsRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
-use Rector\Php81\Rector\ClassConst\FinalizePublicClassConstantRector;
 use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
+use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Php82\Rector\New_\FilesystemIteratorSkipDotsRector;
 use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
+use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
@@ -185,7 +188,6 @@ return [
     TypedPropertyFromStrictConstructorRector::class,
     ReadOnlyPropertyRector::class,
     SwitchTrueToIfRector::class,
-    FinalizePublicClassConstantRector::class,
     NewInInitializerRector::class,
     IfIssetToCoalescingRector::class,
     CleanupUnneededNullsafeOperatorRector::class,
@@ -247,4 +249,8 @@ return [
     RemoveNullTagValueNodeRector::class,
     RestoreDefaultNullToNullableTypePropertyRector::class,
     FinalizeTestCaseClassRector::class,
+    ExplicitNullableParamTypeRector::class,
+    ReduceAlwaysFalseIfOrRector::class,
+    RemoveUselessReadOnlyTagRector::class,
+    VariableInStringInterpolationFixerRector::class,
 ];
