@@ -2,6 +2,17 @@
   "name": "pekral/rector-rules",
   "description": "Rector - custom rule set",
   "license": ["MIT"],
+  "keywords": [
+    "Rector",
+    "Rule set"
+  ],
+  "authors": [
+    {
+      "name": "Petr Král",
+      "email": "kral.petr.88@gmail.com",
+      "role": "lead"
+    }
+  ],
   "require": {
     "php": "^8.3",
     "rector/rector": "^1.0.4"
