@@ -73,6 +73,18 @@ use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
+use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
+use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
+use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
+use Rector\PHPUnit\CodeQuality\Rector\Class_\ConstructClassMethodToSetUpTestCaseRector;
+use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\RemoveEmptyTestMethodRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertIssetToSpecificMethodRector;
+use Rector\PHPUnit\PHPUnit100\Rector\Class_\AddProphecyTraitRector;
+use Rector\PHPUnit\PHPUnit100\Rector\Class_\StaticDataProviderClassMethodRector;
+use Rector\PHPUnit\PHPUnit100\Rector\MethodCall\PropertyExistsWithoutAssertRector;
+use Rector\PHPUnit\PHPUnit70\Rector\Class_\RemoveDataProviderTestPrefixRector;
+use Rector\PHPUnit\Rector\Class_\PreferPHPUnitSelfCallRector;
+use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
 use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
@@ -199,4 +211,16 @@ return [
     TernaryToBooleanOrFalseToBooleanAndRector::class,
     RemoveAlwaysElseRector::class,
     RenamePropertyToMatchTypeRector::class,
+    FinalizeTestCaseClassRector::class,
+    StaticDataProviderClassMethodRector::class,
+    PropertyExistsWithoutAssertRector::class,
+    AddProphecyTraitRector::class,
+    AssertIssetToSpecificMethodRector::class,
+    ConstructClassMethodToSetUpTestCaseRector::class,
+    DataProviderAnnotationToAttributeRector::class,
+    DependsAnnotationWithValueToAttributeRector::class,
+    RemoveDataProviderTestPrefixRector::class,
+    RemoveEmptyTestMethodRector::class,
+    PreferPHPUnitSelfCallRector::class,
+    TestWithAnnotationToAttributeRector::class,
 ];
