@@ -68,7 +68,6 @@ use Rector\Php80\Rector\Identical\StrEndsWithRector;
 use Rector\Php80\Rector\Identical\StrStartsWithRector;
 use Rector\Php80\Rector\NotIdentical\StrContainsRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
-use Rector\Php81\Rector\ClassConst\FinalizePublicClassConstantRector;
 use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
@@ -173,7 +172,6 @@ return [
     TypedPropertyFromStrictConstructorRector::class,
     ReadOnlyPropertyRector::class,
     SwitchTrueToIfRector::class,
-    FinalizePublicClassConstantRector::class,
     NewInInitializerRector::class,
     IfIssetToCoalescingRector::class,
     CleanupUnneededNullsafeOperatorRector::class,
