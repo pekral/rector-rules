@@ -104,7 +104,6 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeR
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
@@ -113,21 +112,15 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnNullableTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnCastRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnDirectArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnNewRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictBoolReturnExprRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictConstantReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNativeCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNewArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictParamRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictScalarReturnExprRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnUnionTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\StrictStringParamConcatRector;
 use Rector\TypeDeclaration\Rector\Closure\AddClosureNeverReturnTypeRector;
-use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeFromReturnCastRector;
-use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeFromStrictNativeCallRector;
-use Rector\TypeDeclaration\Rector\Closure\AddClosureReturnTypeFromStrictParamRector;
-use Rector\TypeDeclaration\Rector\Closure\AddClosureUnionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
@@ -188,7 +181,6 @@ return [
     ReturnNeverTypeRector::class,
     ReturnTypeFromReturnDirectArrayRector::class,
     ReturnTypeFromReturnNewRector::class,
-    ReturnTypeFromStrictBoolReturnExprRector::class,
     ReturnTypeFromStrictTypedCallRector::class,
     ReturnTypeFromStrictTypedPropertyRector::class,
     TypedPropertyFromStrictConstructorRector::class,
@@ -202,7 +194,6 @@ return [
     PrivatizeFinalClassMethodRector::class,
     PrivatizeFinalClassPropertyRector::class,
     AddParamTypeSplFixedArrayRector::class,
-    BoolReturnTypeFromStrictScalarReturnsRector::class,
     AndAssignsToSeparateLinesRector::class,
     ChangeArrayPushToArrayAssignRector::class,
     ConvertStaticPrivateConstantToSelfRector::class,
@@ -237,7 +228,6 @@ return [
     StrictStringParamConcatRector::class,
     ReturnTypeFromStrictParamRector::class,
     ReturnUnionTypeRector::class,
-    ReturnTypeFromStrictScalarReturnExprRector::class,
     ReadOnlyClassRector::class,
     RemoveUselessReturnTagRector::class,
     RemoveUselessParamTagRector::class,
@@ -250,11 +240,7 @@ return [
     VariableInStringInterpolationFixerRector::class,
     RemoveUselessReadOnlyTagRector::class,
     ReturnTypeFromReturnCastRector::class,
-    AddClosureUnionReturnTypeRector::class,
     AddClosureNeverReturnTypeRector::class,
-    AddClosureReturnTypeFromStrictParamRector::class,
-    AddClosureReturnTypeFromReturnCastRector::class,
-    AddClosureReturnTypeFromStrictNativeCallRector::class,
     ReturnNullableTypeRector::class,
 
     // PHPUnit
