@@ -9,6 +9,7 @@ use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
 use Rector\CodeQuality\Rector\Class_\StaticToSelfStaticMethodCallOnFinalClassRector;
 use Rector\CodeQuality\Rector\ClassConstFetch\ConvertStaticPrivateConstantToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
+use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
 use Rector\CodeQuality\Rector\Expression\InlineIfToExplicitIfRector;
@@ -66,7 +67,10 @@ use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
 use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
+use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
+use Rector\Php70\Rector\Ternary\TernaryToNullCoalescingRector;
+use Rector\Php72\Rector\FuncCall\StringifyDefineRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
 use Rector\Php80\Rector\Identical\StrEndsWithRector;
@@ -78,6 +82,7 @@ use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
+use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
 use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
@@ -242,6 +247,11 @@ return [
     ReturnTypeFromReturnCastRector::class,
     AddClosureNeverReturnTypeRector::class,
     ReturnNullableTypeRector::class,
+    AddTypeToConstRector::class,
+    StringifyDefineRector::class,
+    TernaryToElvisRector::class,
+    TernaryToNullCoalescingRector::class,
+    LocallyCalledStaticMethodToNonStaticRector::class,
 
     // PHPUnit
     FinalizeTestCaseClassRector::class,
