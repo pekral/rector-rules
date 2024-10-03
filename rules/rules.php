@@ -97,7 +97,6 @@ use Rector\PHPUnit\PHPUnit100\Rector\Class_\PublicDataProviderClassMethodRector;
 use Rector\PHPUnit\PHPUnit100\Rector\Class_\StaticDataProviderClassMethodRector;
 use Rector\PHPUnit\PHPUnit110\Rector\Class_\NamedArgumentForDataProviderRector;
 use Rector\PHPUnit\PHPUnit70\Rector\Class_\RemoveDataProviderTestPrefixRector;
-use Rector\PHPUnit\Rector\Class_\PreferPHPUnitSelfCallRector;
 use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
@@ -262,7 +261,6 @@ return [
     DependsAnnotationWithValueToAttributeRector::class,
     RemoveDataProviderTestPrefixRector::class,
     RemoveEmptyTestMethodRector::class,
-    PreferPHPUnitSelfCallRector::class,
     DataProviderArrayItemsNewLinedRector::class,
     NamedArgumentForDataProviderRector::class,
     PublicDataProviderClassMethodRector::class,
