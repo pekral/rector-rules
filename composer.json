@@ -15,7 +15,7 @@
   ],
   "require": {
     "php": "^8.3",
-    "rector/rector": "^1.2.9"
+    "rector/rector": "^2.0.3"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -28,5 +28,10 @@
     "allow-plugins": {
       "phpstan/extension-installer": true
     }
+  },
+  "scripts": {
+    "post-update-cmd": [
+      "vendor/bin/rector process rules/"
+    ]
   }
 }
