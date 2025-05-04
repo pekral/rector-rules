@@ -71,6 +71,8 @@ use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
 use Rector\Php70\Rector\Ternary\TernaryToNullCoalescingRector;
 use Rector\Php72\Rector\FuncCall\StringifyDefineRector;
+use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
+use Rector\Php73\Rector\FuncCall\SensitiveDefineRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
 use Rector\Php80\Rector\Identical\StrEndsWithRector;
@@ -83,6 +85,7 @@ use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
+use Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector;
 use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
@@ -251,6 +254,9 @@ return [
     TernaryToElvisRector::class,
     TernaryToNullCoalescingRector::class,
     LocallyCalledStaticMethodToNonStaticRector::class,
+    NewMethodCallWithoutParenthesesRector::class,
+    SensitiveDefineRector::class,
+    SensitiveConstantNameRector::class,
 
     // PHPUnit
     FinalizeTestCaseClassRector::class,

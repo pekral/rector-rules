@@ -14,8 +14,12 @@
     }
   ],
   "require": {
-    "php": "^8.3",
-    "rector/rector": "^2.0.3"
+    "php": "^8.4",
+    "rector/rector": "^2.0"
+  }
+  ,
+  "require-dev": {
+    "roave/security-advisories": "dev-latest"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
