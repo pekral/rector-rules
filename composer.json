@@ -35,7 +35,7 @@
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "^0.4.0@dev"
+    "pekral/phpcs-rules": "^0.4"
   },
   "autoload": {
     "psr-4": {
@@ -49,9 +49,6 @@
   },
   "scripts": {
     "test:rector": "vendor/bin/rector process examples/ --config=rector.php --no-diffs --ansi"
-  },
-  "extra": {
-    "examples-dir": "examples/"
   },
   "config": {
     "prefer-stable": true,
