@@ -1,10 +1,26 @@
 {
   "name": "pekral/rector-rules",
-  "description": "Rector - custom rule set",
-  "license": ["MIT"],
+  "description": "A set of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://github.com/pekral/rector-rules",
+  "support": {
+    "issues": "https://github.com/pekral/rector-rules/issues",
+    "source": "https://github.com/pekral/rector-rules"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/pekral"
+    }
+  ],
   "keywords": [
-    "Rector",
-    "Rule set"
+    "rector",
+    "ruleset",
+    "php",
+    "refactoring",
+    "coding-standard",
+    "pekral"
   ],
   "authors": [
     {
@@ -16,26 +32,28 @@
   "require": {
     "php": "^8.4",
     "rector/rector": "^2.1.2"
-  }
-  ,
+  },
   "require-dev": {
     "roave/security-advisories": "dev-latest"
   },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "autoload": {
     "psr-4": {
-      "PekralRectorRule\\": "rules"
+      "PekralRectorRule\\": "rules/"
     }
   },
-  "config": {
-    "allow-plugins": {
-      "phpstan/extension-installer": true
+  "autoload-dev": {
+    "psr-4": {
+      "PekralRectorRule\\Tests\\": "tests/"
     }
   },
   "scripts": {
-    "post-update-cmd": [
-      "vendor/bin/rector process rules/"
-    ]
-  }
+    "test:rector": "vendor/bin/rector process examples/ --config=rector.php --no-diffs --ansi"
+  },
+  "extra": {
+    "examples-dir": "examples/"
+  },
+  "config": {
+    "prefer-stable": true
+  },
+  "minimum-stability": "dev"
 }
