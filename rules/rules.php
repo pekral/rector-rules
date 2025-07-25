@@ -18,11 +18,13 @@ use Rector\CodeQuality\Rector\Foreach_\ForeachItemsAssignToEmptyArrayToAssignRec
 use Rector\CodeQuality\Rector\Foreach_\ForeachToInArrayRector;
 use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToCoalescingRector;
 use Rector\CodeQuality\Rector\Foreach_\UnusedForeachValueToArrayKeysRector;
+use Rector\CodeQuality\Rector\FuncCall\ArrayMergeOfNonArraysToSimpleArrayRector;
 use Rector\CodeQuality\Rector\FuncCall\ChangeArrayPushToArrayAssignRector;
 use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
 use Rector\CodeQuality\Rector\FuncCall\RemoveSoleValueSprintfRector;
 use Rector\CodeQuality\Rector\FuncCall\SimplifyInArrayValuesRector;
 use Rector\CodeQuality\Rector\FuncCall\SimplifyRegexPatternRector;
+use Rector\CodeQuality\Rector\FuncCall\SortNamedParamRector;
 use Rector\CodeQuality\Rector\FuncCall\UnwrapSprintfOneArgumentRector;
 use Rector\CodeQuality\Rector\FunctionLike\SimplifyUselessVariableRector;
 use Rector\CodeQuality\Rector\If_\CombineIfRector;
@@ -30,6 +32,7 @@ use Rector\CodeQuality\Rector\If_\ConsecutiveNullCompareReturnsToNullCoalesceQue
 use Rector\CodeQuality\Rector\If_\ShortenElseIfRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfElseToTernaryRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNotNullReturnRector;
+use Rector\CodeQuality\Rector\If_\SimplifyIfNullableReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfReturnBoolRector;
 use Rector\CodeQuality\Rector\LogicalAnd\AndAssignsToSeparateLinesRector;
 use Rector\CodeQuality\Rector\LogicalAnd\LogicalToBooleanRector;
@@ -44,6 +47,8 @@ use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
 use Rector\CodingStyle\Rector\ArrowFunction\StaticArrowFunctionRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
+use Rector\CodingStyle\Rector\FuncCall\ArraySpreadInsteadOfArrayMergeRector;
+use Rector\CodingStyle\Rector\FuncCall\ConsistentImplodeRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
 use Rector\DeadCode\Rector\Assign\RemoveUnusedVariableAssignRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
@@ -55,6 +60,7 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPromotedPropertyRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
+use Rector\DeadCode\Rector\For_\RemoveDeadIfForeachForRector;
 use Rector\DeadCode\Rector\FunctionLike\RemoveDeadReturnRector;
 use Rector\DeadCode\Rector\If_\ReduceAlwaysFalseIfOrRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
@@ -63,16 +69,22 @@ use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
 use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
 use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
+use Rector\DeadCode\Rector\TryCatch\RemoveDeadCatchRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
+use Rector\EarlyReturn\Rector\If_\ChangeIfElseValueAssignToEarlyReturnRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
 use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
 use Rector\Php70\Rector\Ternary\TernaryToNullCoalescingRector;
+use Rector\Php71\Rector\TryCatch\MultiExceptionCatchRector;
 use Rector\Php72\Rector\FuncCall\StringifyDefineRector;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
+use Rector\Php73\Rector\FuncCall\ArrayKeyFirstLastRector;
 use Rector\Php73\Rector\FuncCall\SensitiveDefineRector;
+use Rector\Php74\Rector\Assign\NullCoalescingOperatorRector;
+use Rector\Php74\Rector\Closure\ClosureToArrowFunctionRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
 use Rector\Php80\Rector\Identical\StrEndsWithRector;
@@ -84,17 +96,25 @@ use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
 use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
+use Rector\Php83\Rector\Class_\ReadOnlyAnonymousClassRector;
 use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
 use Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector;
 use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
+use Rector\PHPUnit\AnnotationsToAttributes\Rector\Class_\AnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
+use Rector\PHPUnit\CodeQuality\Rector\Class_\AddParentSetupCallOnSetupRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\ConstructClassMethodToSetUpTestCaseRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\YieldDataProviderRector;
 use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\DataProviderArrayItemsNewLinedRector;
 use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\RemoveEmptyTestMethodRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertCompareOnCountableWithMethodToAssertCountRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertEqualsToSameRector;
 use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertIssetToSpecificMethodRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertNotOperatorRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\AssertSameBoolNullToSpecificMethodRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\NarrowSingleWillReturnCallbackRector;
 use Rector\PHPUnit\PHPUnit100\Rector\Class_\AddProphecyTraitRector;
 use Rector\PHPUnit\PHPUnit100\Rector\Class_\PublicDataProviderClassMethodRector;
 use Rector\PHPUnit\PHPUnit100\Rector\Class_\StaticDataProviderClassMethodRector;
@@ -111,6 +131,7 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeR
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
@@ -271,4 +292,28 @@ return [
     NamedArgumentForDataProviderRector::class,
     PublicDataProviderClassMethodRector::class,
     YieldDataProviderRector::class,
+    SortNamedParamRector::class,
+    SimplifyIfNullableReturnRector::class,
+    RemoveDeadCatchRector::class,
+    RemoveDeadIfForeachForRector::class,
+    ReadOnlyAnonymousClassRector::class,
+    NamedArgumentForDataProviderRector::class,
+    NarrowSingleWillReturnCallbackRector::class,
+    NullCoalescingOperatorRector::class,
+    MultiExceptionCatchRector::class,
+    ClosureToArrowFunctionRector::class,
+    ConsistentImplodeRector::class,
+    ChangeIfElseValueAssignToEarlyReturnRector::class,
+    AddParentSetupCallOnSetupRector::class,
+    AddProphecyTraitRector::class,
+    AddReturnTypeDeclarationRector::class,
+    AnnotationWithValueToAttributeRector::class,
+    ArrayKeyFirstLastRector::class,
+    ArrayMergeOfNonArraysToSimpleArrayRector::class,
+    ArraySpreadInsteadOfArrayMergeRector::class,
+    AssertCompareOnCountableWithMethodToAssertCountRector::class,
+    AssertEqualsToSameRector::class,
+    AssertIssetToSpecificMethodRector::class,
+    AssertNotOperatorRector::class,
+    AssertSameBoolNullToSpecificMethodRector::class,
 ];

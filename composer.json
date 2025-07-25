@@ -3,8 +3,12 @@
   "description": "Rector - custom rule set",
   "license": ["MIT"],
   "keywords": [
-    "Rector",
-    "Rule set"
+    "rector",
+    "ruleset",
+    "php",
+    "refactoring",
+    "coding-standard",
+    "pekral"
   ],
   "authors": [
     {
@@ -37,5 +41,22 @@
     "post-update-cmd": [
       "vendor/bin/rector process rules/"
     ]
+  },
+  "type": "library",
+  "homepage": "https://github.com/pekral/rector-rules",
+  "support": {
+    "issues": "https://github.com/pekral/rector-rules/issues",
+    "source": "https://github.com/pekral/rector-rules"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/pekral"
+    }
+  ],
+  "autoload-dev": {
+    "psr-4": {
+      "PekralRectorRule\\Tests\\": "tests/"
+    }
   }
 }
