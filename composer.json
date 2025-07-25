@@ -34,7 +34,8 @@
     "rector/rector": "^2.1.2"
   },
   "require-dev": {
-    "roave/security-advisories": "dev-latest"
+    "roave/security-advisories": "dev-latest",
+    "pekral/phpcs-rules": "^0.4.0@dev"
   },
   "autoload": {
     "psr-4": {
@@ -53,7 +54,10 @@
     "examples-dir": "examples/"
   },
   "config": {
-    "prefer-stable": true
+    "prefer-stable": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
   },
   "minimum-stability": "dev"
 }
