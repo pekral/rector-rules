@@ -278,7 +278,6 @@ return [
     NewMethodCallWithoutParenthesesRector::class,
     SensitiveDefineRector::class,
     SensitiveConstantNameRector::class,
-
     // PHPUnit
     FinalizeTestCaseClassRector::class,
     StaticDataProviderClassMethodRector::class,
