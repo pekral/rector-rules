@@ -48,7 +48,12 @@
     }
   },
   "scripts": {
-    "test:rector": "vendor/bin/rector process examples/ --config=rector.php --no-diffs --ansi"
+    "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ rector.php || true",
+    "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ rector.php -sp",
+    "check": "composer phpcs",
+    "rector": "vendor/bin/rector process rules/ rector.php --dry-run",
+    "rector:fix": "vendor/bin/rector process rules/ rector.php ",
+    "fix": "composer rector:fix && composer phpcs:fix"
   },
   "config": {
     "prefer-stable": true,
