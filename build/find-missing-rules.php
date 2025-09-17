@@ -314,6 +314,7 @@ const IGNORED_RULES = [
     'Rector\Php54\Rector\Break_\RemoveZeroBreakContinueRector',
     'Rector\Php54\Rector\FuncCall\RemoveReferenceFromCallRector',
     'Rector\Php54\Rector\Array_\LongArrayToShortArrayRector',
+    'Rector\Php85\Rector\FuncCall\OrdSingleByteRector',
 ];
 
 /**

@@ -31,11 +31,11 @@
   ],
   "require": {
     "php": "^8.4",
-    "rector/rector": "^2.1.2"
+    "rector/rector": "^2.1.7"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "^0.4"
+    "pekral/phpcs-rules": "^0.4.2"
   },
   "autoload": {
     "psr-4": {
@@ -48,6 +48,7 @@
     }
   },
   "scripts": {
+    "build": "composer check && git gone",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
