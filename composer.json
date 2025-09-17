@@ -1,12 +1,13 @@
 {
   "name": "pekral/rector-rules",
-  "description": "A set of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
+  "description": "An extensible package of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
   "type": "library",
   "license": "MIT",
   "homepage": "https://github.com/pekral/rector-rules",
   "support": {
     "issues": "https://github.com/pekral/rector-rules/issues",
-    "source": "https://github.com/pekral/rector-rules"
+    "source": "https://github.com/pekral/rector-rules",
+    "docs": "https://github.com/pekral/rector-rules#readme"
   },
   "funding": [
     {
@@ -17,16 +18,17 @@
   "keywords": [
     "rector",
     "ruleset",
+    "rector-rules",
     "php",
     "refactoring",
-    "coding-standard",
-    "pekral"
+    "code-quality"
   ],
   "authors": [
     {
       "name": "Petr Král",
       "email": "kral.petr.88@gmail.com",
-      "role": "lead"
+      "role": "lead",
+      "homepage": "https://github.com/pekral"
     }
   ],
   "require": {
@@ -39,7 +41,8 @@
   },
   "autoload": {
     "psr-4": {
-      "PekralRectorRule\\": "rules/"
+      "PekralRectorRule\\": "rules/",
+      "PekralRectorRuleExamples\\": "Examples/"
     }
   },
   "autoload-dev": {
@@ -49,18 +52,24 @@
   },
   "scripts": {
     "build": "composer check && git gone",
-    "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
-    "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
-    "check": "composer phpcs && composer rector && composer check:missing-rules",
-    "rector": "vendor/bin/rector process rules/ build/ rector.php --dry-run",
-    "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
+    "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ Examples/ rector.php || true",
+    "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ Examples/ rector.php -sp",
+    "check": "composer phpcs && composer rector && composer check:missing-rules && composer check:missing-examples",
+    "rector": "vendor/bin/rector process rules/ build/ Examples/ rector.php --dry-run",
+    "rector:fix": "vendor/bin/rector process rules/ build/ Examples/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
-    "check:missing-rules": "php build/find-missing-rules.php"
+    "check:missing-rules": "php build/find-missing-rules.php",
+    "check:missing-examples": "php build/check-examples.php"
   },
   "config": {
     "prefer-stable": true,
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "1.0.x-dev"
     }
   },
   "minimum-stability": "dev"

@@ -5,9 +5,8 @@ declare(strict_types = 1);
 use Rector\CodeQuality\Rector\Assign\CombinedAssignRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
 use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
+use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
-use Rector\CodeQuality\Rector\Class_\StaticToSelfStaticMethodCallOnFinalClassRector;
-use Rector\CodeQuality\Rector\ClassConstFetch\ConvertStaticPrivateConstantToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
@@ -224,7 +223,7 @@ return [
     AddParamTypeSplFixedArrayRector::class,
     AndAssignsToSeparateLinesRector::class,
     ChangeArrayPushToArrayAssignRector::class,
-    ConvertStaticPrivateConstantToSelfRector::class,
+    ConvertStaticToSelfRector::class,
     InlineIfToExplicitIfRector::class,
     SimplifyForeachToCoalescingRector::class,
     SwitchNegatedTernaryRector::class,
@@ -262,7 +261,6 @@ return [
     PrivatizeFinalClassMethodRector::class,
     RestoreDefaultNullToNullableTypePropertyRector::class,
     AddTestsVoidReturnTypeWhereNoReturnRector::class,
-    StaticToSelfStaticMethodCallOnFinalClassRector::class,
     ExplicitNullableParamTypeRector::class,
     ReduceAlwaysFalseIfOrRector::class,
     VariableInStringInterpolationFixerRector::class,
