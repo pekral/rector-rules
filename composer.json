@@ -41,8 +41,7 @@
   },
   "autoload": {
     "psr-4": {
-      "PekralRectorRule\\": "rules/",
-      "PekralRectorRuleExamples\\": "Examples/"
+      "PekralRectorRule\\": "rules/"
     }
   },
   "autoload-dev": {
@@ -52,14 +51,13 @@
   },
   "scripts": {
     "build": "composer check && git gone",
-    "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ Examples/ rector.php || true",
-    "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ Examples/ rector.php -sp",
-    "check": "composer phpcs && composer rector && composer check:missing-rules && composer check:missing-examples",
-    "rector": "vendor/bin/rector process rules/ build/ Examples/ rector.php --dry-run",
-    "rector:fix": "vendor/bin/rector process rules/ build/ Examples/ rector.php ",
+    "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
+    "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
+    "check": "composer phpcs && composer rector && composer check:missing-rules",
+    "rector": "vendor/bin/rector process rules/ build/ rector.php --dry-run",
+    "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
-    "check:missing-rules": "php build/find-missing-rules.php",
-    "check:missing-examples": "php build/check-examples.php"
+    "check:missing-rules": "php build/find-missing-rules.php"
   },
   "config": {
     "prefer-stable": true,
