@@ -55,12 +55,6 @@ vendor/bin/rector process src
 vendor/bin/rector process src --dry-run
 ```
 
-### Apply changes
-
-```bash
-vendor/bin/rector process src --apply
-```
-
 ### Example configuration (rector.php)
 
 ```php
