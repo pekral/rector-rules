@@ -211,6 +211,8 @@ use Rector\Php84\Rector\Foreach_\ForeachToArrayFindRector;
 use Rector\Php84\Rector\FuncCall\AddEscapeArgumentRector;
 use Rector\Php84\Rector\FuncCall\RoundingModeEnumRector;
 use Rector\Php85\Rector\ArrayDimFetch\ArrayFirstLastRector;
+use Rector\Php85\Rector\Class_\SleepToSerializeRector;
+use Rector\Php85\Rector\Class_\WakeupToUnserializeRector;
 use Rector\Php85\Rector\ClassMethod\NullDebugInfoReturnRector;
 use Rector\Php85\Rector\Const_\DeprecatedAnnotationToDeprecatedAttributeRector as Php85DeprecatedAnnotationToDeprecatedAttributeRector;
 use Rector\Php85\Rector\FuncCall\ArrayKeyExistsNullToEmptyStringRector;
@@ -322,8 +324,8 @@ use Rector\Visibility\Rector\ClassMethod\ExplicitPublicClassMethodRector;
  * - They are not available in current Rector version
  */
 const IGNORED_RULES = [
-    ConvertStaticPrivateConstantToSelfRector::class,
-    StaticToSelfStaticMethodCallOnFinalClassRector::class,
+    SleepToSerializeRector::class,
+    WakeupToUnserializeRector::class,
     UnsetCastRector::class,
     ParseStrWithResultArgumentRector::class,
     GetClassOnNullRector::class,
