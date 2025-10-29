@@ -1,57 +1,76 @@
-name: Package checkers
+name: Package Checkers
 
 on:
   pull_request:
-    branches: [ master, main ]
+    branches: [ master ]
 
 jobs:
-  check-missing-rules:
-    name: Check Missing Rector Rules
+  checks:
+    name: Run Checks
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - name: Missing Rules
+            command: composer check:missing-rules
+          - name: PHPCS
+            command: composer phpcs
+          - name: Rector
+            command: composer rector
+          - name: Examples
+            command: php build/check-examples.php
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json, mbstring, pdo
+          coverage: none
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Check for missing Rector rules
-        run: composer check:missing-rules
-  phpcs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - name: Run ${{ matrix.check.name }}
+        id: check
+        continue-on-error: true
+        run: |
+          ${{ matrix.check.command }}
+        env:
+          COMPOSER_MEMORY_LIMIT: -1
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
+      - name: Check result
+        if: steps.check.outcome == 'failure'
+        run: |
+          echo "❌ ${{ matrix.check.name }} failed!"
+          exit 1
 
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Report success
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "✅ ${{ matrix.check.name }} passed!"
 
-      - name: Run PHPCS
-        run: composer phpcs
-  rector:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
-
-      - name: Run Rector
-        run: composer rector
+      - name: Create summary
+        if: always()
+        run: |
+          if [ "${{ steps.check.outcome }}" == "success" ]; then
+            echo "✅ **${{ matrix.check.name }}**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **${{ matrix.check.name }}**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
