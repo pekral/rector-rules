@@ -1,0 +1,68 @@
+name: Stale Issues & PRs
+
+on:
+  schedule:
+    # Run daily at 8:00 AM (Europe/Prague = UTC+1/+2)
+    # 7:00 UTC = 8:00 CET (winter time) or 9:00 CEST (summer time)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark Stale Issues & PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Mark stale Issues
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has had no activity for 60 days.
+            
+            If this is still a relevant problem, please add a comment or emoji reaction (👍) to keep the issue open.
+            
+            **This issue will be automatically closed in 30 days** if no activity occurs.
+          close-issue-message: >
+            This issue has been automatically closed because no activity was recorded for 90 days.
+            
+            If you come across this issue and want to reopen it, please open a new issue and reference this one.
+          stale-issue-label: 'stale'
+          close-issue-label: 'closed-by-stalebot'
+          exempt-issue-labels: 'pinned,security,bug,enhancement,documentation'
+          days-before-issue-stale: 60
+          days-before-issue-close: 90
+          
+      - name: Mark stale Pull Requests
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it has had no activity for 30 days.
+            
+            **⚠️ Important for maintainers:** This PR is waiting for review or action.
+            
+            If this PR is still relevant, please:
+            - Add a comment or emoji reaction (👍)
+            - Or request a review from a maintainer
+            
+            **This PR will be automatically closed in 15 days** if no activity occurs.
+          close-pr-message: >
+            This pull request has been automatically closed because no activity was recorded for 45 days.
+            
+            If this PR is still needed, please:
+            - Open a new PR with updated changes
+            - Or contact a maintainer if you need to reopen this PR
+          stale-pr-label: 'stale'
+          close-pr-label: 'closed-by-stalebot'
+          exempt-pr-labels: 'pinned,security,dependencies,breaking-change'
+          days-before-pr-stale: 45
+          days-before-pr-close: 60
+          operations-per-run: 30
+
