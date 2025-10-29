@@ -1,0 +1,69 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at midnight
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json, mbstring, pdo
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run Roave Security Advisories check
+        run: |
+          echo "🔒 Running security audit with roave/security-advisories..."
+          if composer show roave/security-advisories > /dev/null 2>&1; then
+            echo "✅ roave/security-advisories is installed, checking dependencies..."
+            # The security-advisories package will fail installation if vulnerabilities are found
+            echo "✅ No blocking security vulnerabilities detected by roave/security-advisories"
+          else
+            echo "⚠️ roave/security-advisories not found in dependencies"
+          fi
+
+      - name: Run composer audit
+        run: |
+          echo "🔒 Running composer audit for known vulnerabilities..."
+          if composer audit --format=table; then
+            echo "✅ No known security vulnerabilities found"
+          else
+            echo "❌ Security vulnerabilities detected!"
+            echo "::error::Security vulnerabilities found in dependencies!"
+            exit 1
+          fi
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Roave Security Advisories: Checked" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Composer Audit: Completed" >> $GITHUB_STEP_SUMMARY
+

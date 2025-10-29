@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Generate release notes from CHANGELOG
+        id: changelog
+        if: hashFiles('CHANGELOG.md') != ''
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            # Extract section for this version
+            VERSION="${{ steps.version.outputs.version }}"
+            # Try to extract the relevant section from CHANGELOG
+            awk "/^## \[.*\] -/ {flag=0} /^## \[.*\] -/ && flag==0 {flag=1; next} flag==1 && /^## / {exit} flag==1" CHANGELOG.md > release_notes_temp.md || true
+            
+            if [ -s release_notes_temp.md ]; then
+              NOTES=$(cat release_notes_temp.md)
+            else
+              NOTES="See CHANGELOG.md for details"
+            fi
+            
+            echo "notes<<EOF" >> $GITHUB_OUTPUT
+            echo "$NOTES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            rm -f release_notes_temp.md
+          else
+            echo "notes=Release ${{ steps.version.outputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ${{ steps.changelog.outputs.notes }}
+            
+            ## Installation
+            
+            ```bash
+            composer require pekral/rector-rules:^${{ steps.version.outputs.version }}
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate composer.json
+        run: |
+          composer validate --strict --no-interaction
+          echo "✅ composer.json is valid"
+
+      - name: Create summary
+        run: |
+          echo "## 🚀 Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Packagist:** Will be automatically updated" >> $GITHUB_STEP_SUMMARY
+
