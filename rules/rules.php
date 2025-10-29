@@ -3,14 +3,17 @@
 declare(strict_types = 1);
 
 use Rector\CodeQuality\Rector\Assign\CombinedAssignRector;
+use Rector\CodeQuality\Rector\BooleanAnd\RepeatedAndNotEqualToNotInArrayRector;
 use Rector\CodeQuality\Rector\BooleanOr\RepeatedOrEqualToInArrayRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
 use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
+use Rector\CodeQuality\Rector\Class_\ReturnIteratorInDataProviderRector;
 use Rector\CodeQuality\Rector\ClassConstFetch\VariableConstFetchToClassConstFetchRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
+use Rector\CodeQuality\Rector\Concat\DirnameDirConcatStringToDirectStringPathRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
 use Rector\CodeQuality\Rector\Expression\InlineIfToExplicitIfRector;
@@ -70,6 +73,7 @@ use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessReadOnlyTagRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
 use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
+use Rector\DeadCode\Rector\Stmt\RemoveConditionExactReturnRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
 use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadCatchRector;
@@ -102,6 +106,7 @@ use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Php83\Rector\Class_\ReadOnlyAnonymousClassRector;
 use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
+use Rector\Php84\Rector\Class_\PropertyHookRector;
 use Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector;
 use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
 use Rector\Php85\Rector\ShellExec\ShellExecFunctionCallOverBackticksRector;
@@ -109,7 +114,6 @@ use Rector\PHPUnit\AnnotationsToAttributes\Rector\Class_\AnnotationWithValueToAt
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DataProviderAnnotationToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\DependsAnnotationWithValueToAttributeRector;
 use Rector\PHPUnit\AnnotationsToAttributes\Rector\ClassMethod\TestWithAnnotationToAttributeRector;
-use Rector\PHPUnit\CodeQuality\Rector\Class_\AddParentSetupCallOnSetupRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\ConstructClassMethodToSetUpTestCaseRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\YieldDataProviderRector;
 use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\DataProviderArrayItemsNewLinedRector;
@@ -132,6 +136,7 @@ use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector
 use Rector\TypeDeclaration\Rector\Class_\AddTestsVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
 use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromStrictTernaryRector;
+use Rector\TypeDeclaration\Rector\Class_\TypedStaticPropertyInBehatContextRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamFromDimFetchKeyUseRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamStringTypeFromSprintfUseRector;
@@ -346,7 +351,6 @@ return [
     ClosureToArrowFunctionRector::class,
     ConsistentImplodeRector::class,
     ChangeIfElseValueAssignToEarlyReturnRector::class,
-    AddParentSetupCallOnSetupRector::class,
     AddProphecyTraitRector::class,
     AddReturnTypeDeclarationRector::class,
     AnnotationWithValueToAttributeRector::class,
@@ -359,4 +363,10 @@ return [
     AssertNotOperatorRector::class,
     AssertSameBoolNullToSpecificMethodRector::class,
     AddReturnDocblockDataProviderRector::class,
+    ReturnIteratorInDataProviderRector::class,
+    RepeatedAndNotEqualToNotInArrayRector::class,
+    DirnameDirConcatStringToDirectStringPathRector::class,
+    RemoveConditionExactReturnRector::class,
+    PropertyHookRector::class,
+    TypedStaticPropertyInBehatContextRector::class,
 ];

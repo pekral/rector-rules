@@ -15,6 +15,7 @@ use Rector\Carbon\Rector\MethodCall\DateTimeMethodCallToCarbonRector;
 use Rector\Carbon\Rector\New_\DateTimeInstanceToCarbonRector;
 use Rector\CodeQuality\Rector\BooleanAnd\RemoveUselessIsObjectCheckRector;
 use Rector\CodeQuality\Rector\BooleanAnd\SimplifyEmptyArrayCheckRector;
+use Rector\CodeQuality\Rector\BooleanNot\ReplaceConstantBooleanNotRector;
 use Rector\CodeQuality\Rector\BooleanNot\ReplaceMultipleBooleanNotRector;
 use Rector\CodeQuality\Rector\BooleanNot\SimplifyDeMorganBinaryRector;
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
@@ -99,6 +100,7 @@ use Rector\DeadCode\Rector\If_\RemoveTypedPropertyDeadInstanceOfRector;
 use Rector\DeadCode\Rector\If_\RemoveUnusedNonEmptyArrayBeforeForeachRector;
 use Rector\DeadCode\Rector\If_\SimplifyIfElseWithSameContentRector;
 use Rector\DeadCode\Rector\If_\UnwrapFutureCompatibleIfPhpVersionRector;
+use Rector\DeadCode\Rector\MethodCall\RemoveNullArgOnNullDefaultParamRector;
 use Rector\DeadCode\Rector\Plus\RemoveDeadZeroAndOneOperationRector;
 use Rector\DeadCode\Rector\Property\RemoveUnusedPrivatePropertyRector;
 use Rector\DeadCode\Rector\PropertyProperty\RemoveNullPropertyInitializationRector;
@@ -215,10 +217,12 @@ use Rector\Php85\Rector\Class_\SleepToSerializeRector;
 use Rector\Php85\Rector\Class_\WakeupToUnserializeRector;
 use Rector\Php85\Rector\ClassMethod\NullDebugInfoReturnRector;
 use Rector\Php85\Rector\Const_\DeprecatedAnnotationToDeprecatedAttributeRector as Php85DeprecatedAnnotationToDeprecatedAttributeRector;
+use Rector\Php85\Rector\Expression\NestedFuncCallsToPipeOperatorRector;
 use Rector\Php85\Rector\FuncCall\ArrayKeyExistsNullToEmptyStringRector;
 use Rector\Php85\Rector\FuncCall\ChrArgModuloRector;
 use Rector\Php85\Rector\FuncCall\OrdSingleByteRector;
 use Rector\Php85\Rector\FuncCall\RemoveFinfoBufferContextArgRector;
+use Rector\Php85\Rector\StmtsAwareInterface\SequentialAssignmentsToPipeOperatorRector;
 use Rector\Php85\Rector\Switch_\ColonAfterSwitchCaseRector;
 use Rector\Privatization\Rector\MethodCall\PrivatizeLocalGetterToPropertyRector;
 use Rector\Removing\Rector\Class_\RemoveInterfacesRector;
@@ -273,6 +277,8 @@ use Rector\Transform\Rector\String_\StringToClassConstantRector;
 use Rector\TypeDeclaration\Rector\BooleanAnd\BinaryOpNullableToInstanceofRector;
 use Rector\TypeDeclaration\Rector\Class_\ChildDoctrineRepositoryClassTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\MergeDateTimePropertyTypeDeclarationRector;
+use Rector\TypeDeclaration\Rector\Class_\ObjectTypedPropertyFromJMSSerializerAttributeTypeRector;
+use Rector\TypeDeclaration\Rector\Class_\ScalarTypedPropertyFromJMSSerializerAttributeTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromCreateMockAssignRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromDocblockSetUpDefinedRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromJMSSerializerAttributeTypeRector;
@@ -324,6 +330,14 @@ use Rector\Visibility\Rector\ClassMethod\ExplicitPublicClassMethodRector;
  * - They are not available in current Rector version
  */
 const IGNORED_RULES = [
+    // Enable after PHP 8.5 support enabled
+    SequentialAssignmentsToPipeOperatorRector::class,
+    NestedFuncCallsToPipeOperatorRector::class,
+    ObjectTypedPropertyFromJMSSerializerAttributeTypeRector::class,
+    ScalarTypedPropertyFromJMSSerializerAttributeTypeRector::class,
+    // Ignored rules
+    RemoveNullArgOnNullDefaultParamRector::class,
+    ReplaceConstantBooleanNotRector::class,
     SleepToSerializeRector::class,
     WakeupToUnserializeRector::class,
     UnsetCastRector::class,

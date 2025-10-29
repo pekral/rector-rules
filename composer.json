@@ -33,11 +33,11 @@
   ],
   "require": {
     "php": "^8.4",
-    "rector/rector": "^2.2.3"
+    "rector/rector": "^2.2.7"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "^0.4.2"
+    "pekral/phpcs-rules": "^0.4.3"
   },
   "autoload": {
     "psr-4": {
