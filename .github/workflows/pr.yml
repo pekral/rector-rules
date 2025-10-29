@@ -52,23 +52,3 @@ jobs:
           ${{ matrix.check.command }}
         env:
           COMPOSER_MEMORY_LIMIT: -1
-
-      - name: Check result
-        if: steps.check.outcome == 'failure'
-        run: |
-          echo "❌ ${{ matrix.check.name }} failed!"
-          exit 1
-
-      - name: Report success
-        if: steps.check.outcome == 'success'
-        run: |
-          echo "✅ ${{ matrix.check.name }} passed!"
-
-      - name: Create summary
-        if: always()
-        run: |
-          if [ "${{ steps.check.outcome }}" == "success" ]; then
-            echo "✅ **${{ matrix.check.name }}**: Passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **${{ matrix.check.name }}**: Failed" >> $GITHUB_STEP_SUMMARY
-          fi
