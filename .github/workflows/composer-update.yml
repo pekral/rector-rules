@@ -13,10 +13,6 @@ jobs:
   update:
     name: Update Dependencies
     runs-on: ubuntu-latest
-    outputs:
-      branch-name: ${{ steps.branch-name.outputs.name }}
-      has-changes: ${{ steps.changes.outputs.has_changes }}
-      pr-number: ${{ steps.create-pr.outputs.number }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,62 +95,10 @@ jobs:
           base: master
           title: "chore: update composer dependencies"
           body: |
-            Automaticky vygenerovaný PR pro aktualizaci composer závislostí.
+            Automatically generated PR for updating composer dependencies.
             
-            Tento PR byl vytvořen automaticky každou neděli v 20:00.
+            This PR was created automatically every Sunday at 20:00 (Europe/Prague time).
           labels: |
             dependencies
             composer
           draft: false
-
-  checks:
-    name: Run Checks
-    needs: update
-    if: needs.update.outputs.has-changes == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        check:
-          - name: Missing Rules
-            command: composer check:missing-rules
-          - name: PHPCS
-            command: composer phpcs
-          - name: Rector
-            command: composer rector
-    steps:
-      - name: Checkout updated branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.update.outputs.branch-name }}
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json, mbstring, pdo
-          coverage: none
-
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist --optimize-autoloader
-        env:
-          COMPOSER_MEMORY_LIMIT: -1
-
-      - name: Run ${{ matrix.check.name }}
-        continue-on-error: true
-        run: |
-          ${{ matrix.check.command }}
-        env:
-          COMPOSER_MEMORY_LIMIT: -1
