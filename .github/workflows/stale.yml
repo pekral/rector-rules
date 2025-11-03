@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Mark stale Issues
-        uses: actions/stale@v9
+        uses: actions/stale@v10
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-issue-message: >
@@ -40,7 +40,7 @@ jobs:
           days-before-issue-close: 90
           
       - name: Mark stale Pull Requests
-        uses: actions/stale@v9
+        uses: actions/stale@v10
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-pr-message: >
