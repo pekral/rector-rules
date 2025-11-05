@@ -48,7 +48,6 @@ use Rector\CodeQuality\Rector\Ternary\SimplifyTautologyTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\SwitchNegatedTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryEmptyArrayArrayDimFetchToCoalesceRector;
 use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
-use Rector\CodingStyle\Rector\ArrowFunction\StaticArrowFunctionRector;
 use Rector\CodingStyle\Rector\ClassMethod\BinaryOpStandaloneAssignsToDirectRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
@@ -238,7 +237,6 @@ return [
     StrContainsRector::class,
     StrEndsWithRector::class,
     StrStartsWithRector::class,
-    StaticArrowFunctionRector::class,
     AddReturnTypeDeclarationBasedOnParentClassMethodRector::class,
     AddParamTypeBasedOnPHPUnitDataProviderRector::class,
     AddReturnTypeDeclarationFromYieldsRector::class,

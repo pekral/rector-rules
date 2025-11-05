@@ -48,6 +48,7 @@ use Rector\CodeQuality\Rector\New_\NewStaticToNewSelfRector;
 use Rector\CodeQuality\Rector\Switch_\SingularSwitchToIfRector;
 use Rector\CodeQuality\Rector\Ternary\NumberCompareToMaxFuncCallRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryImplodeToImplodeRector;
+use Rector\CodingStyle\Rector\ArrowFunction\StaticArrowFunctionRector;
 use Rector\CodingStyle\Rector\Assign\SplitDoubleAssignRector;
 use Rector\CodingStyle\Rector\Catch_\CatchExceptionNameMatchingTypeRector;
 use Rector\CodingStyle\Rector\ClassConst\RemoveFinalFromConstRector;
@@ -645,4 +646,5 @@ const IGNORED_RULES = [
     RemoveReferenceFromCallRector::class,
     LongArrayToShortArrayRector::class,
     OrdSingleByteRector::class,
+    StaticArrowFunctionRector::class,
 ];
