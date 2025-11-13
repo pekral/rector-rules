@@ -48,6 +48,7 @@ use Rector\CodeQuality\Rector\Ternary\SimplifyTautologyTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\SwitchNegatedTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryEmptyArrayArrayDimFetchToCoalesceRector;
 use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
+use Rector\CodingStyle\Rector\Assign\NestedTernaryToMatchRector;
 use Rector\CodingStyle\Rector\ClassMethod\BinaryOpStandaloneAssignsToDirectRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
@@ -66,6 +67,7 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\DeadCode\Rector\Closure\RemoveUnusedClosureVariableUseRector;
 use Rector\DeadCode\Rector\For_\RemoveDeadIfForeachForRector;
+use Rector\DeadCode\Rector\FunctionLike\NarrowWideUnionReturnTypeRector;
 use Rector\DeadCode\Rector\FunctionLike\RemoveDeadReturnRector;
 use Rector\DeadCode\Rector\If_\ReduceAlwaysFalseIfOrRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
@@ -144,6 +146,7 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\KnownMagicClassMethodTypeRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
@@ -165,6 +168,7 @@ use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
+use Rector\TypeDeclarationDocblocks\Rector\Class_\AddReturnArrayDocblockFromDataProviderParamRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\AddReturnDocblockDataProviderRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\ClassMethodArrayDocblockParamFromLocalCallsRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\DocblockVarArrayFromGetterReturnRector;
@@ -367,4 +371,8 @@ return [
     RemoveConditionExactReturnRector::class,
     PropertyHookRector::class,
     TypedStaticPropertyInBehatContextRector::class,
+    NarrowObjectReturnTypeRector::class,
+    NestedTernaryToMatchRector::class,
+    NarrowWideUnionReturnTypeRector::class,
+    AddReturnArrayDocblockFromDataProviderParamRector::class,
 ];

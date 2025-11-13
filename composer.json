@@ -1,28 +1,4 @@
 {
-  "name": "pekral/rector-rules",
-  "description": "An extensible package of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
-  "type": "library",
-  "license": "MIT",
-  "homepage": "https://github.com/pekral/rector-rules",
-  "support": {
-    "issues": "https://github.com/pekral/rector-rules/issues",
-    "source": "https://github.com/pekral/rector-rules",
-    "docs": "https://github.com/pekral/rector-rules#readme"
-  },
-  "funding": [
-    {
-      "type": "github",
-      "url": "https://github.com/sponsors/pekral"
-    }
-  ],
-  "keywords": [
-    "rector",
-    "ruleset",
-    "rector-rules",
-    "php",
-    "refactoring",
-    "code-quality"
-  ],
   "authors": [
     {
       "name": "Petr Král",
@@ -31,14 +7,6 @@
       "homepage": "https://github.com/pekral"
     }
   ],
-  "require": {
-    "php": "^8.4",
-    "rector/rector": "^2.2.7"
-  },
-  "require-dev": {
-    "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "^0.4.4"
-  },
   "autoload": {
     "psr-4": {
       "PekralRectorRule\\": "rules/"
@@ -48,6 +16,40 @@
     "psr-4": {
       "PekralRectorRule\\Tests\\": "tests/"
     }
+  },
+  "config": {
+    "prefer-stable": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "description": "An extensible package of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/pekral"
+    }
+  ],
+  "homepage": "https://github.com/pekral/rector-rules",
+  "keywords": [
+    "rector",
+    "ruleset",
+    "rector-rules",
+    "php",
+    "refactoring",
+    "code-quality"
+  ],
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "name": "pekral/rector-rules",
+  "prefer-stable": true,
+  "require": {
+    "php": "^8.4",
+    "rector/rector": "^2.2.8"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "pekral/phpcs-rules": "^0.4.4"
   },
   "scripts": {
     "build": "composer check && git gone",
@@ -59,12 +61,10 @@
     "fix": "composer rector:fix && composer phpcs:fix",
     "check:missing-rules": "php build/find-missing-rules.php"
   },
-  "config": {
-    "prefer-stable": true,
-    "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
-    }
+  "support": {
+    "issues": "https://github.com/pekral/rector-rules/issues",
+    "source": "https://github.com/pekral/rector-rules",
+    "docs": "https://github.com/pekral/rector-rules#readme"
   },
-  "minimum-stability": "dev",
-  "prefer-stable": true
+  "type": "library"
 }
