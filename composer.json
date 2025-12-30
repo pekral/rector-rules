@@ -33,7 +33,7 @@
   ],
   "require": {
     "php": "^8.4",
-    "rector/rector": "^2.2.7"
+    "rector/rector": "^2.3.0"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
