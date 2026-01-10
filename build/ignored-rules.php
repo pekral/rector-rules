@@ -21,8 +21,6 @@ use Rector\CodeQuality\Rector\BooleanNot\SimplifyDeMorganBinaryRector;
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\Class_\DynamicDocBlockPropertyToNativePropertyRector;
 use Rector\CodeQuality\Rector\Class_\RemoveReadonlyPropertyVisibilityOnReadonlyClassRector;
-use Rector\CodeQuality\Rector\Class_\StaticToSelfStaticMethodCallOnFinalClassRector;
-use Rector\CodeQuality\Rector\ClassConstFetch\ConvertStaticPrivateConstantToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\OptionalParametersAfterRequiredRector;
 use Rector\CodeQuality\Rector\Equal\UseIdenticalOverEqualWithSameTypeRector;
@@ -61,7 +59,6 @@ use Rector\CodingStyle\Rector\Closure\ClosureDelegatingCallToFirstClassCallableR
 use Rector\CodingStyle\Rector\Closure\StaticClosureRector;
 use Rector\CodingStyle\Rector\Encapsed\WrapEncapsedVariableInCurlyBracesRector;
 use Rector\CodingStyle\Rector\Enum_\EnumCaseToPascalCaseRector;
-use Rector\CodingStyle\Rector\Foreach_\MultiDimensionalArrayToArrayDestructRector;
 use Rector\CodingStyle\Rector\FuncCall\CallUserFuncArrayToVariadicRector;
 use Rector\CodingStyle\Rector\FuncCall\CallUserFuncToMethodCallRector;
 use Rector\CodingStyle\Rector\FuncCall\ClosureFromCallableToFirstClassCallableRector;
@@ -97,7 +94,6 @@ use Rector\DeadCode\Rector\For_\RemoveDeadContinueRector;
 use Rector\DeadCode\Rector\For_\RemoveDeadLoopRector;
 use Rector\DeadCode\Rector\Foreach_\RemoveUnusedForeachKeyRector;
 use Rector\DeadCode\Rector\FuncCall\RemoveFilterVarOnExactTypeRector;
-use Rector\DeadCode\Rector\FunctionLike\NarrowTooWideReturnTypeRector;
 use Rector\DeadCode\Rector\If_\RemoveAlwaysTrueIfConditionRector;
 use Rector\DeadCode\Rector\If_\RemoveDeadInstanceOfRector;
 use Rector\DeadCode\Rector\If_\RemoveTypedPropertyDeadInstanceOfRector;
@@ -173,7 +169,6 @@ use Rector\Php73\Rector\FuncCall\SetCookieRector;
 use Rector\Php73\Rector\FuncCall\StringifyStrNeedlesRector;
 use Rector\Php73\Rector\String_\SensitiveHereNowDocRector;
 use Rector\Php74\Rector\ArrayDimFetch\CurlyToSquareBracketArrayStringRector;
-use Rector\Php74\Rector\Double\RealToFloatTypeCastRector;
 use Rector\Php74\Rector\FuncCall\ArrayKeyExistsOnPropertyRector;
 use Rector\Php74\Rector\FuncCall\FilterVarToAddSlashesRector;
 use Rector\Php74\Rector\FuncCall\HebrevcToNl2brHebrevRector;
@@ -241,25 +236,16 @@ use Rector\Renaming\Rector\ClassConstFetch\RenameClassConstFetchRector;
 use Rector\Renaming\Rector\ClassMethod\RenameAnnotationRector;
 use Rector\Renaming\Rector\ConstFetch\RenameConstantRector;
 use Rector\Renaming\Rector\FuncCall\RenameFunctionRector;
-use Rector\Renaming\Rector\FunctionLike\RenameFunctionLikeParamWithinCallLikeArgRector;
 use Rector\Renaming\Rector\MethodCall\RenameMethodRector;
 use Rector\Renaming\Rector\Name\RenameClassRector;
 use Rector\Renaming\Rector\PropertyFetch\RenamePropertyRector;
 use Rector\Renaming\Rector\StaticCall\RenameStaticMethodRector;
 use Rector\Renaming\Rector\String_\RenameStringRector;
-use Rector\Strict\Rector\BooleanNot\BooleanInBooleanNotRuleFixerRector;
 use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
-use Rector\Strict\Rector\If_\BooleanInIfConditionRuleFixerRector;
-use Rector\Strict\Rector\Ternary\BooleanInTernaryOperatorRuleFixerRector;
-use Rector\Strict\Rector\Ternary\DisallowedShortTernaryRuleFixerRector;
 use Rector\Transform\Rector\ArrayDimFetch\ArrayDimFetchToMethodCallRector;
-use Rector\Transform\Rector\Assign\PropertyAssignToMethodCallRector;
-use Rector\Transform\Rector\Assign\PropertyFetchToMethodCallRector;
 use Rector\Transform\Rector\Attribute\AttributeKeyToClassConstFetchRector;
-use Rector\Transform\Rector\Class_\AddAllowDynamicPropertiesAttributeRector;
 use Rector\Transform\Rector\Class_\AddInterfaceByTraitRector;
 use Rector\Transform\Rector\Class_\MergeInterfacesRector;
-use Rector\Transform\Rector\Class_\ParentClassToTraitsRector;
 use Rector\Transform\Rector\ClassMethod\ReturnTypeWillChangeRector;
 use Rector\Transform\Rector\ClassMethod\WrapReturnRector;
 use Rector\Transform\Rector\ConstFetch\ConstFetchToClassConstFetchRector;
@@ -267,12 +253,8 @@ use Rector\Transform\Rector\FuncCall\FuncCallToConstFetchRector;
 use Rector\Transform\Rector\FuncCall\FuncCallToMethodCallRector;
 use Rector\Transform\Rector\FuncCall\FuncCallToNewRector;
 use Rector\Transform\Rector\FuncCall\FuncCallToStaticCallRector;
-use Rector\Transform\Rector\FuncCall\WrapFuncCallWithPhpVersionIdCheckerRector;
 use Rector\Transform\Rector\MethodCall\MethodCallToFuncCallRector;
-use Rector\Transform\Rector\MethodCall\MethodCallToNewRector;
-use Rector\Transform\Rector\MethodCall\MethodCallToPropertyFetchRector;
 use Rector\Transform\Rector\MethodCall\MethodCallToStaticCallRector;
-use Rector\Transform\Rector\MethodCall\ReplaceParentCallByPropertyCallRector;
 use Rector\Transform\Rector\New_\NewToStaticCallRector;
 use Rector\Transform\Rector\Scalar\ScalarValueToConstFetchRector;
 use Rector\Transform\Rector\StaticCall\StaticCallToFuncCallRector;
@@ -286,13 +268,11 @@ use Rector\TypeDeclaration\Rector\Class_\ObjectTypedPropertyFromJMSSerializerAtt
 use Rector\TypeDeclaration\Rector\Class_\ScalarTypedPropertyFromJMSSerializerAttributeTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromCreateMockAssignRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromDocblockSetUpDefinedRector;
-use Rector\TypeDeclaration\Rector\Class_\TypedPropertyFromJMSSerializerAttributeTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamArrayDocblockBasedOnCallableNativeFuncCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeDeclarationRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnArrayDocblockBasedOnArrayMapRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnDocblockForScalarArrayFromAssignsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeFromTryCatchTypeRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\AddTypeFromResourceDocblockRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromBooleanConstReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromBooleanStrictReturnsRector;
@@ -306,16 +286,12 @@ use Rector\TypeDeclaration\Rector\ClassMethod\StringReturnTypeFromStrictStringRe
 use Rector\TypeDeclaration\Rector\Closure\AddClosureVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\Closure\ClosureReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Empty_\EmptyOnNullableObjectToInstanceOfRector;
-use Rector\TypeDeclaration\Rector\Expression\InlineVarDocTagToAssertRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrayFunctionClosureParamTypeRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
 use Rector\TypeDeclaration\Rector\Function_\AddFunctionVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayMapRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayReduceRector;
-use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeFromArgRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeFromIterableMethodCallRector;
-use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeFromObjectRector;
-use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeForFunctionLikeWithinCallLikeArgDeclarationRector;
 use Rector\TypeDeclaration\Rector\Property\AddPropertyTypeDeclarationRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromAssignsRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
@@ -372,7 +348,6 @@ const IGNORED_RULES = [
     MoneyFormatToNumberFormatRector::class,
     CurlyToSquareBracketArrayStringRector::class,
     AddLiteralSeparatorToNumberRector::class,
-    RealToFloatTypeCastRector::class,
     ExportToReflectionFunctionRector::class,
     GetDebugTypeRector::class,
     ClassOnObjectRector::class,
@@ -393,7 +368,6 @@ const IGNORED_RULES = [
     IsCountableRector::class,
     RenameStringRector::class,
     RenameFunctionRector::class,
-    RenameFunctionLikeParamWithinCallLikeArgRector::class,
     RenameAnnotationRector::class,
     RenameCastRector::class,
     RenameClassConstFetchRector::class,
@@ -408,11 +382,8 @@ const IGNORED_RULES = [
     AddArrowFunctionParamArrayWhereDimFetchRector::class,
     AddArrayFunctionClosureParamTypeRector::class,
     AddClosureParamTypeForArrayMapRector::class,
-    AddClosureParamTypeFromArgRector::class,
     AddClosureParamTypeFromIterableMethodCallRector::class,
-    AddParamTypeForFunctionLikeWithinCallLikeArgDeclarationRector::class,
     AddClosureParamTypeForArrayReduceRector::class,
-    AddClosureParamTypeFromObjectRector::class,
     AddVoidReturnTypeWhereNoReturnRector::class,
     ReturnTypeFromMockObjectRector::class,
     NumericReturnTypeFromStrictReturnsRector::class,
@@ -424,7 +395,6 @@ const IGNORED_RULES = [
     StrictArrayParamDimFetchRector::class,
     StringReturnTypeFromStrictStringReturnsRector::class,
     ReturnTypeFromSymfonySerializerRector::class,
-    AddTypeFromResourceDocblockRector::class,
     BoolReturnTypeFromBooleanStrictReturnsRector::class,
     AddParamArrayDocblockBasedOnCallableNativeFuncCallRector::class,
     AddReturnTypeFromTryCatchTypeRector::class,
@@ -435,11 +405,9 @@ const IGNORED_RULES = [
     WhileNullableToInstanceofRector::class,
     BinaryOpNullableToInstanceofRector::class,
     AddFunctionVoidReturnTypeWhereNoReturnRector::class,
-    InlineVarDocTagToAssertRector::class,
     IncreaseDeclareStrictTypesRector::class,
     DeclareStrictTypesRector::class,
     TypedPropertyFromCreateMockAssignRector::class,
-    TypedPropertyFromJMSSerializerAttributeTypeRector::class,
     TypedPropertyFromDocblockSetUpDefinedRector::class,
     MergeDateTimePropertyTypeDeclarationRector::class,
     ChildDoctrineRepositoryClassTypeRector::class,
@@ -471,7 +439,6 @@ const IGNORED_RULES = [
     EnumCaseToPascalCaseRector::class,
     NullableCompareToNullRector::class,
     SeparateMultiUseImportsRector::class,
-    MultiDimensionalArrayToArrayDestructRector::class,
     PostIncDecToPreIncDecRector::class,
     SplitDoubleAssignRector::class,
     WrapEncapsedVariableInCurlyBracesRector::class,
@@ -527,7 +494,6 @@ const IGNORED_RULES = [
     ReduceMultipleDefaultSwitchRector::class,
     RemoveConcatAutocastRector::class,
     RemoveFilterVarOnExactTypeRector::class,
-    NarrowTooWideReturnTypeRector::class,
     RemoveUnusedPublicMethodParameterRector::class,
     RemoveNullTagValueNodeRector::class,
     RemoveUselessAssignFromPropertyPromotionRector::class,
@@ -565,11 +531,7 @@ const IGNORED_RULES = [
     RenameForeachValueVariableToMatchMethodCallReturnTypeRector::class,
     RenameForeachValueVariableToMatchExprVariableRector::class,
     RenameVariableToMatchMethodCallReturnTypeRector::class,
-    DisallowedShortTernaryRuleFixerRector::class,
-    BooleanInTernaryOperatorRuleFixerRector::class,
-    BooleanInBooleanNotRuleFixerRector::class,
     DisallowedEmptyRuleFixerRector::class,
-    BooleanInIfConditionRuleFixerRector::class,
     TernaryImplodeToImplodeRector::class,
     NumberCompareToMaxFuncCallRector::class,
     CallUserFuncWithArrowFunctionToInlineRector::class,
@@ -616,7 +578,6 @@ const IGNORED_RULES = [
     VarToPublicPropertyRector::class,
     ContinueToBreakInSwitchRector::class,
     StringToClassConstantRector::class,
-    WrapFuncCallWithPhpVersionIdCheckerRector::class,
     FuncCallToMethodCallRector::class,
     FuncCallToNewRector::class,
     FuncCallToStaticCallRector::class,
@@ -627,21 +588,14 @@ const IGNORED_RULES = [
     ConstFetchToClassConstFetchRector::class,
     ArrayDimFetchToMethodCallRector::class,
     NewToStaticCallRector::class,
-    PropertyFetchToMethodCallRector::class,
-    PropertyAssignToMethodCallRector::class,
     MethodCallToStaticCallRector::class,
-    ReplaceParentCallByPropertyCallRector::class,
     MethodCallToFuncCallRector::class,
-    MethodCallToNewRector::class,
-    MethodCallToPropertyFetchRector::class,
     StaticCallToNewRector::class,
     StaticCallToFuncCallRector::class,
     StaticCallToMethodCallRector::class,
     ScalarValueToConstFetchRector::class,
     MergeInterfacesRector::class,
-    AddAllowDynamicPropertiesAttributeRector::class,
     AddInterfaceByTraitRector::class,
-    ParentClassToTraitsRector::class,
     FunctionArgumentDefaultValueReplacerRector::class,
     ArgumentAdderRector::class,
     ReplaceArgumentDefaultValueRector::class,

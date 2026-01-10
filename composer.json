@@ -37,7 +37,7 @@
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "^0.4.4"
+    "pekral/phpcs-rules": "dev-master"
   },
   "autoload": {
     "psr-4": {
