@@ -74,7 +74,9 @@ use Rector\DeadCode\Rector\For_\RemoveDeadIfForeachForRector;
 use Rector\DeadCode\Rector\FunctionLike\NarrowWideUnionReturnTypeRector;
 use Rector\DeadCode\Rector\FunctionLike\RemoveDeadReturnRector;
 use Rector\DeadCode\Rector\If_\ReduceAlwaysFalseIfOrRector;
+use Rector\DeadCode\Rector\MethodCall\RemoveNullArgOnNullDefaultParamRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
+use Rector\DeadCode\Rector\Property\RemoveUnusedPrivatePropertyRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessReadOnlyTagRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
 use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
@@ -89,16 +91,21 @@ use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
 use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
+use Rector\Php54\Rector\Array_\LongArrayToShortArrayRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
 use Rector\Php70\Rector\Ternary\TernaryToNullCoalescingRector;
 use Rector\Php71\Rector\TryCatch\MultiExceptionCatchRector;
 use Rector\Php72\Rector\FuncCall\StringifyDefineRector;
+use Rector\Php72\Rector\FuncCall\StringsAssertNakedRector;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php73\Rector\FuncCall\ArrayKeyFirstLastRector;
+use Rector\Php73\Rector\FuncCall\JsonThrowOnErrorRector;
 use Rector\Php73\Rector\FuncCall\SensitiveDefineRector;
 use Rector\Php74\Rector\Assign\NullCoalescingOperatorRector;
 use Rector\Php74\Rector\Closure\ClosureToArrowFunctionRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
+use Rector\Php80\Rector\Catch_\RemoveUnusedVariableInCatchRector;
+use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php80\Rector\ClassMethod\AddParamBasedOnParentClassMethodRector;
 use Rector\Php80\Rector\Identical\StrEndsWithRector;
 use Rector\Php80\Rector\Identical\StrStartsWithRector;
@@ -149,10 +156,13 @@ use Rector\TypeDeclaration\Rector\ClassMethod\AddParamFromDimFetchKeyUseRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamStringTypeFromSprintfUseRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnDocblockForScalarArrayFromAssignsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\KnownMagicClassMethodTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
@@ -162,6 +172,7 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnCastRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnDirectArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromReturnNewRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictConstantReturnRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictFluentReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNativeCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictNewArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictParamRector;
@@ -170,6 +181,13 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyR
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnUnionTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\StrictStringParamConcatRector;
 use Rector\TypeDeclaration\Rector\Closure\AddClosureNeverReturnTypeRector;
+use Rector\TypeDeclaration\Rector\Closure\AddClosureVoidReturnTypeWhereNoReturnRector;
+use Rector\TypeDeclaration\Rector\Closure\ClosureReturnTypeRector;
+use Rector\TypeDeclaration\Rector\FuncCall\AddArrayFunctionClosureParamTypeRector;
+use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
+use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayMapRector;
+use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayReduceRector;
+use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeFromIterableMethodCallRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddParamTypeSplFixedArrayRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYieldsRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
@@ -387,4 +405,22 @@ return [
     NewlineBetweenClassLikeStmtsRector::class,
     SimplifyQuoteEscapeRector::class,
     NarrowObjectReturnTypeRector::class,
+    RemoveNullArgOnNullDefaultParamRector::class,
+    StringsAssertNakedRector::class,
+    RemoveUnusedVariableInCatchRector::class,
+    ClassPropertyAssignToConstructorPromotionRector::class,
+    JsonThrowOnErrorRector::class,
+    ClosureReturnTypeRector::class,
+    AddClosureVoidReturnTypeWhereNoReturnRector::class,
+    AddArrowFunctionParamArrayWhereDimFetchRector::class,
+    AddArrayFunctionClosureParamTypeRector::class,
+    AddClosureParamTypeForArrayMapRector::class,
+    AddClosureParamTypeFromIterableMethodCallRector::class,
+    AddClosureParamTypeForArrayReduceRector::class,
+    AddVoidReturnTypeWhereNoReturnRector::class,
+    NumericReturnTypeFromStrictReturnsRector::class,
+    ReturnTypeFromStrictFluentReturnRector::class,
+    AddReturnDocblockForScalarArrayFromAssignsRector::class,
+    LongArrayToShortArrayRector::class,
+    RemoveUnusedPrivatePropertyRector::class,
 ];

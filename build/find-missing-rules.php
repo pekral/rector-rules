@@ -25,6 +25,8 @@ function pathToNamespace(string $relativePath): string
 
 /**
  * Dynamically discover all Rector rules from vendor directory
+ *
+ * @return array<string>
  */
 function discoverRectorRules(): array
 {
