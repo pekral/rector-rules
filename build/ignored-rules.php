@@ -72,6 +72,7 @@ use Rector\CodingStyle\Rector\PostInc\PostIncDecToPreIncDecRector;
 use Rector\CodingStyle\Rector\Property\SplitGroupedPropertiesRector;
 use Rector\CodingStyle\Rector\Stmt\NewlineAfterStatementRector;
 use Rector\CodingStyle\Rector\Stmt\RemoveUselessAliasInUseStatementRector;
+use Rector\CodingStyle\Rector\String_\SimplifyQuoteEscapeRector;
 use Rector\CodingStyle\Rector\String_\SymplifyQuoteEscapeRector;
 use Rector\CodingStyle\Rector\String_\UseClassKeywordForClassNameResolutionRector;
 use Rector\CodingStyle\Rector\Ternary\TernaryConditionVariableAssignmentRector;
@@ -206,6 +207,7 @@ use Rector\Php83\Rector\FuncCall\CombineHostPortLdapUriRector;
 use Rector\Php83\Rector\FuncCall\DynamicClassConstFetchRector;
 use Rector\Php83\Rector\FuncCall\RemoveGetClassGetParentClassNoArgsRector;
 use Rector\Php84\Rector\Class_\DeprecatedAnnotationToDeprecatedAttributeRector;
+use Rector\Php84\Rector\Class_\PropertyHookRector;
 use Rector\Php84\Rector\Foreach_\ForeachToArrayAllRector;
 use Rector\Php84\Rector\Foreach_\ForeachToArrayAnyRector;
 use Rector\Php84\Rector\Foreach_\ForeachToArrayFindKeyRector;
@@ -216,6 +218,7 @@ use Rector\Php85\Rector\ArrayDimFetch\ArrayFirstLastRector;
 use Rector\Php85\Rector\Class_\SleepToSerializeRector;
 use Rector\Php85\Rector\Class_\WakeupToUnserializeRector;
 use Rector\Php85\Rector\ClassMethod\NullDebugInfoReturnRector;
+use Rector\Php85\Rector\Const_\ConstAndTraitDeprecatedAttributeRector;
 use Rector\Php85\Rector\Const_\DeprecatedAnnotationToDeprecatedAttributeRector as Php85DeprecatedAnnotationToDeprecatedAttributeRector;
 use Rector\Php85\Rector\Expression\NestedFuncCallsToPipeOperatorRector;
 use Rector\Php85\Rector\FuncCall\ArrayKeyExistsNullToEmptyStringRector;
@@ -597,4 +600,7 @@ const IGNORED_RULES = [
     ClosureDelegatingCallToFirstClassCallableRector::class,
     ArrayToFirstClassCallableRector::class,
     SortNamedParamRector::class,
+    PropertyHookRector::class,
+    SimplifyQuoteEscapeRector::class,
+    ConstAndTraitDeprecatedAttributeRector::class,
 ];
