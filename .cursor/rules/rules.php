@@ -56,7 +56,6 @@ use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsPar
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
 use Rector\CodingStyle\Rector\FuncCall\ArraySpreadInsteadOfArrayMergeRector;
 use Rector\CodingStyle\Rector\FuncCall\ConsistentImplodeRector;
-use Rector\CodingStyle\Rector\String_\SimplifyQuoteEscapeRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
 use Rector\DeadCode\Rector\Assign\RemoveUnusedVariableAssignRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
@@ -121,7 +120,6 @@ use Rector\Php82\Rector\Encapsed\VariableInStringInterpolationFixerRector;
 use Rector\Php82\Rector\FuncCall\Utf8DecodeEncodeToMbConvertEncodingRector;
 use Rector\Php83\Rector\Class_\ReadOnlyAnonymousClassRector;
 use Rector\Php83\Rector\ClassConst\AddTypeToConstRector;
-use Rector\Php84\Rector\Class_\PropertyHookRector;
 use Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector;
 use Rector\Php84\Rector\Param\ExplicitNullableParamTypeRector;
 use Rector\Php85\Rector\ShellExec\ShellExecFunctionCallOverBackticksRector;
@@ -397,7 +395,6 @@ return [
     RepeatedAndNotEqualToNotInArrayRector::class,
     DirnameDirConcatStringToDirectStringPathRector::class,
     RemoveConditionExactReturnRector::class,
-    PropertyHookRector::class,
     TypedStaticPropertyInBehatContextRector::class,
     SortAttributeNamedArgsRector::class,
     SortCallLikeNamedArgsRector::class,
@@ -408,7 +405,6 @@ return [
     PrivatizeFinalClassConstantRector::class,
     NestedTernaryToMatchRector::class,
     NewlineBetweenClassLikeStmtsRector::class,
-    SimplifyQuoteEscapeRector::class,
     NarrowObjectReturnTypeRector::class,
     RemoveNullArgOnNullDefaultParamRector::class,
     StringsAssertNakedRector::class,
