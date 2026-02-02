@@ -37,8 +37,9 @@
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
-    "pekral/phpcs-rules": "dev-master",
-    "pekral/cursor-rules": "dev-master"
+    "pekral/phpcs-rules": "^0.4.5",
+    "pekral/cursor-rules": "^0.3",
+    "pekral/phpstan-rules": "^0.4.5"
   },
   "autoload": {
     "psr-4": {
@@ -51,7 +52,7 @@
     }
   },
   "scripts": {
-    "build": "composer check && git gone",
+    "build": "composer check fix && composer check",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
@@ -63,7 +64,8 @@
   "config": {
     "prefer-stable": true,
     "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
     }
   },
   "minimum-stability": "dev",
