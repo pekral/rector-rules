@@ -38,7 +38,7 @@
   "require-dev": {
     "roave/security-advisories": "dev-latest",
     "pekral/phpcs-rules": "^0.4.5",
-    "pekral/cursor-rules": "^0.3",
+    "pekral/cursor-rules": "^0.3.0",
     "pekral/phpstan-rules": "^0.4.5"
   },
   "autoload": {
@@ -52,14 +52,15 @@
     }
   },
   "scripts": {
-    "build": "composer check fix && composer check",
+    "build": "composer check fix && composer check && composer cursor-rules:install",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
     "rector": "vendor/bin/rector process rules/ build/ rector.php --dry-run",
     "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
-    "check:missing-rules": "php build/find-missing-rules.php"
+    "check:missing-rules": "php build/find-missing-rules.php",
+    "cursor-rules:install": "vendor/bin/cursor-rules install --force"
   },
   "config": {
     "prefer-stable": true,
