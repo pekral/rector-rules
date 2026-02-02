@@ -1,23 +1,21 @@
-name: Package Checkers
+name: Pull Request Quality Checks
 
 on:
   pull_request:
     branches: [ master ]
+  push:
+    branches: [ master ]
+
+# PHP versions to test against
 
 jobs:
-  checks:
-    name: Run Checks
+  phpcs-check:
+    name: "🔍 PHP CodeSniffer (PHP ${{ matrix.php-version }})"
     runs-on: ubuntu-latest
+
     strategy:
-      fail-fast: false
       matrix:
-        check:
-          - name: Missing Rules
-            command: composer check:missing-rules
-          - name: PHPCS
-            command: composer phpcs
-          - name: Rector
-            command: composer rector
+        php-version: ['8.4', '8.5']
 
     steps:
       - name: Checkout code
@@ -26,29 +24,242 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json, mbstring, pdo
-          coverage: none
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
 
-      - name: Get Composer Cache Directory
+      - name: Cache Composer packages
         id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
         uses: actions/cache@v5
         with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
 
       - name: Install dependencies
-        run: composer install --no-progress --prefer-dist --optimize-autoloader
+        run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Run ${{ matrix.check.name }}
-        id: check
-        continue-on-error: true
-        run: |
-          ${{ matrix.check.command }}
+      - name: Run PHPCS check
+        run: composer phpcs-check
+
+  pint-check:
+    name: "🎨 Laravel Pint (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run Pint check
+        run: composer pint-check
+
+  rector-check:
+    name: "🔄 Rector (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run Rector check
+        run: composer rector-check
+
+  phpstan-analysis:
+    name: "🔎 PHPStan Analysis (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHPStan analysis
+        run: composer analyse
+
+  coverage-tests:
+    name: "📊 Coverage Tests (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8021:8000
         env:
-          COMPOSER_MEMORY_LIMIT: -1
+          AWS_ACCESS_KEY_ID: "fakeMyKeyId"
+          AWS_SECRET_ACCESS_KEY: "fakeSecretAccessKey"
+          AWS_DEFAULT_REGION: "us-east-1"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run coverage tests
+        run: composer test:coverage
+
+  audit-check:
+    name: "🔒 Security Audit (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run security audit
+        run: composer security-audit
+
+  normalize-check:
+    name: "📝 Composer Normalize (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: pcov
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Check composer normalize
+        run: composer composer-normalize-check
