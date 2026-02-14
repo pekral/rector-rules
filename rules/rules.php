@@ -90,7 +90,6 @@ use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\ChangeIfElseValueAssignToEarlyReturnRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
 use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
-use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php54\Rector\Array_\LongArrayToShortArrayRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
@@ -327,7 +326,6 @@ return [
     RemoveUselessVarTagRector::class,
     TernaryToBooleanOrFalseToBooleanAndRector::class,
     RemoveAlwaysElseRector::class,
-    RenamePropertyToMatchTypeRector::class,
     DataProviderAnnotationToAttributeRector::class,
     TestWithAnnotationToAttributeRector::class,
     NumericReturnTypeFromStrictScalarReturnsRector::class,

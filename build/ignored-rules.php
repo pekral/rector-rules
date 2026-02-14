@@ -114,6 +114,7 @@ use Rector\EarlyReturn\Rector\Return_\PreparedValueToEarlyReturnRector;
 use Rector\EarlyReturn\Rector\Return_\ReturnBinaryOrToEarlyReturnRector;
 use Rector\Instanceof_\Rector\Ternary\FlipNegatedTernaryInstanceofRector;
 use Rector\Naming\Rector\Assign\RenameVariableToMatchMethodCallReturnTypeRector;
+use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\Naming\Rector\ClassMethod\RenameParamToMatchTypeRector;
 use Rector\Naming\Rector\ClassMethod\RenameVariableToMatchNewTypeRector;
 use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchExprVariableRector;
@@ -574,6 +575,7 @@ const IGNORED_RULES = [
     AttributeKeyToClassConstFetchRector::class,
     ReturnTypeWillChangeRector::class,
     WrapReturnRector::class,
+    RenamePropertyToMatchTypeRector::class,
     ConstFetchToClassConstFetchRector::class,
     ArrayDimFetchToMethodCallRector::class,
     NewToStaticCallRector::class,
