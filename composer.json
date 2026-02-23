@@ -38,7 +38,7 @@
   "require-dev": {
     "roave/security-advisories": "dev-master",
     "pekral/phpcs-rules": "^0.4.6",
-    "pekral/cursor-rules": "^0.4.1",
+    "pekral/cursor-rules": "^0.4.1 || ^0.5.0",
     "pekral/phpstan-rules": "^0.4.5"
   },
   "autoload": {
