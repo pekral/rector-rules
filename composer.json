@@ -33,13 +33,13 @@
   ],
   "require": {
     "php": "^8.4",
-    "rector/rector": "^2.3.6"
+    "rector/rector": "^2.4.0"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master",
-    "pekral/phpcs-rules": "^0.4.6",
-    "pekral/cursor-rules": "^0.4.1 || ^0.5.0",
-    "pekral/phpstan-rules": "^0.4.5"
+    "pekral/phpcs-rules": "dev-master",
+    "pekral/cursor-rules": "dev-master",
+    "pekral/phpstan-rules": "dev-master"
   },
   "autoload": {
     "psr-4": {
@@ -60,7 +60,7 @@
     "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
     "check:missing-rules": "php build/find-missing-rules.php",
-    "cursor-rules:install": "vendor/bin/cursor-rules install --force"
+    "cursor-rules:install": "vendor/bin/cursor-rules install --force --editor=claude"
   },
   "config": {
     "prefer-stable": true,
