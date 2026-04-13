@@ -14,6 +14,7 @@ use Rector\CodeQuality\Rector\Class_\ReturnIteratorInDataProviderRector;
 use Rector\CodeQuality\Rector\ClassConstFetch\VariableConstFetchToClassConstFetchRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
+use Rector\CodeQuality\Rector\Coalesce\CoalesceToTernaryRector;
 use Rector\CodeQuality\Rector\Concat\DirnameDirConcatStringToDirectStringPathRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
@@ -85,6 +86,7 @@ use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
 use Rector\DeadCode\Rector\Stmt\RemoveConditionExactReturnRector;
 use Rector\DeadCode\Rector\Stmt\RemoveNextSameValueConditionRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
+use Rector\DeadCode\Rector\Ternary\RemoveUselessTernaryRector;
 use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadCatchRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
@@ -239,6 +241,7 @@ return [
     ArrayKeyExistsTernaryThenValueToCoalescingRector::class,
     InlineConstructorDefaultToPropertyRector::class,
     CombineIfRector::class,
+    CoalesceToTernaryRector::class,
     CombinedAssignRector::class,
     CommonNotEqualRector::class,
     CompactToVariablesRector::class,
@@ -433,4 +436,5 @@ return [
     AddReturnDocblockFromMethodCallDocblockRector::class,
     AddReturnDocblockForDimFetchArrayFromAssignsRector::class,
     AddVarArrayDocblockFromDimFetchAssignRector::class,
+    RemoveUselessTernaryRector::class,
 ];
