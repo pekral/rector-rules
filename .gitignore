@@ -5,3 +5,5 @@
 /.phpunit.result.cache
 composer.lock
 /.cursor
+/.claude
+CLAUDE.md
