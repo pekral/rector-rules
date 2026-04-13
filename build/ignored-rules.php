@@ -607,4 +607,5 @@ const IGNORED_RULES = [
     SimplifyQuoteEscapeRector::class,
     ConstAndTraitDeprecatedAttributeRector::class,
     SafeDeclareStrictTypesRector::class,
+    CoalesceToTernaryRector::class,
 ];
