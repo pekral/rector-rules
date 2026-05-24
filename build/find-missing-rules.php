@@ -135,12 +135,12 @@ function findMissingRules(array $allRules, array $definedRules): array
     
     foreach ($allRules as $ruleClass) {
         // Check if rule is defined in rules.php
-        if (in_array($ruleClass, $definedRules, true)) {
+        if (in_array($ruleClass, $definedRules, strict: true)) {
             continue;
         }
         
         // Check if rule is ignored (compare with full class name)
-        if (in_array($ruleClass, IGNORED_RULES, true)) {
+        if (in_array($ruleClass, IGNORED_RULES, strict: true)) {
             continue;
         }
         
