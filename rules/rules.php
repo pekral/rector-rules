@@ -7,6 +7,7 @@ use Rector\CodeQuality\Rector\Attribute\SortAttributeNamedArgsRector;
 use Rector\CodeQuality\Rector\BooleanAnd\RepeatedAndNotEqualToNotInArrayRector;
 use Rector\CodeQuality\Rector\BooleanOr\RepeatedOrEqualToInArrayRector;
 use Rector\CodeQuality\Rector\CallLike\AddNameToBooleanArgumentRector;
+use Rector\CodeQuality\Rector\CallLike\AddNameToNullArgumentRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
 use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
@@ -437,4 +438,5 @@ return [
     AddReturnDocblockForDimFetchArrayFromAssignsRector::class,
     AddVarArrayDocblockFromDimFetchAssignRector::class,
     RemoveUselessTernaryRector::class,
+    AddNameToNullArgumentRector::class,
 ];
