@@ -38,9 +38,15 @@
   "require-dev": {
     "roave/security-advisories": "dev-master",
     "pekral/phpcs-rules": "dev-master",
-    "pekral/cursor-rules": "dev-master",
+    "agentic-vibes/laravel-agent-skills": "dev-master",
     "pekral/phpstan-rules": "dev-master"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/agentic-vibes/laravel-agent-skills"
+    }
+  ],
   "autoload": {
     "psr-4": {
       "PekralRectorRule\\": "rules/"
@@ -52,7 +58,7 @@
     }
   },
   "scripts": {
-    "build": "composer check fix && composer check && composer cursor-rules:install",
+    "build": "composer check fix && composer check && composer agent-skills:install",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
@@ -60,14 +66,14 @@
     "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
     "check:missing-rules": "php build/find-missing-rules.php",
-    "cursor-rules:install": "vendor/bin/cursor-rules install --force --editor=claude"
+    "agent-skills:install": "vendor/bin/agent-skills install --force"
   },
   "config": {
     "prefer-stable": true,
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "phpstan/extension-installer": true,
-      "pekral/cursor-rules": true
+      "agentic-vibes/laravel-agent-skills": true
     }
   },
   "minimum-stability": "dev",
