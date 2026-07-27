@@ -68,6 +68,7 @@ use Rector\CodingStyle\Rector\FuncCall\ArraySpreadInsteadOfArrayMergeRector;
 use Rector\CodingStyle\Rector\FuncCall\ConsistentImplodeRector;
 use Rector\CodingStyle\Rector\FuncCall\StrictInArrayRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
+use Rector\DeadCode\Rector\Assign\RemoveDoubleSelfAssignRector;
 use Rector\DeadCode\Rector\Assign\RemoveUnusedVariableAssignRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 use Rector\DeadCode\Rector\Class_\RemoveRefactorDuplicatedNodeInstanceCheckRector;
@@ -75,6 +76,7 @@ use Rector\DeadCode\Rector\ClassConst\RemoveUnusedPrivateClassConstantRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveDuplicatedReturnSelfDocblockRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveEmptyClassMethodRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingClassMethodRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingConstructorRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveReturnTagIncompatibleWithNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
@@ -94,6 +96,7 @@ use Rector\DeadCode\Rector\If_\RemoveDeadIfBlockRector;
 use Rector\DeadCode\Rector\MethodCall\RemoveNullArgOnNullDefaultParamRector;
 use Rector\DeadCode\Rector\MethodCall\RemoveNullNamedArgOnNullDefaultParamRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
+use Rector\DeadCode\Rector\Property\RemoveDefaultValueFromAssignedPropertyRector;
 use Rector\DeadCode\Rector\Property\RemoveUnusedPrivatePropertyRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessReadOnlyTagRector;
 use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
@@ -101,6 +104,7 @@ use Rector\DeadCode\Rector\StaticCall\RemoveParentCallWithoutParentRector;
 use Rector\DeadCode\Rector\Stmt\RemoveConditionExactReturnRector;
 use Rector\DeadCode\Rector\Stmt\RemoveNextSameValueConditionRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
+use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveDeadInstanceOfAssertRector;
 use Rector\DeadCode\Rector\Ternary\RemoveUselessTernaryRector;
 use Rector\DeadCode\Rector\Ternary\TernaryToBooleanOrFalseToBooleanAndRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadCatchRector;
@@ -487,5 +491,9 @@ return [
     ClosureReturnTypeFromAssertInstanceOfRector::class,
     RenameDeprecatedMethodCallRector::class,
     SwitchTrueToMatchRector::class,
+    RemoveParentDelegatingClassMethodRector::class,
+    RemoveDeadInstanceOfAssertRector::class,
+    RemoveDefaultValueFromAssignedPropertyRector::class,
+    RemoveDoubleSelfAssignRector::class,
 
 ];

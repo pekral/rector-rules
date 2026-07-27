@@ -593,5 +593,4 @@ const IGNORED_RULES = [
     TypedPropertyFromContainerGetSetUpRector::class,
     TypedPropertyFromGetRepositorySetUpRector::class,
     ReturnTypeFromGetRepositoryDocblockRector::class,
-
 ];
