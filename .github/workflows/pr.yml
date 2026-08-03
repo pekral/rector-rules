@@ -47,3 +47,32 @@ jobs:
 
       - name: Run Security Audit
         run: composer audit --format=table
+
+  min-php:
+    name: Lint on Declared Minimum PHP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-all
+
+      # composer --no-dev still resolves require-dev, and pekral/phpcs-rules
+      # requires PHP 8.5. Resolve a dev-free manifest instead, so this step
+      # verifies exactly what a consumer on the declared minimum installs.
+      - name: Verify runtime dependencies resolve
+        run: |
+          php -r '$c = json_decode(file_get_contents("composer.json"), true); unset($c["require-dev"], $c["scripts"], $c["autoload-dev"]); file_put_contents("composer.runtime.json", json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
+          COMPOSER=composer.runtime.json composer update --no-progress --prefer-dist --dry-run
+        env:
+          COMPOSER_MEMORY_LIMIT: -1
+
+      - name: Lint shipped sources
+        run: php -l rules/rules.php

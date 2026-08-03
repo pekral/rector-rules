@@ -482,6 +482,5 @@ return [
     RemoveDeadInstanceOfAssertRector::class,
     RemoveDefaultValueFromAssignedPropertyRector::class,
     RemoveDoubleSelfAssignRector::class,
-
     RemoveTestsOverriddenPrivateMethodParameterRector::class,
 ];
