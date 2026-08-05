@@ -80,7 +80,7 @@ return static function (RectorConfig $rectorConfig): void {
 ## ⚙️ Configuration
 
 * Rules can be extended and customized in your `rector.php` configuration.
-* Supports PHP 8.4+.
+* Supports PHP 8.4+. Contributing to this repository requires PHP 8.5+, because the development dependencies do.
 * Easy integration with CI/CD (GitHub Actions, GitLab CI, ...).
 * Includes comprehensive examples for each rule.
 

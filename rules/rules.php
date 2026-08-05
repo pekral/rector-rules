@@ -28,13 +28,11 @@ use Rector\CodeQuality\Rector\Expression\TernaryFalseExpressionToIfRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachItemsAssignToEmptyArrayToAssignRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachToInArrayRector;
 use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToCoalescingRector;
-use Rector\CodeQuality\Rector\Foreach_\UnusedForeachValueToArrayKeysRector;
 use Rector\CodeQuality\Rector\FuncCall\ArrayMergeOfNonArraysToSimpleArrayRector;
 use Rector\CodeQuality\Rector\FuncCall\ChangeArrayPushToArrayAssignRector;
 use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
 use Rector\CodeQuality\Rector\FuncCall\RemoveSoleValueSprintfRector;
 use Rector\CodeQuality\Rector\FuncCall\SimplifyInArrayValuesRector;
-use Rector\CodeQuality\Rector\FuncCall\SimplifyRegexPatternRector;
 use Rector\CodeQuality\Rector\FuncCall\SortCallLikeNamedArgsRector;
 use Rector\CodeQuality\Rector\FuncCall\UnwrapSprintfOneArgumentRector;
 use Rector\CodeQuality\Rector\FunctionLike\SimplifyUselessVariableRector;
@@ -59,12 +57,8 @@ use Rector\CodeQuality\Rector\Ternary\SimplifyTautologyTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\SwitchNegatedTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryEmptyArrayArrayDimFetchToCoalesceRector;
 use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
-use Rector\CodingStyle\Rector\Assign\NestedTernaryToMatchRector;
 use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
-use Rector\CodingStyle\Rector\ClassMethod\BinaryOpStandaloneAssignsToDirectRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
-use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
-use Rector\CodingStyle\Rector\FuncCall\ArraySpreadInsteadOfArrayMergeRector;
 use Rector\CodingStyle\Rector\FuncCall\ConsistentImplodeRector;
 use Rector\CodingStyle\Rector\FuncCall\StrictInArrayRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
@@ -79,6 +73,7 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeR
 use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingClassMethodRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingConstructorRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveReturnTagIncompatibleWithNativeTypeRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveTestsOverriddenPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodRector;
@@ -224,7 +219,6 @@ use Rector\TypeDeclaration\Rector\FunctionLike\AddReturnTypeDeclarationFromYield
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\AddParamTypeToRefactorMethodRector;
-use Rector\TypeDeclarationDocblocks\Rector\Class_\AddReturnDocblockDataProviderRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\AddVarArrayDocblockFromDimFetchAssignRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\ClassMethodArrayDocblockParamFromLocalCallsRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\DocblockVarArrayFromGetterReturnRector;
@@ -232,13 +226,11 @@ use Rector\TypeDeclarationDocblocks\Rector\Class_\DocblockVarArrayFromPropertyDe
 use Rector\TypeDeclarationDocblocks\Rector\Class_\DocblockVarFromParamDocblockInConstructorRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockBasedOnArrayMapRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockFromAssignsParamToParamReferenceRector;
-use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockFromDataProviderRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockFromDimFetchAccessRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForArrayDimAssignedObjectRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForCommonObjectDenominatorRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForDimFetchArrayFromAssignsRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForJsonArrayRector;
-use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockFromMethodCallDocblockRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockGetterReturnArrayFromPropertyDocblockVarRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockReturnArrayFromDirectArrayInstanceRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\NarrowArrayCollectionUnionReturnDocblockRector;
@@ -249,13 +241,11 @@ return [
     KnownMagicClassMethodTypeRector::class,
     AddParamStringTypeFromSprintfUseRector::class,
     AddParamFromDimFetchKeyUseRector::class,
-    BinaryOpStandaloneAssignsToDirectRector::class,
     ShellExecFunctionCallOverBackticksRector::class,
     RemoveUnusedClosureVariableUseRector::class,
     VariableConstFetchToClassConstFetchRector::class,
     RepeatedOrEqualToInArrayRector::class,
     DocblockReturnArrayFromDirectArrayInstanceRector::class,
-    AddParamArrayDocblockFromDataProviderRector::class,
     AddReturnDocblockForArrayDimAssignedObjectRector::class,
     DocblockGetterReturnArrayFromPropertyDocblockVarRector::class,
     AddParamArrayDocblockFromDimFetchAccessRector::class,
@@ -287,11 +277,9 @@ return [
     SimplifyIfReturnBoolRector::class,
     SimplifyTautologyTernaryRector::class,
     SimplifyInArrayValuesRector::class,
-    SimplifyRegexPatternRector::class,
     SimplifyUselessVariableRector::class,
     ThrowWithPreviousExceptionRector::class,
     UnnecessaryTernaryExpressionRector::class,
-    UnusedForeachValueToArrayKeysRector::class,
     UnwrapSprintfOneArgumentRector::class,
     ReturnTypeFromStrictNewArrayRector::class,
     ReturnEarlyIfVariableRector::class,
@@ -340,7 +328,6 @@ return [
     TernaryEmptyArrayArrayDimFetchToCoalesceRector::class,
     TernaryFalseExpressionToIfRector::class,
     MakeInheritedMethodVisibilitySameAsParentRector::class,
-    EncapsedStringsToSprintfRector::class,
     RecastingRemovalRector::class,
     RemoveDeadReturnRector::class,
     RemoveDeadTryCatchRector::class,
@@ -416,13 +403,11 @@ return [
     AnnotationWithValueToAttributeRector::class,
     ArrayKeyFirstLastRector::class,
     ArrayMergeOfNonArraysToSimpleArrayRector::class,
-    ArraySpreadInsteadOfArrayMergeRector::class,
     AssertCompareOnCountableWithMethodToAssertCountRector::class,
     AssertEqualsToSameRector::class,
     AssertIssetToSpecificMethodRector::class,
     AssertNotOperatorRector::class,
     AssertSameBoolNullToSpecificMethodRector::class,
-    AddReturnDocblockDataProviderRector::class,
     ReturnIteratorInDataProviderRector::class,
     RepeatedAndNotEqualToNotInArrayRector::class,
     DirnameDirConcatStringToDirectStringPathRector::class,
@@ -436,7 +421,6 @@ return [
     RemoveNextSameValueConditionRector::class,
     FluentSettersToStandaloneCallMethodRector::class,
     PrivatizeFinalClassConstantRector::class,
-    NestedTernaryToMatchRector::class,
     NewlineBetweenClassLikeStmtsRector::class,
     NarrowObjectReturnTypeRector::class,
     RemoveNullArgOnNullDefaultParamRector::class,
@@ -459,7 +443,6 @@ return [
     RemoveUnusedPrivatePropertyRector::class,
     RemoveDeadIfBlockRector::class,
     RemoveVoidDocblockFromMagicMethodRector::class,
-    AddReturnDocblockFromMethodCallDocblockRector::class,
     AddReturnDocblockForDimFetchArrayFromAssignsRector::class,
     AddVarArrayDocblockFromDimFetchAssignRector::class,
     RemoveUselessTernaryRector::class,
@@ -495,5 +478,5 @@ return [
     RemoveDeadInstanceOfAssertRector::class,
     RemoveDefaultValueFromAssignedPropertyRector::class,
     RemoveDoubleSelfAssignRector::class,
-
+    RemoveTestsOverriddenPrivateMethodParameterRector::class,
 ];
