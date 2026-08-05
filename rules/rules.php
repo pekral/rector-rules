@@ -28,7 +28,6 @@ use Rector\CodeQuality\Rector\Expression\TernaryFalseExpressionToIfRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachItemsAssignToEmptyArrayToAssignRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachToInArrayRector;
 use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToCoalescingRector;
-use Rector\CodeQuality\Rector\Foreach_\UnusedForeachValueToArrayKeysRector;
 use Rector\CodeQuality\Rector\FuncCall\ArrayMergeOfNonArraysToSimpleArrayRector;
 use Rector\CodeQuality\Rector\FuncCall\ChangeArrayPushToArrayAssignRector;
 use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
@@ -60,7 +59,6 @@ use Rector\CodeQuality\Rector\Ternary\TernaryEmptyArrayArrayDimFetchToCoalesceRe
 use Rector\CodeQuality\Rector\Ternary\UnnecessaryTernaryExpressionRector;
 use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use Rector\CodingStyle\Rector\ClassMethod\MakeInheritedMethodVisibilitySameAsParentRector;
-use Rector\CodingStyle\Rector\FuncCall\ArraySpreadInsteadOfArrayMergeRector;
 use Rector\CodingStyle\Rector\FuncCall\ConsistentImplodeRector;
 use Rector\CodingStyle\Rector\FuncCall\StrictInArrayRector;
 use Rector\DeadCode\Rector\Assign\RemoveDoubleAssignRector;
@@ -282,7 +280,6 @@ return [
     SimplifyUselessVariableRector::class,
     ThrowWithPreviousExceptionRector::class,
     UnnecessaryTernaryExpressionRector::class,
-    UnusedForeachValueToArrayKeysRector::class,
     UnwrapSprintfOneArgumentRector::class,
     ReturnTypeFromStrictNewArrayRector::class,
     ReturnEarlyIfVariableRector::class,
@@ -406,7 +403,6 @@ return [
     AnnotationWithValueToAttributeRector::class,
     ArrayKeyFirstLastRector::class,
     ArrayMergeOfNonArraysToSimpleArrayRector::class,
-    ArraySpreadInsteadOfArrayMergeRector::class,
     AssertCompareOnCountableWithMethodToAssertCountRector::class,
     AssertEqualsToSameRector::class,
     AssertIssetToSpecificMethodRector::class,
