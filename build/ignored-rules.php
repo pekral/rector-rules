@@ -23,6 +23,7 @@ use Rector\CodeQuality\Rector\Class_\DynamicDocBlockPropertyToNativePropertyRect
 use Rector\CodeQuality\Rector\Class_\RemoveReadonlyPropertyVisibilityOnReadonlyClassRector;
 use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\OptionalParametersAfterRequiredRector;
+use Rector\CodeQuality\Rector\Coalesce\CoalesceToTernaryRector;
 use Rector\CodeQuality\Rector\Concat\JoinStringConcatRector;
 use Rector\CodeQuality\Rector\Equal\UseIdenticalOverEqualWithSameTypeRector;
 use Rector\CodeQuality\Rector\For_\ForRepeatedCountToOwnVariableRector;
@@ -49,6 +50,7 @@ use Rector\CodeQuality\Rector\New_\NewStaticToNewSelfRector;
 use Rector\CodeQuality\Rector\Switch_\SingularSwitchToIfRector;
 use Rector\CodeQuality\Rector\Switch_\SwitchTrueToIfRector;
 use Rector\CodeQuality\Rector\Ternary\NumberCompareToMaxFuncCallRector;
+use Rector\CodeQuality\Rector\Ternary\SwitchNegatedTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryImplodeToImplodeRector;
 use Rector\CodingStyle\Rector\ArrowFunction\ArrowFunctionDelegatingCallToFirstClassCallableRector;
 use Rector\CodingStyle\Rector\ArrowFunction\StaticArrowFunctionRector;
@@ -294,7 +296,9 @@ use Rector\TypeDeclaration\Rector\StmtsAwareInterface\SafeDeclareStrictTypesRect
 use Rector\TypeDeclaration\Rector\While_\WhileNullableToInstanceofRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\AddReturnArrayDocblockFromDataProviderParamRector;
 use Rector\TypeDeclarationDocblocks\Rector\Class_\AddReturnDocblockDataProviderRector;
+use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockBasedOnArrayMapRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddParamArrayDocblockFromDataProviderRector;
+use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForDimFetchArrayFromAssignsRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockFromMethodCallDocblockRector;
 use Rector\TypeDeclarationDocblocks\Rector\Property\MergePhpstanDocTagIntoNativeRector;
 use Rector\Unambiguous\Rector\Class_\RemoveReturnThisFromSetterClassMethodRector;
@@ -312,6 +316,12 @@ use Rector\Visibility\Rector\ClassMethod\ExplicitPublicClassMethodRector;
  * - They are not available in current Rector version
  */
 const IGNORED_RULES = [
+    // Deprecated by Rector and scheduled for removal — registering them fails or warns on every run
+    CoalesceToTernaryRector::class,
+    SwitchNegatedTernaryRector::class,
+    JsonThrowOnErrorRector::class,
+    AddParamArrayDocblockBasedOnArrayMapRector::class,
+    AddReturnDocblockForDimFetchArrayFromAssignsRector::class,
     // Enable after PHP 8.5 support enabled
     SequentialAssignmentsToPipeOperatorRector::class,
     NestedFuncCallsToPipeOperatorRector::class,
