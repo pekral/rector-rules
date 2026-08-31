@@ -12,8 +12,8 @@
 
   <text x="96" y="272" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="74" font-weight="700" fill="#e6edf3">rector-rules</text>
 
-  <text x="96" y="344" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="34" fill="#8d96a0">236 hand-picked rules in one import —</text>
-  <text x="96" y="392" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="34" fill="#8d96a0">every other rule documented as skipped.</text>
+  <text x="96" y="344" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="34" fill="#8d96a0">228 hand-picked rules in one import —</text>
+  <text x="96" y="392" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="34" fill="#8d96a0">every other rule listed as skipped.</text>
 
   <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="24" fill="#e6edf3" text-anchor="middle">
     <rect x="96" y="452" width="164" height="52" rx="26" fill="none" stroke="#30363d" stroke-width="2"/>
