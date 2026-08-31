@@ -22,6 +22,18 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 - The package description no longer claims the package contains custom rules. It lists rules that Rector
   ships, and `rector.php` registers each one.
 - `composer.json` `support` now points at Discussions and the security policy.
+- README statements were checked against the repository and corrected: the rule count, the per-area table,
+  the `withSkip()` example (both rules it named are not in the set), the `export-ignore` list, the CI
+  description, and the two FAQ answers about the ignore list and about upgrading.
+
+### Removed
+
+- **Eight duplicate entries in `rules/rules.php`.** The array listed 236 entries but only 228 distinct rules;
+  `AddReturnTypeDeclarationBasedOnParentClassMethodRector`, `AddReturnTypeDeclarationFromYieldsRector`,
+  `ReturnTypeFromReturnDirectArrayRector`, `ReadOnlyClassRector`, `PrivatizeFinalClassMethodRector`,
+  `AddProphecyTraitRector`, `AssertIssetToSpecificMethodRector`, and `NamedArgumentForDataProviderRector`
+  each appeared twice. **No rule stopped shipping** — Rector registered each of them once anyway, so this
+  changes nothing about what Rector rewrites.
 
 ## [0.5] - 2026-08-31
 

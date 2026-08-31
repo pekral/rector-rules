@@ -8,8 +8,8 @@
 A curated, ready-to-use [Rector](https://github.com/rectorphp/rector) rule set for PHP 8.4+ projects.
 
 Rector ships over 500 rules. Picking the useful ones — and re-checking them on every Rector release — is a
-recurring chore. This package does that curation for you: **one import, 236 hand-picked rules**, with every
-rule Rector offers explicitly either enabled or documented as deliberately skipped.
+recurring chore. This package does that curation for you: **one import, 228 hand-picked rules**, with every
+other rule Rector offers listed as skipped, so a new Rector release cannot add a rule nobody looked at.
 
 ---
 
@@ -74,10 +74,10 @@ return RectorConfig::configure()
     ->withSets([__DIR__ . '/vendor/pekral/rector-rules/rector.php'])
     ->withSkip([
         // Disable a rule everywhere
-        Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector::class,
+        Rector\CodeQuality\Rector\CallLike\AddNameToBooleanArgumentRector::class,
 
         // …or only in specific paths
-        Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector::class => [
+        Rector\Php82\Rector\Class_\ReadOnlyClassRector::class => [
             __DIR__ . '/src/Legacy',
         ],
     ]);
@@ -87,17 +87,17 @@ return RectorConfig::configure()
 
 ## What is in the set
 
-236 rules, grouped by what they do:
+228 rules, grouped by what they do:
 
 | Area | Rules | What it covers |
 | --- | ---: | --- |
-| `TypeDeclaration` | 57 | Infer and add native parameter, property, and return types |
+| `TypeDeclaration` | 54 | Infer and add native parameter, property, and return types |
 | `CodeQuality` | 50 | Simplify conditions, loops, and expressions |
 | `DeadCode` | 44 | Remove unreachable code, unused variables, and redundant docblocks |
-| `PHPUnit` | 22 | Modernise test syntax, attributes, and assertions |
+| `PHPUnit` | 19 | Modernise test syntax, attributes, and assertions |
 | `TypeDeclarationDocblocks` | 14 | Narrow `array` docblocks that no native type can express |
-| `Php53` – `Php86` | 35 | Upgrade syntax to newer PHP versions |
-| Other | 14 | `Privatization`, `CodingStyle`, `EarlyReturn`, `Renaming`, `Unambiguous` |
+| `Php53` – `Php86` | 34 | Upgrade syntax to newer PHP versions |
+| Other | 13 | `Privatization`, `CodingStyle`, `EarlyReturn`, `Renaming`, `Unambiguous` |
 
 The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array of rule class names.
 
@@ -106,15 +106,16 @@ The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array
 | File | Role |
 | --- | --- |
 | [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` |
-| [`rules/rules.php`](rules/rules.php) | The 236 enabled rules (shipped) |
-| `build/ignored-rules.php` | Rules deliberately **not** enabled, with the reason grouped inline (development only) |
+| [`rules/rules.php`](rules/rules.php) | The 228 enabled rules (shipped) |
+| `build/ignored-rules.php` | The 305 rules that do not ship (development only). 21 sit under a stated reason — deprecated in Rector, or waiting on PHP 8.5; the other 284 are grouped under a plain `// Ignored rules` heading |
 | `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored (development only) |
 
 Because of that guard, every rule Rector adds in a new release shows up as a build failure until someone
 decides about it. Nothing is silently ignored.
 
-`build/`, `.github/`, and the dotfiles are marked `export-ignore`, so `composer require` pulls down only
-`rector.php`, `rules/`, `composer.json`, `README.md`, and `LICENSE`.
+`build/`, `.github/`, `assets/`, the dotfiles, and the repository-only documents (`CHANGELOG.md`,
+`UPGRADING.md`) are marked `export-ignore`, so `composer require` pulls down exactly five files:
+`rector.php`, `rules/rules.php`, `composer.json`, `README.md`, and `LICENSE`.
 
 ---
 
@@ -158,9 +159,9 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how the guard works and the r
 
 ### CI
 
-Pull requests run the same `composer check` steps plus a `composer audit`, and separately lint the shipped
-sources on the declared minimum PHP 8.4. A weekly job refreshes dependencies and opens a PR; another audits
-dependencies for known vulnerabilities.
+Pull requests and pushes to `master` run the same `composer check` steps plus a `composer audit`, and
+separately validate `composer.json` and lint the shipped sources on the declared minimum PHP 8.4. A weekly job
+refreshes dependencies and opens a PR; another audits dependencies for known vulnerabilities every Monday.
 
 ---
 
@@ -173,15 +174,17 @@ dependencies for known vulnerabilities.
 Use `withSkip()` — see [Skipping a rule you disagree with](#skipping-a-rule-you-disagree-with).
 
 **Can I combine this with Rector's own sets?**
-Yes. Add `->withPhpSets()` or any other set alongside `withSets()`; Rector deduplicates rules registered twice.
+Yes. Add `->withPhpSets()` or any other set alongside `withSets()`. A rule that ends up registered twice is
+not an error.
 
 **Why is rule X not included?**
-Check `build/ignored-rules.php` in the repository — every excluded rule is listed there, grouped by reason
-(deprecated upstream, too context-dependent, conflicts with another rule).
+Check `build/ignored-rules.php` in the repository — every rule that does not ship is listed there. Rules
+deprecated in Rector, and those waiting on PHP 8.5, sit under a heading that says so; the rest are grouped
+under a plain `// Ignored rules` heading, which records the decision without a reason.
 
 **What happens when I upgrade?**
-A minor release adds or removes rules, so Rector will rewrite more of your code. Run `--dry-run` first and
-read [UPGRADING.md](UPGRADING.md). A patch release never changes the set.
+Most releases so far have changed the set, patch releases included, so Rector may rewrite more of your code
+than before. Run `--dry-run` first and read [UPGRADING.md](UPGRADING.md).
 
 **How do I contribute?**
 Open an [Enable a rule](https://github.com/pekral/rector-rules/issues/new?template=enable-rule.yml) or
