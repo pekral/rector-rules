@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question about the rule set
+    url: https://github.com/pekral/rector-rules/discussions
+    about: Ask why a rule is enabled or skipped, or how to combine this set with your own configuration.
+  - name: Bug in Rector itself
+    url: https://github.com/rectorphp/rector/issues
+    about: A rule that crashes or produces broken code is an upstream bug. This repository only selects which rules run.

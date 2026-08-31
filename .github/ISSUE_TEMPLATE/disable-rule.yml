@@ -1,0 +1,48 @@
+name: Disable a rule
+description: Report a shipped rule that should be removed from the set
+title: "Disable <RuleName>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You can turn any rule off in your own configuration with `withSkip()`. Open this issue when the rule
+        should be off **for everyone** — for example because Rector deprecated it, because it is not available
+        in the supported Rector version, or because its rewrite is wrong.
+
+        A rule that produces broken or non-compiling code is a bug in
+        [Rector itself](https://github.com/rectorphp/rector/issues). Report it there; this repository only
+        chooses which rules run.
+
+  - type: input
+    id: rule-class
+    attributes:
+      label: Rule class
+      placeholder: Rector\CodeQuality\Rector\If_\SimplifyIfReturnBoolRector
+    validations:
+      required: true
+
+  - type: textarea
+    id: before-after
+    attributes:
+      label: Before and after
+      description: The code you ran Rector on, and what it produced.
+      render: php
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong with the result?
+      description: Deprecated upstream, unavailable in the supported Rector version, conflicts with another rule in the set, or an incorrect rewrite.
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "pekral/rector-rules 0.5, rector/rector 2.6.5, PHP 8.4.3"
+    validations:
+      required: true

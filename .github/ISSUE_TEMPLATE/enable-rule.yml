@@ -1,0 +1,60 @@
+name: Enable a rule
+description: Propose a Rector rule that this set should ship
+title: "Enable <RuleName>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This package ships no rules of its own — it lists rules that Rector already provides. If the rule you
+        want is missing from `rules/rules.php`, it is either in `build/ignored-rules.php` with a reason, or
+        `composer check:missing-rules` is currently failing on it.
+
+  - type: input
+    id: rule-class
+    attributes:
+      label: Rule class
+      description: The fully qualified class name.
+      placeholder: Rector\CodeQuality\Rector\If_\SimplifyIfReturnBoolRector
+    validations:
+      required: true
+
+  - type: input
+    id: catalog-link
+    attributes:
+      label: Rule catalog link
+      description: Its page in the Rector rule catalog.
+      placeholder: https://getrector.com/rule-detail/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: current-state
+    attributes:
+      label: Where is it now?
+      options:
+        - In build/ignored-rules.php
+        - In neither file (composer check:missing-rules fails on it)
+        - I do not know
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: What does the rule improve?
+      description: |
+        If it is currently in `build/ignored-rules.php`, say why the reason recorded there no longer applies —
+        for example the rule is no longer deprecated upstream, or the PHP version it waited for is now
+        supported.
+    validations:
+      required: true
+
+  - type: textarea
+    id: before-after
+    attributes:
+      label: Before and after
+      description: A short example of the rewrite the rule performs.
+      render: php
+    validations:
+      required: false
