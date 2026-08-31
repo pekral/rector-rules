@@ -36,11 +36,8 @@ use Rector\CodeQuality\Rector\FuncCall\SortCallLikeNamedArgsRector;
 use Rector\CodeQuality\Rector\FuncCall\UnwrapSprintfOneArgumentRector;
 use Rector\CodeQuality\Rector\FunctionLike\SimplifyUselessVariableRector;
 use Rector\CodeQuality\Rector\If_\ArrayExplicitBoolCompareRector;
-use Rector\CodeQuality\Rector\If_\CombineIfRector;
 use Rector\CodeQuality\Rector\If_\ConsecutiveNullCompareReturnsToNullCoalesceQueueRector;
 use Rector\CodeQuality\Rector\If_\ObjectExplicitBoolCompareRector;
-use Rector\CodeQuality\Rector\If_\ShortenElseIfRector;
-use Rector\CodeQuality\Rector\If_\SimplifyIfElseToTernaryRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNotNullReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNullableReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfReturnBoolRector;
@@ -256,7 +253,6 @@ return [
     ClassMethodArrayDocblockParamFromLocalCallsRector::class,
     ArrayKeyExistsTernaryThenValueToCoalescingRector::class,
     InlineConstructorDefaultToPropertyRector::class,
-    CombineIfRector::class,
     CombinedAssignRector::class,
     CommonNotEqualRector::class,
     CompactToVariablesRector::class,
@@ -267,8 +263,6 @@ return [
     InlineArrayReturnAssignRector::class,
     LogicalToBooleanRector::class,
     RemoveSoleValueSprintfRector::class,
-    ShortenElseIfRector::class,
-    SimplifyIfElseToTernaryRector::class,
     SimplifyIfNotNullReturnRector::class,
     SimplifyIfReturnBoolRector::class,
     SimplifyTautologyTernaryRector::class,

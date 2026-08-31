@@ -42,8 +42,11 @@ use Rector\CodeQuality\Rector\Identical\SimplifyArraySearchRector;
 use Rector\CodeQuality\Rector\Identical\SimplifyBoolIdenticalTrueRector;
 use Rector\CodeQuality\Rector\Identical\SimplifyConditionsRector;
 use Rector\CodeQuality\Rector\Identical\StrlenZeroToIdenticalEmptyStringRector;
+use Rector\CodeQuality\Rector\If_\CombineIfRector;
 use Rector\CodeQuality\Rector\If_\CompleteMissingIfElseBracketRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
+use Rector\CodeQuality\Rector\If_\ShortenElseIfRector;
+use Rector\CodeQuality\Rector\If_\SimplifyIfElseToTernaryRector;
 use Rector\CodeQuality\Rector\Include_\AbsolutizeRequireAndIncludePathRector;
 use Rector\CodeQuality\Rector\Isset_\IssetOnPropertyObjectToPropertyExistsRector;
 use Rector\CodeQuality\Rector\New_\NewStaticToNewSelfRector;
@@ -622,4 +625,7 @@ const IGNORED_RULES = [
     AddReturnDocblockFromMethodCallDocblockRector::class,
     UnusedForeachValueToArrayKeysRector::class,
     ArraySpreadInsteadOfArrayMergeRector::class,
+    CombineIfRector::class,
+    ShortenElseIfRector::class,
+    SimplifyIfElseToTernaryRector::class,
 ];
