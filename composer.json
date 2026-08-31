@@ -38,8 +38,8 @@
   "require-dev": {
     "roave/security-advisories": "dev-master",
     "pekral/phpcs-rules": "dev-master",
-    "pekral/cursor-rules": "dev-master",
-    "pekral/phpstan-rules": "dev-master"
+    "pekral/phpstan-rules": "dev-master",
+    "pekral/ai-olympus": "dev-master"
   },
   "autoload": {
     "psr-4": {
@@ -52,7 +52,7 @@
     }
   },
   "scripts": {
-    "build": "composer check fix && composer check && composer cursor-rules:install",
+    "build": "composer check fix && composer check && composer ai-olympus:install",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
@@ -60,14 +60,14 @@
     "rector:fix": "vendor/bin/rector process rules/ build/ rector.php ",
     "fix": "composer rector:fix && composer phpcs:fix",
     "check:missing-rules": "php build/find-missing-rules.php",
-    "cursor-rules:install": "vendor/bin/cursor-rules install --force --editor=claude"
+    "ai-olympus:install": "vendor/bin/ai-olympus install --force --prune"
   },
   "config": {
     "prefer-stable": true,
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "phpstan/extension-installer": true,
-      "pekral/cursor-rules": true
+      "pekral/ai-olympus": true
     }
   },
   "minimum-stability": "dev",
