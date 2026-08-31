@@ -15,6 +15,7 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 - `CONTRIBUTING.md`, `SECURITY.md`, and `CODE_OF_CONDUCT.md`.
 - Issue forms for proposing that a rule be enabled or disabled, and a pull request template.
 - This changelog and `UPGRADING.md`.
+- A social preview image in `assets/`, for link previews on GitHub and social networks.
 
 ### Changed
 
