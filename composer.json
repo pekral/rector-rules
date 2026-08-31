@@ -1,13 +1,15 @@
 {
   "name": "pekral/rector-rules",
-  "description": "An extensible package of custom Rector rules for automated PHP refactoring and coding standard enforcement.",
+  "description": "Curated Rector rule set for PHP 8.4+ — 236 hand-picked rules in one import.",
   "type": "library",
   "license": "MIT",
   "homepage": "https://github.com/pekral/rector-rules",
   "support": {
     "issues": "https://github.com/pekral/rector-rules/issues",
+    "forum": "https://github.com/pekral/rector-rules/discussions",
     "source": "https://github.com/pekral/rector-rules",
-    "docs": "https://github.com/pekral/rector-rules#readme"
+    "docs": "https://github.com/pekral/rector-rules#readme",
+    "security": "https://github.com/pekral/rector-rules/security/policy"
   },
   "funding": [
     {
@@ -21,7 +23,9 @@
     "rector-rules",
     "php",
     "refactoring",
-    "code-quality"
+    "code-quality",
+    "dev",
+    "static analysis"
   ],
   "authors": [
     {
