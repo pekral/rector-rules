@@ -1,5 +1,6 @@
 # rector-rules
 
+[![Checks](https://github.com/pekral/rector-rules/actions/workflows/pr.yml/badge.svg)](https://github.com/pekral/rector-rules/actions/workflows/pr.yml)
 [![Latest Stable Version](https://poser.pugx.org/pekral/rector-rules/v/stable)](https://packagist.org/packages/pekral/rector-rules)
 [![Total Downloads](https://poser.pugx.org/pekral/rector-rules/downloads)](https://packagist.org/packages/pekral/rector-rules)
 [![License](https://poser.pugx.org/pekral/rector-rules/license)](https://packagist.org/packages/pekral/rector-rules)
@@ -150,7 +151,10 @@ composer install
 1. Add the class to `rules/rules.php`, or to `build/ignored-rules.php` if it should stay off.
 2. Run `composer check`.
 
-A rule must land in exactly one of the two files — `composer check:missing-rules` enforces that.
+`composer check:missing-rules` fails when a rule is in neither file, so every rule Rector ships has to be
+decided about.
+
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how the guard works and the reasons rules are left out.
 
 ### CI
 
@@ -175,14 +179,23 @@ Yes. Add `->withPhpSets()` or any other set alongside `withSets()`; Rector dedup
 Check `build/ignored-rules.php` in the repository — every excluded rule is listed there, grouped by reason
 (deprecated upstream, too context-dependent, conflicts with another rule).
 
+**What happens when I upgrade?**
+A minor release adds or removes rules, so Rector will rewrite more of your code. Run `--dry-run` first and
+read [UPGRADING.md](UPGRADING.md). A patch release never changes the set.
+
 **How do I contribute?**
-Open an issue or a pull request.
+Open an [Enable a rule](https://github.com/pekral/rector-rules/issues/new?template=enable-rule.yml) or
+[Disable a rule](https://github.com/pekral/rector-rules/issues/new?template=disable-rule.yml) issue, ask in
+[Discussions](https://github.com/pekral/rector-rules/discussions), or send a pull request — see
+[CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ---
 
 ## Links
 
 * [Packagist](https://packagist.org/packages/pekral/rector-rules)
+* [Changelog](CHANGELOG.md) · [Upgrade guide](UPGRADING.md) · [Contributing](.github/CONTRIBUTING.md) · [Security policy](.github/SECURITY.md)
+* [Discussions](https://github.com/pekral/rector-rules/discussions)
 * [Rector documentation](https://getrector.com/)
 * [Rector rule catalog](https://getrector.com/find-rule)
 
