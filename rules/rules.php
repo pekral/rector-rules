@@ -115,9 +115,11 @@ use Rector\Php72\Rector\FuncCall\StringifyDefineRector;
 use Rector\Php72\Rector\FuncCall\StringsAssertNakedRector;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php73\Rector\FuncCall\ArrayKeyFirstLastRector;
+use Rector\Php73\Rector\FuncCall\ArrayKeysToArrayKeyFirstLastRector;
 use Rector\Php73\Rector\FuncCall\SensitiveDefineRector;
 use Rector\Php74\Rector\Assign\NullCoalescingOperatorRector;
 use Rector\Php74\Rector\Closure\ClosureToArrowFunctionRector;
+use Rector\Php74\Rector\If_\IfToNullCoalescingAssignRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\Catch_\RemoveUnusedVariableInCatchRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
@@ -471,4 +473,6 @@ return [
     RemoveDefaultValueFromAssignedPropertyRector::class,
     RemoveDoubleSelfAssignRector::class,
     RemoveTestsOverriddenPrivateMethodParameterRector::class,
+    IfToNullCoalescingAssignRector::class,
+    ArrayKeysToArrayKeyFirstLastRector::class,
 ];
