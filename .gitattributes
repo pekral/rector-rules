@@ -3,4 +3,5 @@
 /.gitignore export-ignore
 /CHANGELOG.md export-ignore
 /UPGRADING.md export-ignore
+/assets export-ignore
 /build export-ignore
