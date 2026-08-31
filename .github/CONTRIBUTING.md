@@ -21,17 +21,22 @@ someone decides about each one. Nothing is silently skipped.
 
 ## Why a rule ends up in the ignore list
 
-The reasons already in `build/ignored-rules.php`, in its own words:
+The file holds 305 rules under four headings:
 
-- **Deprecated in `rector/rector`** — the largest group. Registering a deprecated rule prints a warning on
-  every run, and some fail outright.
-- **Waiting on PHP 8.5** — pipe-operator rules and the JMS Serializer property rules, marked
-  *"Enable after PHP 8.5 support enabled"*.
-- **Not available in the current Rector version.**
-- **Experimental**, or not useful for the example checking the list was originally written for.
+| Rules | Heading | Meaning |
+| ---: | --- | --- |
+| 284 | `// Ignored rules` | The decision is recorded; the reason is not |
+| 12 | `// Deprecated in rector/rector` | Rector deprecated the rule |
+| 5 | `// Deprecated by Rector and scheduled for removal` | Registering it warns on every run, and some fail outright |
+| 4 | `// Enable after PHP 8.5 support enabled` | Pipe-operator and JMS Serializer property rules |
 
-If you propose leaving a rule out for a reason that is not on this list, say what the reason is — the list is
-the record of every decision made so far, and a new kind of reason should be visible in it.
+The file's own docblock adds the cases it was originally written for: a rule duplicated in `rules.php`, one
+that is experimental, one that is not available in the current Rector version, and one that does not suit the
+example checking the list was built for.
+
+Most entries therefore carry no individual reason. When you move a rule into the list, put it under the
+heading that fits, and add a new heading when none does — that is how a reason becomes visible for the next
+person reading it.
 
 ## Proposing a change
 
