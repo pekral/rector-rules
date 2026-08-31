@@ -4,17 +4,15 @@
 [![Total Downloads](https://poser.pugx.org/pekral/rector-rules/downloads)](https://packagist.org/packages/pekral/rector-rules)
 [![License](https://poser.pugx.org/pekral/rector-rules/license)](https://packagist.org/packages/pekral/rector-rules)
 
-Latest Version License Downloads
+A curated, ready-to-use [Rector](https://github.com/rectorphp/rector) rule set for PHP 8.4+ projects.
+
+Rector ships over 500 rules. Picking the useful ones — and re-checking them on every Rector release — is a
+recurring chore. This package does that curation for you: **one import, 236 hand-picked rules**, with every
+rule Rector offers explicitly either enabled or documented as deliberately skipped.
 
 ---
 
-## 🚀 Introduction
-
-**rector-rules** is an extensible package of custom rules for [Rector](https://github.com/rectorphp/rector) to automate code refactoring and enforce coding standards. It helps you maintain consistent code style and high code quality in your PHP projects through automated transformations.
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
 composer require --dev pekral/rector-rules
@@ -22,40 +20,25 @@ composer require --dev pekral/rector-rules
 
 ---
 
-## ⚙️ Usage
+## Usage
 
-1. Add to your `rector.php` configuration file:
+Import the package's `rector.php` into your own configuration. Both Rector config styles work:
+
+**Rector 2 builder style**
 
 ```php
 <?php
-return static function (Rector\Config\RectorConfig $rectorConfig): void {
-    $rectorConfig->import(__DIR__ . '/vendor/pekral/rector-rules/rector.php');
-};
+
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__ . '/src'])
+    ->withSets([__DIR__ . '/vendor/pekral/rector-rules/rector.php']);
 ```
 
-2. Run Rector with your custom rules:
-
-```bash
-vendor/bin/rector process src
-```
-
----
-
-## 📝 Usage Examples
-
-### Code refactoring
-
-```bash
-vendor/bin/rector process src
-```
-
-### Dry-run (preview changes)
-
-```bash
-vendor/bin/rector process src --dry-run
-```
-
-### Example configuration (rector.php)
+**Closure style**
 
 ```php
 <?php
@@ -66,66 +49,147 @@ use Rector\Config\RectorConfig;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->import(__DIR__ . '/vendor/pekral/rector-rules/rector.php');
-    
-    // Your additional rules here
     $rectorConfig->paths([__DIR__ . '/src']);
-    $rectorConfig->skip([
-        // Skip specific rules if needed
-    ]);
 };
+```
+
+Then run Rector:
+
+```bash
+# Preview the changes without touching a file
+vendor/bin/rector process --dry-run
+
+# Apply them
+vendor/bin/rector process
+```
+
+### Skipping a rule you disagree with
+
+The set is opinionated. Turn off anything that does not fit your codebase:
+
+```php
+return RectorConfig::configure()
+    ->withPaths([__DIR__ . '/src'])
+    ->withSets([__DIR__ . '/vendor/pekral/rector-rules/rector.php'])
+    ->withSkip([
+        // Disable a rule everywhere
+        Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector::class,
+
+        // …or only in specific paths
+        Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector::class => [
+            __DIR__ . '/src/Legacy',
+        ],
+    ]);
 ```
 
 ---
 
-## ⚙️ Configuration
+## What is in the set
 
-* Rules can be extended and customized in your `rector.php` configuration.
-* Supports PHP 8.4+. Contributing to this repository requires PHP 8.5+, because the development dependencies do.
-* Easy integration with CI/CD (GitHub Actions, GitLab CI, ...).
-* Includes comprehensive examples for each rule.
+236 rules, grouped by what they do:
 
-## 📋 Included Rules
+| Area | Rules | What it covers |
+| --- | ---: | --- |
+| `TypeDeclaration` | 57 | Infer and add native parameter, property, and return types |
+| `CodeQuality` | 50 | Simplify conditions, loops, and expressions |
+| `DeadCode` | 44 | Remove unreachable code, unused variables, and redundant docblocks |
+| `PHPUnit` | 22 | Modernise test syntax, attributes, and assertions |
+| `TypeDeclarationDocblocks` | 14 | Narrow `array` docblocks that no native type can express |
+| `Php53` – `Php86` | 35 | Upgrade syntax to newer PHP versions |
+| Other | 14 | `Privatization`, `CodingStyle`, `EarlyReturn`, `Renaming`, `Unambiguous` |
 
-This package includes **150+ Rector rules** covering code quality, dead code removal, PHP version upgrades, and more. 
+The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array of rule class names.
 
-For a complete list of all included rules, see [rules/rules.php](rules/rules.php).
+### Curation model
 
----
+| File | Role |
+| --- | --- |
+| [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` |
+| [`rules/rules.php`](rules/rules.php) | The 236 enabled rules (shipped) |
+| `build/ignored-rules.php` | Rules deliberately **not** enabled, with the reason grouped inline (development only) |
+| `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored (development only) |
 
-## ❓ FAQ
+Because of that guard, every rule Rector adds in a new release shows up as a build failure until someone
+decides about it. Nothing is silently ignored.
 
-**Q: How do I add a custom rule?**  
-A: Add it to your `rector.php` configuration or extend this package.
-
-**Q: How do I run Rector only on specific folders?**  
-A: Adjust the path in the Rector command, e.g. `src/`, `app/`.
-
-**Q: How can I contribute?**  
-A: Open an issue or pull request on GitHub.
-
-**Q: How do I see what changes Rector would make?**  
-A: Use the `--dry-run` flag to preview changes without applying them.
-
-**Q: Can I skip specific rules?**  
-A: Yes, use the `skip` configuration in your `rector.php` file.
-
----
-
-## 🔗 Further Resources
-
-* [Rector](https://github.com/rectorphp/rector)
-* [Rector Documentation](https://getrector.com/)
-* [PHP 8.4 Features](https://www.php.net/releases/8.4/en.php)
+`build/`, `.github/`, and the dotfiles are marked `export-ignore`, so `composer require` pulls down only
+`rector.php`, `rules/`, `composer.json`, `README.md`, and `LICENSE`.
 
 ---
 
-## 📝 License
+## Requirements
 
-This package is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| | Version |
+| --- | --- |
+| PHP | `^8.4` |
+| `rector/rector` | `^2.6.5` |
 
-## About
+Contributing to this repository needs **PHP 8.5+**, because the development dependencies require it. Using
+the package only needs 8.4.
 
-[rector-rules](https://github.com/pekral/rector-rules) is maintained by [Petr Král](mailto:kral.petr.88@gmail.com).
+---
 
-- [Packagist: pekral/rector-rules](https://packagist.org/packages/pekral/rector-rules)
-- [Rector](https://github.com/rectorphp/rector)
+## Development
+
+```bash
+composer install
+```
+
+| Command | What it does |
+| --- | --- |
+| `composer check` | Full check: code style, Rector dry-run, missing-rule guard |
+| `composer fix` | Apply Rector and code-style fixes |
+| `composer build` | `fix`, then `check`, then reinstall the AI agent rules |
+| `composer phpcs` / `composer phpcs:fix` | Code style only |
+| `composer rector` / `composer rector:fix` | Rector on this repository's own sources |
+| `composer check:missing-rules` | Report rules that are neither enabled nor ignored |
+| `composer ai-olympus:install` | Reinstall [pekral/ai-olympus](https://github.com/pekral/ai-olympus) agent rules and skills |
+
+### Adding a rule
+
+1. Add the class to `rules/rules.php`, or to `build/ignored-rules.php` if it should stay off.
+2. Run `composer check`.
+
+A rule must land in exactly one of the two files — `composer check:missing-rules` enforces that.
+
+### CI
+
+Pull requests run the same `composer check` steps plus a `composer audit`, and separately lint the shipped
+sources on the declared minimum PHP 8.4. A weekly job refreshes dependencies and opens a PR; another audits
+dependencies for known vulnerabilities.
+
+---
+
+## FAQ
+
+**How do I preview what would change?**
+`vendor/bin/rector process --dry-run`.
+
+**How do I disable a single rule?**
+Use `withSkip()` — see [Skipping a rule you disagree with](#skipping-a-rule-you-disagree-with).
+
+**Can I combine this with Rector's own sets?**
+Yes. Add `->withPhpSets()` or any other set alongside `withSets()`; Rector deduplicates rules registered twice.
+
+**Why is rule X not included?**
+Check `build/ignored-rules.php` in the repository — every excluded rule is listed there, grouped by reason
+(deprecated upstream, too context-dependent, conflicts with another rule).
+
+**How do I contribute?**
+Open an issue or a pull request.
+
+---
+
+## Links
+
+* [Packagist](https://packagist.org/packages/pekral/rector-rules)
+* [Rector documentation](https://getrector.com/)
+* [Rector rule catalog](https://getrector.com/find-rule)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Maintained by [Petr Král](https://github.com/pekral).
