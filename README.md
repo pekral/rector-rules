@@ -1,15 +1,27 @@
 # rector-rules
 
-[![Checks](https://github.com/pekral/rector-rules/actions/workflows/pr.yml/badge.svg)](https://github.com/pekral/rector-rules/actions/workflows/pr.yml)
 [![Latest Stable Version](https://poser.pugx.org/pekral/rector-rules/v/stable)](https://packagist.org/packages/pekral/rector-rules)
+[![License](https://poser.pugx.org/pekral/rector-rules/license)](LICENSE)
+[![Checks](https://github.com/pekral/rector-rules/actions/workflows/pr.yml/badge.svg)](https://github.com/pekral/rector-rules/actions/workflows/pr.yml)
 [![Total Downloads](https://poser.pugx.org/pekral/rector-rules/downloads)](https://packagist.org/packages/pekral/rector-rules)
-[![License](https://poser.pugx.org/pekral/rector-rules/license)](https://packagist.org/packages/pekral/rector-rules)
 
 A curated, ready-to-use [Rector](https://github.com/rectorphp/rector) rule set for PHP 8.4+ projects.
 
 Rector ships over 500 rules. Picking the useful ones — and re-checking them on every Rector release — is a
 recurring chore. This package does that curation for you: **one import, 228 hand-picked rules**, with every
 other rule Rector offers listed as skipped, so a new Rector release cannot add a rule nobody looked at.
+
+---
+
+## Requirements
+
+| | Version |
+| --- | --- |
+| PHP | `^8.4` |
+| `rector/rector` | `^2.6.6` |
+
+Contributing to this repository needs **PHP 8.5+**, because the development dependencies require it. Using
+the package only needs 8.4.
 
 ---
 
@@ -119,18 +131,6 @@ decides about it. Nothing is silently ignored.
 
 ---
 
-## Requirements
-
-| | Version |
-| --- | --- |
-| PHP | `^8.4` |
-| `rector/rector` | `^2.6.5` |
-
-Contributing to this repository needs **PHP 8.5+**, because the development dependencies require it. Using
-the package only needs 8.4.
-
----
-
 ## Development
 
 ```bash
@@ -141,7 +141,7 @@ composer install
 | --- | --- |
 | `composer check` | Full check: code style, Rector dry-run, missing-rule guard |
 | `composer fix` | Apply Rector and code-style fixes |
-| `composer build` | `fix`, then `check`, then reinstall the AI agent rules |
+| `composer build` | `check`, then reinstall the AI agent rules — it applies no fixes; use `composer fix` for that |
 | `composer phpcs` / `composer phpcs:fix` | Code style only |
 | `composer rector` / `composer rector:fix` | Rector on this repository's own sources |
 | `composer check:missing-rules` | Report rules that are neither enabled nor ignored |
@@ -197,7 +197,7 @@ Open an [Enable a rule](https://github.com/pekral/rector-rules/issues/new?templa
 ## Links
 
 * [Packagist](https://packagist.org/packages/pekral/rector-rules)
-* [Changelog](CHANGELOG.md) · [Upgrade guide](UPGRADING.md) · [Contributing](.github/CONTRIBUTING.md) · [Security policy](.github/SECURITY.md)
+* [Changelog](CHANGELOG.md) · [Upgrade guide](UPGRADING.md) · [Contributing](.github/CONTRIBUTING.md) · [Code of conduct](.github/CODE_OF_CONDUCT.md) · [Security policy](.github/SECURITY.md)
 * [Discussions](https://github.com/pekral/rector-rules/discussions)
 * [Rector documentation](https://getrector.com/)
 * [Rector rule catalog](https://getrector.com/find-rule)
