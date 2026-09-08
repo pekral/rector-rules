@@ -1,0 +1,136 @@
+---
+description: Shared testing conventions for skills that generate or modify tests
+paths:
+  - "tests/**"
+  - "**/tests/**"
+  - "**/*Test.php"
+---
+
+## Testing Rules
+
+- Follow test conventions from:
+    - @rules/php/core-standards.md
+    - @rules/laravel/architecture.md (for Laravel projects)
+
+- Write all new tests using Pest syntax (`it()` / `test()` functional blocks). Do not introduce PHPUnit-style class-based tests for new test files.
+- When modifying existing PHPUnit tests, prefer rewriting them to Pest via `@skills/rewrite-tests-pest/SKILL.md` rather than extending the legacy class.
+- Never use `describe()`; use top-level `it()` / `test()` only.
+- Test classes should be `final`.
+- Prefer local variables; avoid shared mutable state.
+- In Laravel Pest projects, define `uses(Tests\TestCase::class)` in `tests/Pest.php` instead of repeating it in every test file.
+
+## Flaky Test Prevention
+A flaky test fails inconsistently, is hard to reproduce, and is often "fixed" by simply re-running the pipeline. Flaky tests destroy trust in CI — once a team learns to re-run instead of investigate, it starts ignoring real failures too. Every new or modified test must be deterministic: it must pass repeatedly, in isolation, and in any order. Apply the following:
+
+- **Freeze time; never assert on the wall clock.** Tests that read `now()`, `time()`, `sleep()`, or the ambient timezone fail depending on environment speed and clock drift. Pin time with `Carbon::setTestNow(...)` (or `travelTo()`) and always restore it afterwards — `Carbon::setTestNow()` / `travelBack()` in `afterEach`.
+- **Isolate database state.** A test must never rely on rows created by another test. Assertions such as `assertDatabaseCount('posts', 1)` start failing the moment another test seeds the same table. Isolate with `RefreshDatabase` (or `DatabaseTransactions`) and create exactly the rows the test under assertion needs.
+- **Make factory data deterministic.** Do not let random factory values decide the outcome. Explicitly set every attribute the assertion depends on (for example the user's role) instead of trusting factory defaults or random states.
+- **Test queues and async jobs deterministically.** Never wait for an asynchronous job to finish before asserting. Either assert the dispatch with `Bus::fake()` / `Queue::fake()`, or force `QUEUE_CONNECTION=sync` in the test environment so jobs run inline.
+- **Keep shared resources parallel-safe.** Parallel runs do not create flakiness — they expose existing shared state: Redis keys, files, temp directories, config cache, static properties, and singletons. Isolate per test with `Storage::fake()`, unique keys / file names, and by avoiding mutable static or singleton state.
+- **Never call external services directly.** Real HTTP requests fail on network issues, rate limits, latency, or sandbox outages — fake every outbound call with `Http::fake()` (and the relevant SDK fakes). See the *External Calls* section below for the full no-network / no-DNS contract.
+- **Guarantee order independence.** A test must pass on its own, repeatedly, and in any order. If a test passes only because another test ran before it, fix the hidden dependency — do not rely on suite ordering.
+
+## Data Handling
+- For Laravel:
+    - Use `Model::factory()` for persisted data.
+    - Do not duplicate database defaults unless explicitly required by the test.
+- Avoid mocking data that can be created via factories.
+
+## Mocking
+- Prefer storing real data in the database over mocking ModelManager or Repository classes.
+- Mock only:
+    - external services that cannot run in test environment
+    - exception scenarios that are hard to reach otherwise
+- Prefer partial mocks over full mocks.
+- Remove unnecessary or redundant mocks.
+
+## Jobs
+- Dispatch jobs using `JobClass::dispatch(...)` only.
+- **Assert the dispatch, never the payload — `Queue::assertPushed()` takes the job class and nothing else.** Write `Queue::assertPushed(ProcessPayment::class);`. Never pass a closure: `Queue::assertPushed(ProcessPayment::class, fn (ProcessPayment $job): bool => $job->orderId === $order->id)` is a payload assertion wearing a dispatch assertion's clothes. It reads the job's own properties from the caller's test, so renaming a property or reshaping a constructor inside the job breaks a test that was never about the job's internals — and a closure that matches nothing fails with *"the expected job was not pushed"*, pointing the reader at the dispatch that did happen instead of at the predicate that did not match.
+A dispatch test owns exactly one fact: **the caller dispatched the job**. What the job carries, and what it does with it, belongs in the job's own test, which constructs it with known inputs and asserts `handle()`.
+    - The same sentence covers the sibling assertions that accept the same closure — `Queue::assertNotPushed()`, `Queue::assertPushedOn()`, `Bus::assertDispatched()`, `Bus::assertNotDispatched()`, `Bus::assertDispatchedSync()` — because the rule is about *where* a payload is asserted, not about which facade spells the assertion.
+    - A second argument that is an **integer count** (`Queue::assertPushed(ProcessPayment::class, 2)`) is not a payload assertion and stays allowed: it is still a fact about the dispatch, not about the job's contents.
+    - When a test genuinely needs to prove *which* record the job was dispatched for, that is a signal the assertion is at the wrong level — assert the observable outcome the job produces, or move the check into the job's own test. Do not reintroduce the closure to get the fidelity back.
+- **Run the job's own test through `app()->call([$job, 'handle'])` — this is the preferred invocation, and it needs no mocks.** Construct the job with the payload the test controls, then let the container invoke `handle()`:
+
+    ```php
+    it('marks the order as paid', function (): void {
+        $order = Order::factory()->create(['paid_at' => null]);
+        $job = new ProcessPayment(orderId: $order->id);
+
+        app()->call([$job, 'handle']);
+
+        expect($order->refresh()->paid_at)->not->toBeNull();
+    });
+    ```
+
+    A job declares its collaborators as parameters of `handle()`, and the container resolves each one. `app()->call()` performs that resolution, so the test never builds a double just to satisfy the signature. It is also the production call path: the queue worker reaches `handle()` through `Illuminate\Bus\Dispatcher::dispatchNow()`, which calls `$container->call([$job, 'handle'])`. The test therefore runs the same wiring the worker runs.
+    - **Never call `$job->handle($mockRepository, $mockService)`.** Passing the arguments by hand forces a double for every dependency, asserts the job against those doubles instead of against real behavior, and breaks the test the moment `handle()` gains, loses, or re-types a parameter — a change that alters no behavior the test was written for.
+    - **Replace a dependency in the container, never at the call site.** When a collaborator genuinely cannot run in the test, the *Mocking* section above defines when that holds. Swap its binding before the call — `$this->app->instance(PaymentGateway::class, $fake)`, `Http::fake()`, `Process::fake()`, `Storage::fake()` — and leave the invocation as `app()->call([$job, 'handle'])`. The call site reads the same whether or not a collaborator is faked.
+    - **The constructor payload stays the test's own.** `app()->call()` resolves the `handle()` parameters only, so build the job with the identifiers the test created (`new ProcessPayment(orderId: $order->id)`), per the Laravel rule against dispatching hydrated models.
+    - **Use `dispatch_sync($job)` only when the test is about the bus pipeline** — job middleware, batch callbacks, or the dispatch events. It reaches `handle()` the same way and wraps that pipeline around it, which is noise in a test of the job's own behavior.
+    - This bullet covers the **job's own** test. The caller's test still asserts only the dispatch, per the bullet above.
+
+## External Calls
+- Tests must not call external services.
+- Mock all HTTP requests.
+- Use local or in-memory database connections for tests.
+- Avoid DNS lookups in tests.
+
+## Consistency
+- Ensure new or modified tests follow existing project conventions.
+
+## Test Organization
+- Place every new test file under a directory path that mirrors the namespace of the production class it covers (e.g. `App\Service\Billing\InvoiceCalculator` → `tests/Service/Billing/InvoiceCalculatorTest.php`, `Pekral\AiOlympus\InstallerPath` → `tests/InstallerPathTest.php`). A reviewer must be able to walk from a class to its tests by walking the parallel folder tree without searching.
+- One production class maps to one primary test file. The file name is `{ClassName}Test.php` (Pest functional test file using the same base name as the SUT plus the `Test` suffix). Helper / scenario test files extracted from a primary test file keep the same directory and a descriptive `{ClassName}{Scenario}Test.php` name so the relationship stays explicit.
+- Cross-cutting tests that do not target a single production class (full-stack feature flows, contract tests for an external API, install / boot scripts) go under an intent-named directory at the top of `tests/` (`tests/Feature/<flow>`, `tests/Contract/<vendor>`, `tests/Integration/<area>`). Do not park them next to an unrelated class just to satisfy a parallel path.
+- Group multiple `it()` / `test()` blocks for the same SUT in the same test file when they share setup and subject. Do not split one SUT across many files unless the per-file size genuinely hurts readability (then use the `{ClassName}{Scenario}Test.php` form above).
+- Each `it()` / `test()` description states the scenario in plain language and matches what the body actually asserts. Examples of *matching* descriptions: `it('returns zero for an empty cart')`, `test('throws InvalidArgumentException when the discount is negative')`. Examples of *non-matching* descriptions that violate this rule: generic placeholders (`it('it works')`, `test('test1')`, `test('happy path')`), descriptions that name the method instead of the scenario (`test('calculate')`, `it('handles getUser')`), or descriptions that contradict the assertions (`it('adds user')` over a body that asserts removal). When changing what a test asserts, rename the description in the same change.
+
+## Test Organization Review Hook
+- In code-review and pre-PR contexts, every new or moved test file must satisfy the **Test Organization** rules above. Misplaced files, mismatched file names, and descriptions that do not match the asserted scenario are CR findings — see `@skills/code-review/SKILL.md` "Test organization" Core Analysis bullet for the severity matrix and Suggested Fix template.
+
+## Scope
+- Focus tests on behavior, not implementation details.
+
+## Execution
+- Run tests in parallel whenever possible (e.g. `php artisan test --parallel` or `pest --parallel`).
+
+## Quality
+- Prefer simple, readable tests over complex setups.
+- Use data providers (datasets) where they improve readability and reduce duplication across similar test cases.
+- Tests must not contain conditions (e.g., `if`, `switch`); split conditional logic into separate test cases or data providers instead.
+- Structure every test body arrange-act-assert per @rules/php/core-standards.md Testing (phases in order, comments optional — see the canonical rule for the exception list).
+
+## No Tautological Assertions
+A tautology — an assertion that holds no matter what the code under test does — states nothing about that code, yet it counts toward coverage and reads as verified behaviour. That makes it worse than a missing test: a gap is visible, a tautology is camouflage. **No tautological assertion belongs in the codebase.** Delete it, or rewrite it into a claim the production code is able to break.
+
+Each of the following is a violation on a line the change adds or modifies:
+
+- **A literal asserted against itself** — `expect(true)->toBeTrue()`, `expect(1)->toBe(1)`, `assertSame('a', 'a')`. No project code is exercised at all.
+- **A value the test itself just assigned**, with no call to the system under test in between — `$data = new OrderData(total: 500); expect($data->total)->toBe(500);` asserts PHP's property assignment, not the project's behaviour. It stops being a tautology when a named constructor, cast, mutator, or normaliser transformed the input: then assert the transformation, never the echo.
+- **A configured test double re-asserted** — asserting the value a mock was just told to return verifies the mocking library. Assert the effect the system under test produced from that value instead.
+- **A language or framework guarantee** — that `collect([])` is a `Collection`, or that a getter with a declared return type returns that type. The type system already enforces it; the assertion cannot fail.
+- **An expected value computed by the code under test** — `expect($sut->total())->toBe($sut->total())`, or the system's own formula recomputed inline in the test so both sides move together when the formula changes. Pin the expected value literally.
+- **No assertion at all**, where the test passes merely because nothing threw. When *does not throw* genuinely is the contract, assert it explicitly (`expect(fn () => $sut->run())->not->toThrow(RuntimeException::class)`).
+
+**The falsifiability test — apply it to every assertion you write.** Break the production code the test claims to cover: invert a condition, return a wrong value, delete the branch. If the test still passes, the assertion is a tautology. A test must be able to fail for the reason it exists — that is the whole of its value.
+
+CR severity: **Moderate**. Escalate to **Critical** when the tautology is the only assertion covering a line the change adds or modifies, because the change then ships untested while reporting as covered.
+
+## Coverage
+- Every test change must be verified to be functional — run affected tests after each modification.
+- Require 100% code coverage for every changed or added code path — applies equally to code modifications and code review.
+- Before running coverage, discover the project's coverage command (prefer Phing target from `build.xml`/`phing.xml`; fall back to a Composer script in `composer.json` such as `test:coverage` or `coverage`). Do not assume a default command.
+- **Coverage reporting is short by default (issue #528 follow-up).** Run the coverage check on every change, but report the result on the published CR / tracker comment **only** when there is something the reader must act on:
+    - **uncovered changed lines** — list every uncovered line as a Critical finding and render the `## Coverage` section with the tool, exact command, and the uncovered-line list;
+    - **coverage tooling unavailable** — raise the missing-tool case as a Critical finding and render the `## Coverage` section with the reason in place of a result. **Sanctioned exception:** a pass running in the optional isolated read-only worktree with no `vendor/` under `## Savings mode: on` reports `deferred to hephaestus` here instead of a Critical finding, per `@rules/code-review/review-process.md` *Validation & Coverage Gate*.
+  When every changed line is at 100% coverage and the tool ran successfully, **omit the `## Coverage` section entirely, omit the `Coverage:` header line, and omit the `coverage …` slot from the final summary line.** The CR is "clean" on the Counts line and the omission is the signal that coverage is satisfied — never emit `100%` / `clean` / `n/a` placeholders for the section, the header line, or the summary slot. The coverage check itself still runs unconditionally on every CR; only the user-visible reporting is short-circuited.
+
+## Code Style and Quality Gates
+- **Do not run fixers or checkers on test changes as you author them.** The project's gate runs once, immediately before the merge (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*), executed by `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate*, which commits the fixes it produces as their own commit.
+- Do run the **tests** you are writing or changing — that is correctness feedback on the change itself, not a style gate, and it costs no build.
+- The gate discovers its own tooling: prefer Phing targets (`build.xml`/`phing.xml`) over Composer scripts (`composer.json`).
+
+## Test Review
+- After completing test changes, run a quick code review focused on test quality against these rules.

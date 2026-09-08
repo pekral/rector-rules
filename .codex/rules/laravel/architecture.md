@@ -1,0 +1,357 @@
+---
+description: Architecture rules for projects using pekral/arch-app-services package. Apply only when this package is present in vendor.
+paths:
+  - "vendor/pekral/arch-app-services/**"
+  - "app/Actions/**"
+  - "app/DataBuilders/**"
+  - "app/DataValidators/**"
+  - "app/ModelManagers/**"
+  - "app/Repositories/**"
+  - "app/Services/**"
+  - "app/Http/Controllers/**"
+  - "app/Jobs/**"
+  - "app/Console/Commands/**"
+  - "app/Listeners/**"
+  - "app/Livewire/**/*.php"
+---
+
+## Scope
+- Apply these rules only if the project uses `pekral/arch-app-services`.
+- This rule extends core Laravel conventions with package-specific architectural constraints.
+- Follow `pekral/arch-app-services` as the source of truth, including package examples and conventions.
+
+## Architecture
+- All business logic must follow the Action pattern.
+- Mandatory orchestration flow:
+  - `Controller / Job / Command / Listener / Livewire Component -> Action -> ModelService -> Repository (read) / ModelManager (write)`
+- Entry points must stay thin:
+  - accept input
+  - validate input or delegate validation
+  - call an Action
+  - return a response or update UI state
+- **Only Laravel-native class types exist in the application; every other concern is a `pekral/arch-app-services` layer.** The only non-business-logic classes allowed are the framework's own building blocks — controllers, jobs, console commands, listeners, events, Livewire components, middleware, FormRequests, Mailables, Notifications, policies, service providers, custom `Rule` classes, Enums, DTOs, Eloquent models, and framework boilerplate. **All other logic must be split by responsibility into the dedicated classes defined by `pekral/arch-app-services`** —
+Actions, Model Services (`Pekral\Arch\Service\BaseModelService`), Repositories (`Pekral\Arch\Repository\Mysql\BaseRepository`), ModelManagers (`Pekral\Arch\ModelManager\Mysql\BaseModelManager`), Data Validators (`Pekral\Arch\DataValidation\DataValidator`), and Data Builders (`Pekral\Arch\DataBuilder\DataBuilder`). Introducing an ad-hoc class that is neither a Laravel-native type nor one of these arch-app-services layers (a bare `Helper`, `Manager`, `Handler`, `Util`, `Processor`, `Builder`, `Mapper`, `Validator`, `Service` that does not extend `BaseModelService`, etc.) to host business logic is forbidden — move that logic into the correct layer above.
+- **Never introduce a new project-owned Facade.** A Laravel Facade is a static proxy to a container binding, not a home for logic. A new project-declared facade — a class extending `Illuminate\Support\Facades\Facade`, a `*Facade`-suffixed class under `App\`, or a new `App\Facades\…` entry — hides its dependency from every constructor, defeats the constructor-injection rule the layers below rest on, and hands business logic a home outside the seven allowed ones in **Business Logic Layers**. The correct home is the **base service** — a Model Service extending `Pekral\Arch\Service\BaseModelService` for single-model domain operations — or an Action when the use case composes several collaborators.
+Inject that class through the constructor and call it; never proxy it statically. Facades named elsewhere in this file (the inline-query, inline-validation, and pass-through enumerations) describe **legacy** code the project still carries, never a shape a new design may reach for. Two exemptions, each cited explicitly wherever the rule is enforced (CR finding, refactoring proposal): a **framework / vendor** facade (`Cache`, `Log`, `Storage`, `DB`, a package's own published facade) is consumed freely — this rule governs the facades a project *declares*, never the ones it *uses*; and a facade a package requires the project to declare to expose that package's own API surface, named together with the package that mandates it.
+- **Actions return plain domain data, never HTTP responses.** An Action's `__invoke()` returns a domain value (a Model, a DTO, a Collection, a scalar, `void`) — never an `Illuminate\Http\Response` / `JsonResponse` / `RedirectResponse`, and never the result of `response()`, `response()->json()`, `redirect()`, `back()`, `view()`, or any other HTTP-response builder. Translating domain data into an HTTP response (status code, headers, JSON envelope, redirect) is **always** the controller's job — the controller is the single owner of client↔server communication. Jobs, commands, and listeners likewise consume the Action's domain return value directly.
+
+- Do not place business logic in controllers, jobs, commands, listeners, or Livewire components.
+- Eloquent models are allowed to carry simple, self-contained domain methods (own-attribute predicates, computed values, simple state derivations) — see the **Business Logic Layers** section for the boundary.
+- Legacy untouched code is a carve-out, but all new or materially changed flows must follow this architecture.
+- Multitenancy remains mandatory in every layer: all reads and writes must stay account-scoped.
+- **Invokeable call convention:** When calling Action classes, always use direct invocation `$action($params)` — never `$action->__invoke($params)`.
+- **Action pattern (only when `vendor/pekral/arch-app-services` exists):** Apply @skills/refactor-entry-point-to-action/SKILL.md rules when the class is a controller, job, command, listener, or **Livewire component** that contains orchestration logic. If a new or changed entry point contains orchestration logic without an Action class, flag it as **Critical**.
+- **Single-use Service/Facade method rule (Action pattern):** If an Action calls a Service or Facade method that is used only once in the entire codebase, move the business logic from that Service/Facade method directly into the Action and remove the original Service/Facade method.
+- **Pass-through Action rule (Action pattern):** An Action whose entire `__invoke()` body is a single delegating call to one Service / Facade / Model Service method — adding no orchestration of its own (no validation delegation, no DTO / data transformation, no coordination of multiple collaborators, no additional business step, no return-value reshaping) — is a redundant indirection layer. Since the Action pattern exists so that **business logic lives in the Action**, an Action that only forwards one call holds no logic and earns its keep. Resolve it one of two ways:
+  - If that Service / Facade method is used **only once** in the codebase, move its business logic into the Action and delete the method (this is the **Single-use Service/Facade method rule** above), so the Action does real work instead of forwarding.
+  - If that Service / Facade method is **reused** elsewhere (so it cannot be inlined), **remove the Action entirely** and have the entry point call the Service / Facade method directly — collapse `$action($payload)` to `$service->method($payload)`. Do not keep an Action that wraps a single shared service call.
+- **Action-to-Action pass-through rule (Action pattern):** The same rule applies when the single delegated call targets **another Action** — an `__invoke()` whose entire body is `($this->otherAction)($payload)` and nothing else. An Action that composes *several* collaborators, one of them another Action, is the pattern working as intended (see **Action scope: concrete use case, not general logic**); an Action that only forwards to one other Action is two names for one use case, and the outer one holds no logic at all. Unlike a Service method, an Action is a use case rather than a reusable method, so the resolution is always to **collapse the two into one**:
+  - If the outer Action is the **only** caller of the inner one, merge them: keep the single Action whose name states the use case, move the inner body into it, and delete the other.
+  - If the inner Action has **other callers**, delete the outer Action and repoint its entry point at the inner one — `$outerAction($payload)` becomes `$innerAction($payload)` — listing every call site that must change.
+  - **Gating — one finding per violation, never both:** when the **entire** `__invoke()` body is that single delegating call, this rule owns it. The *general / reusable logic in an Action* finding (**Action scope: concrete use case, not general logic**) fires only when the Action keeps orchestration of its own around the block.
+- **Invokeable controller rule:** Any controller method that is not a standard CRUD method (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`) must be extracted into a dedicated single-action invokeable controller with only `__invoke()`. Resource controllers must only contain CRUD methods.
+- **BaseModelService pattern (only when `vendor/pekral/arch-app-services` exists):** Every class named with a `Service` suffix must extend `BaseModelService` and implement `getModelClass()`, `getRepository()`, and `getModelManager()` (see `vendor/pekral/arch-app-services/examples/Services/User/UserModelService.php`) — **unconditionally; there is no "it doesn't primarily serve a model, so a bare Service is fine" exception.** Use a structural test — not a subjective one — only to decide which remediation a non-compliant Service needs:
+count its public methods, excluding the constructor and any method required by an implemented framework/vendor interface or an extended framework/vendor base class — a framework/vendor contract is not the class's own surface, mirroring the framework/vendor carve-out in the **Speculative interfaces** bullet in `@rules/code-review/general.md`; "framework/vendor" means a contract declared outside the project's own `App\` namespace. **More than one** public business method operating on a single model → genuinely Model-Service-shaped — make it extend `BaseModelService` properly.
+**Exactly one** public business method with every other method `private`/`protected` → Action-shaped regardless of whether a parameter happens to be an Eloquent model — convert it wholesale into an Action under `app/Actions/{Domain}/` instead of bolting `extends BaseModelService` onto a single-use-case class. **More than one** public business method spanning several unrelated models, or **zero** left after the exemptions (the business logic sits in vendor-contract methods) → split it by use case into Actions under `app/Actions/{Domain}/`, adding one Model Service per model only where a model genuinely needs more than one operation.
+A class whose only public method is already `__invoke()` needs no counting — it is unambiguously Action-shaped; rename it to `{UseCase}Action` and move it. This test only decides the *remediation* for a class that does **not** yet extend `BaseModelService` — a class that already `extends BaseModelService`, however many public methods it exposes (including exactly one), is compliant and stays that way.
+- **Data Validator extraction (only when `vendor/pekral/arch-app-services` exists):** If an Action class contains inline validation logic (throwing `ValidationException` directly, calling `Validator::make()`, or imperative guard clauses that check input and throw exceptions like `InvalidArgumentException`), extract it into a dedicated Data Validator class. Data Validators must use validation rules defined as reusable traits in `app/Concerns/`. Default location is `app/DataValidators/{Domain}/`, but follow the project's existing convention if different.
+- **Livewire components (only in Livewire projects):** Livewire components are entry points — they must not contain business logic. Split every component into a PHP class (`app/Livewire/`) and a Blade view (`resources/views/livewire/`). Never use single-file (Volt) components. Delegate all business logic to Action classes.
+- **Validation rules as traits:** Store all validation rules as reusable traits in `app/Concerns/` (e.g. `GitHubIssueNumbersValidationRules`, `JiraIssueKeysValidationRules`). Use these traits in FormRequest classes and Data Validator classes — never duplicate rule arrays.
+- **Custom Rule classes reuse:** Before adding validation logic, scan `app/Rules/` for existing custom Rule classes that already implement the required validation. If a matching Rule exists, use it. If no matching Rule exists and the validation logic is non-trivial or reusable, create a new custom Rule class in `app/Rules/` and use it. During code review, flag any FormRequest that duplicates logic already covered by an existing custom Rule class or that contains non-trivial inline validation that should be a custom Rule.
+- **Laravel AI SDK:** When implementing AI features in a Laravel project, always use the [Laravel AI SDK](https://laravel.com/docs/13.x/ai-sdk). Never call AI provider APIs directly when the Laravel AI SDK covers the use case.
+- **Custom Helpers:** Small utility functions that don't belong to any specific class (cache key generators, input validators, formatters) must be implemented as **global helper functions** in `app/helpers.php` (autoloaded via `composer.json` `files` key). Follow the [Laravel News helpers pattern](https://laravel-news.com/creating-helpers): plain functions, no wrapper classes, snake_case names. Do **not** create `final class` wrappers with a single static method for simple utility logic — use a helper function instead.
+
+## Business Logic Layers
+- Business logic must live **only** in one of the following seven class types — no other class is an allowed home for business logic:
+  - **Actions** (`app/Actions/{Domain}/`) — orchestration of a single use case.
+  - **Model Services** (extending `BaseModelService`) — single-model domain operations.
+  - **Repositories** (`app/Repositories/{Domain}/`) — read-only data access (basic, reusable queries).
+  - **ModelManagers** (`app/ModelManagers/{Domain}/`) — write-only persistence (create, update, delete, batch writes).
+  - **Data Validators** (`app/DataValidators/{Domain}/`) — input validation that throws `ValidationException`.
+  - **Data Builders** (`app/DataBuilders/{Domain}/`) — mapping, hydration, and normalization of input into DTOs.
+  - **Eloquent models** (`app/Models/`) — **only** simple, self-contained domain methods (predicates on own attributes, computed values from already-loaded data, simple state derivations). Allowed only when the method needs no external services, no repositories, no model managers, no new database queries beyond own loaded data, no persistence side effects, and no multi-entity orchestration. The moment a method needs any of those, it must move to one of the other six layers above. Methods or accessors that touch `$this->relation->...` when the caller has not eager-loaded the relationship count as "new database queries" and breach the boundary — eager-load at the call site or move the logic out of the model.
+- **Single-responsibility per file:** Each class file must own exactly one of the seven responsibilities above. A single file must never mix concerns from two or more layers (e.g. validation + persistence on a model, mapping + orchestration in a Service, querying + writing). Framework boilerplate on Eloquent models — relationships, scopes, casts, accessors — is implicit and does not count toward the single-responsibility limit; the model's single business-logic responsibility is the simple-domain-methods home defined in the **Eloquent models** layer above. Models may not also carry orchestration, persistence dispatch, or queries beyond own data — those still count as separate (and forbidden) responsibilities.
+- **Refactoring trigger:** When a class file contains business logic that spans more than one of the seven layers, or contains business logic that does not fit any of the seven layers — including an Eloquent model method that crosses the simple-logic boundary above — apply `@skills/class-refactoring/SKILL.md` to split the responsibilities into dedicated classes from the list above.
+- **Entry points and infrastructure exceptions:** Controllers, Jobs, Commands, Listeners, Livewire components, Middleware, FormRequests, DTOs, Enums, custom validation `Rule` classes, helper functions in `app/helpers.php`, and framework boilerplate are **not** business-logic layers. They must delegate to one of the seven allowed homes above.
+
+## Actions
+- **Before you create an Action, prove that no Action already covers the use case.** The first question a new Action raises is whether it should exist. Search `app/Actions/**` before you write the class: read the `__invoke()` of every Action in the target domain folder, and grep the repository for the collaborators the new flow would compose (the Model Service, the Data Builder, the Data Validator, the Repository, the ModelManager). When an Action already orchestrates this use case, that Action is the implementation — call it from the new entry point, or extend it.
+A second Action for one use case is the duplication this gate exists to stop: the two copies drift apart the moment one of them gains a step, and the entry point that calls the stale copy keeps working while it produces the wrong result.
+  - **Search by the flow, never only by the name.** An Action that carries a different name and orchestrates the same steps is still the same use case. Match on what `__invoke()` does and on the collaborators it injects.
+  - **Shared collaborators do not make two Actions one.** `CreateUser` and `InviteUser` may call the same Model Service and stay two Actions. The test is the use case an Action orchestrates, never the classes it injects.
+  - **When the existing Action almost fits, change that Action.** Widen its DTO, or add the missing collaborator to its orchestration. A copy of it under a new name is the violation. When widening it would make one Action serve two use cases, extract the shared step into the layer that owns it — a Model Service, a Data Builder, or a Data Validator — and have both Actions call that layer.
+  - **The general logic inside the new Action falls under the same gate.** An existing Model Service, Data Builder, Data Validator, Repository, ModelManager, or `app/Concerns/` trait that already performs a step is what the Action calls, never a step the Action re-implements (see **Action scope: concrete use case, not general logic** and **Data Modification (DRY)**).
+  - Code review owns this as **one** finding under `@rules/code-review/general.md` *Reuse Existing Logic*, at the severity `@rules/code-review/core-analysis.md` *Reuse of existing logic* declares. Never raise a second finding beside it.
+- Store all Actions under `app/Actions/{Domain}`.
+- Use one use case per Action class.
+- Class names should use the `Action` suffix.
+- Actions should be `final readonly` where practical.
+- Use constructor injection only.
+- Expose a single public entry point: `__invoke()`.
+
+### Action Rules
+- Actions are orchestration-only:
+  - validation via Data Validators (using validation traits from `app/Concerns/`)
+  - DTO/data transformation **delegated to Data Builders** (no inline mapping in the Action)
+  - delegation to services, repositories, and model managers
+- Do not:
+  - execute direct Eloquent queries
+  - call `DB::` directly
+  - perform persistence inline
+  - expose additional public business methods
+  - **return an HTTP response** — no `response()` / `response()->json()` / `redirect()` / `back()` / `view()` / `abort()` and no `Response` / `JsonResponse` / `RedirectResponse` return type. The Action returns domain data; the controller builds the HTTP response from it (see **Architecture** → *Actions return plain domain data*).
+  - **accept the HTTP request** — no `Illuminate\Http\Request` parameter, no `FormRequest` subclass parameter, and no reach for the request from inside `__invoke()` (`request()`, the `Request` facade, `app('request')`). This is the mirror of the rule above: the controller owns client↔server communication in **both** directions, so the request stops at the controller exactly as the response starts there. A request parameter costs three things at once — it **binds the use case to HTTP**, so the same Action cannot be called from a job, a console command, a listener, or a test without faking a request;
+it **hides the input contract**, because the signature says *a request* instead of naming the values the use case consumes; and it **reopens the trust boundary**, because an Action holding the request can read `input()` / `all()` / `query()` and reach the raw payload the FormRequest just validated. The controller converts the request into the payload first — `$request->toDto()` on the endpoint's FormRequest (see **Controllers and Other Entry Points**), or `$request->validated()` mapped by a Data Builder — and passes that DTO (see *One DTO per `__invoke()`* above).
+Concrete values extracted from the request are not the request: an `UploadedFile`, a route-bound Model, the authenticated user, a scalar. Passing those is fine, and once there is more than one of them they belong together in the one DTO.
+  - **map, transform, normalize, or reshape data inline** — any method that builds a payload array, maps a model/collection into another structure, renames keys, applies default fallbacks, or formats values (e.g. a private `buildPayload()` helper inside the Action) must be extracted into a Data Builder (see **Data Builders**). The Action calls the Data Builder and forwards the typed result.
+  - **contain inline validation** — `instanceof` / null / range / amount guard conditions that reject or skip invalid input (whether they `throw`, `return`, or `continue`), and the `throw_if()` / `throw_unless()` helpers, must be extracted into a Data Validator (see **Data Validators**).
+- Always call Actions using direct invocation:
+  - `$action($payload)`
+  - never `$action->__invoke($payload)`
+- **One DTO per `__invoke()` — when the Action needs a DTO, it takes exactly one.** A use case has one payload, so the values it needs travel in a single typed carrier. An `__invoke()` signature that declares two or more DTO parameters splits one payload across several carriers and forces every caller to assemble all of them; merge them into one DTO named after the use case. The same applies to a DTO accompanied by loose payload values — a scalar or an array parameter that carries part of the same input belongs as a property of that DTO, not beside it. The goal is the simplest possible signature: one parameter that says what the use case consumes.
+  - **The rule fires only when a DTO is used at all.** An Action whose input is a single Model, a single scalar, or nothing needs no DTO and introduces none — this rule never mandates a DTO, it only caps how many appear once one is warranted. `@rules/php/core-standards.md` Structure owns the opposite direction (>4 parameters → introduce a DTO).
+  - **Not a second DTO:** the Eloquent model (or its identifier) the use case acts on, passed alongside the payload DTO — `__invoke(OrderModel $order, UpdateOrderData $data)` is one payload plus its subject, not two payloads; a container- or framework-injected parameter; and the DTO the Action **returns**, which is a separate type by design (see **Architecture** → *Actions return plain domain data*).
+
+### Action scope: concrete use case, not general logic
+- **An Action is the orchestration of one concrete use case — it composes several collaborators (Model Services, Data Validators, Data Builders, other Actions) into a single business flow.** The reference *orchestration* shape is `pekral/arch-app-services` `examples/Actions/User/CreateUser.php`: it coordinates validation, normalization, persistence via a Model Service, and a follow-up Action — the Action *coordinates* the steps, it does not implement them. (Note: that package example wires validation and mapping through the in-Action `DataValidator` / `DataBuilder` traits;
+in this project those two steps live in dedicated Data Validator / Data Builder classes the Action injects and calls — see **Data Validators** and **Data Builders**, which forbid `use`-ing those traits directly on the Action.)
+- **General / reusable logic must not live inside an Action.** Any logic in `__invoke()` that is not the use-case-specific coordination — a reusable validation rule, a data transformation / normalization, a single-model read or write, or a computation that another flow already reuses or could reuse — must be extracted into the layer that owns it and called from the Action: a **Model Service** for single-model domain operations, a **Data Validator** for input validation, a **Data Builder** for mapping / normalization, a **Repository** / **ModelManager** for reads / writes. The Action keeps only the orchestration specific to this one use case.
+- **The Action pattern earns its keep when the flow combines more than one collaborator.** Complex business logic that brings several Services / collaborators together in one place is exactly what an Action is for. A step that touches only a single model or a single concern is not "Action work" — it belongs in that concern's dedicated class, invoked from the Action (or, when the Action adds no orchestration of its own, called directly from the entry point — see the **Pass-through Action rule**).
+- **Test for misplaced general logic:** if a block inside `__invoke()` could be lifted verbatim into another Action without modification, it is general logic in the wrong home — move it to a Model Service / Data Validator / Data Builder and call it from both Actions instead of duplicating it.
+
+## Model Services
+- Every `Service`-suffixed class must extend `BaseModelService` — unconditionally, with no "doesn't primarily serve a model" exception (see **Architecture** → *BaseModelService pattern* for the structural test that decides which remediation a non-compliant class needs).
+- BaseModelService implementations must define:
+  - `getModelClass()`
+  - `getRepository()`
+  - `getModelManager()`
+- Model services should stay focused on one model/domain concern.
+- Keep services stateless.
+- Do not mix unrelated multi-domain orchestration into one service.
+- A `Service`-suffixed class exposing exactly one public business method (every other method `private`/`protected`) is Action-shaped, not Model-Service-shaped — convert it into an Action under `app/Actions/{Domain}/` instead of extending `BaseModelService` on a single-use-case class (see **Architecture** → *BaseModelService pattern*). A class that already `extends BaseModelService` is unaffected by this bullet regardless of its method count.
+- Services must not execute direct Eloquent queries or `DB::` calls — delegate reads to Repositories and writes to ModelManagers.
+
+## Repositories and ModelManagers
+- **Eloquent / query-builder queries belong in a repository class — always, regardless of whether `pekral/arch-app-services` is installed.** Inline Eloquent chains (e.g. `EmailModel::query()->whereNotNull('reminder_at')->...->get()`) written directly in a controller, Livewire component, job, action, or command are an anti-pattern. Encapsulate every multi-condition or business-filter query in a dedicated repository class (e.g. `EmailRepository`) with a method name that expresses the intent (`getPendingReminders()`). Reasonable exceptions where inline queries are acceptable:
+  - Simple single-model lookups with no business filter logic: `Model::find($id)`, `Model::findOrFail($id)`.
+  - Eager-loading relationships at the call site: `$model->load(['relation'])` or `->with(['relation'])` as a loading hint, not a business query.
+  - Code that already lives inside a repository class or model scope.
+  - Framework / vendor contracts that require an inline query (e.g. a policy method, an Eloquent scope defined on the model, a seeder/factory).
+- **Read/write split is mandatory and package-defined:** every database **read** lives in a Repository extending `Pekral\Arch\Repository\Mysql\BaseRepository`; every database **write/update/delete** lives in a ModelManager extending `Pekral\Arch\ModelManager\Mysql\BaseModelManager`. Both are generic over the Eloquent model (`@extends BaseRepository<\App\Models\User>`) and implement the protected `getModelClassName(): string`.
+- All database read operations (Eloquent queries, `DB::` calls, query builder) must be encapsulated in Repository classes — never inline in Actions, Services, Facades, controllers, jobs, commands, listeners, or Livewire components.
+- Repositories are read-only:
+  - querying
+  - filtering
+  - pagination
+  - retrieval
+- Repositories must not perform writes or side effects.
+- **Basic queries only:** Repositories may expose only generic, reusable queries (e.g. `find`, `findBy{Attribute}`, `all`, simple `where` lookups, pagination of a base scope). Use case–specific or feature-specific queries (combinations, multi-condition business filters, joins driven by a single feature) must not live in Repositories.
+- **Specialization belongs to Services and Actions:** When a feature needs a specialized result, compose it from basic Repository methods inside a Service (when scoped to one model) or an Action (when orchestrating across models or features). Services and Actions still must not write Eloquent or `DB::` queries themselves — they call Repository methods and shape the result.
+- All database write operations must be encapsulated in ModelManager classes — never inline persistence in Actions, Services, Facades, controllers, jobs, commands, listeners, or Livewire components.
+- ModelManagers are write-only:
+  - create
+  - update
+  - delete
+  - bulk persistence operations
+- ModelManagers must not contain read/query responsibilities.
+- **Batch-first writes:** ModelManagers should expose batch methods (`batchUpdate($model, $rows, 'id')`, `batchInsert($model, $rows)`) and use single-query bulk operations for delete (`whereIn(...)->delete()`). Actions and Services must call these batch methods instead of issuing per-row `update()` / `create()` / `delete()` from inside a loop (see `@rules/sql/optimalize.md` "Batch over per-row operations"). The same applies to reads: prefer one `findBy{Attribute}In(...)` keyed in memory over per-row Repository lookups inside a loop.
+- Never mix read and write responsibilities between Repositories and ModelManagers.
+
+## DTOs
+- Use typed DTOs for data exchange across layers.
+- Prefer Spatie Laravel Data when the project uses it.
+- Do not pass raw untyped arrays across layer boundaries when a DTO exists or should exist.
+- **Public methods return typed DTOs, not associative arrays.** When a public method produces a structured set of values (a record, a multi-key payload, an array shape with named keys), its return type must be a typed DTO — never a raw `array`. The exemptions are the same as `@rules/php/core-standards.md` Structure: single scalar / `bool` / `void` returns, a homogeneous list or `Collection` of one type, and array shapes fixed by a framework / vendor contract (`toArray()`, `jsonSerialize()`, `Arrayable`, `casts()`, FormRequest `rules()`, overrides of a `vendor/`-owned signature). Cite the exemption explicitly when it applies.
+- Use PHP attributes for mapping:
+  - `#[MapInputName(...)]`
+  - `#[MapName(...)]`
+- Never override `from()` solely to rename keys or perform trivial manual array mapping.
+- Custom named constructors such as `fromModel()`, `fromRequest()`, or `fromArray()` are valid when they perform meaningful domain-specific transformation.
+- A request → DTO named constructor (`fromRequest()`) should be invoked from the owning **FormRequest** (via a public `toDto()` method) rather than from the controller body, so the request→DTO transformation lives next to the request's validation rules (see **Controllers and Other Entry Points**).
+- DTO classes should be `final readonly` with promoted constructor properties where practical.
+- Place DTOs under `app/Dto/{Domain}` and use a `Data` suffix.
+
+## Data Modification (DRY)
+- Each data transformation has exactly one home, defined by the layer that produces the result:
+  - **Data Builders** — mapping, hydration, and normalization of incoming data into DTOs.
+  - **DTOs** — typed carriers; named constructors (`fromModel`, `fromRequest`, …) own model/request → DTO transformations.
+  - **Data Validators** — validation and rejection of invalid input.
+  - **ModelManagers** — persistence-side shaping (write payloads, bulk write transformations).
+  - **Repositories** — read-side shaping limited to basic query results; specialization via composition in Services/Actions.
+  - **Actions** — orchestration that composes the above, never inline transformation logic.
+- The same shaping rule (date format, default fallback, null handling, key renaming, business-driven derivation, etc.) must not be repeated across Actions, Services, controllers, jobs, listeners, Livewire components, or commands. If two or more entry points need the same transformation, extract it into the canonical layer above and reuse it.
+- When introducing or reviewing changes, enumerate every place that modifies data before it is saved or passed downstream and verify that no two places implement the same transformation.
+
+## Data Builders
+- Data Builders are dedicated classes for mapping, hydrating, normalizing, and reshaping data.
+- **All mapping / transformation / reshaping logic must live in a Data Builder — never inline in an Action, Service, controller, job, command, listener, or Livewire component.** This covers building a payload array, mapping a model or collection into another structure, renaming keys, applying default fallbacks, formatting values, or any other data shaping. A private helper such as `buildPayload(OrderModel $order): array { return ['client_email' => $order->customer->email, ...]; }` sitting inside an Action is a violation: move it into a Data Builder method and have the Action call `$this->orderPayloadDataBuilder->build($order)`.
+The one alternative home, per the **Data Modification (DRY)** section, is a **DTO named constructor** (`fromModel()` / `fromRequest()`) when the transformation produces a typed DTO directly — array / payload shaping goes to a Data Builder, model/request → DTO mapping may instead live on the DTO's named constructor; both are valid, inline mapping in the entry point is not.
+- **When `pekral/arch-app-services` is installed:** the dedicated Data Builder class (`app/DataBuilders/{Domain}/`) `use`s the `Pekral\Arch\DataBuilder\DataBuilder` trait, whose `$this->build($data, [...])` method runs the data through general and field-specific pipes (Laravel Pipeline) for normalization. Use the trait rather than hand-rolling a mapping loop. The trait belongs to the dedicated Data Builder class that the Action injects and calls — do **not** `use` the trait directly on the Action, which would put the mapping back inside `__invoke()`.
+- Data Builders are **not** Action pattern classes — they do not use `__invoke()` and may expose multiple public methods.
+- Each public method should accept input (array, request data, model, external API response, etc.) and return a typed DTO. Fall back to a normalized array only when the downstream consumer is a framework / vendor contract that requires an array — e.g. a mass-assignment write payload handed to a ModelManager — and cite that reason; for everything else the return type is a DTO, not an array.
+- Data Builders must never query the database or perform side effects.
+- Store Data Builders under `app/DataBuilders/{Domain}/` and use the `DataBuilder` suffix.
+- Data Builders should be `final readonly` with constructor injection where practical.
+- Use Data Builders whenever data construction involves mapping, hydration, normalization, or reshaping that does not belong in the DTO itself.
+- Actions call Data Builders for data transformation instead of performing inline mapping.
+
+## Shared Concerns (Traits)
+- `app/Concerns/` is the **canonical home for all globally shared and reusable logic** in the application — typically PHP traits, but also small reusable helpers and value objects that exist purely to be consumed across unrelated domains.
+- Place a trait, class, or helper in `app/Concerns/` **only when all three conditions hold**:
+  - **Globally applicable** — consumed by two or more unrelated domains, layers, or entry points (e.g. validation rule trait reused across multiple FormRequests and Data Validators, formatting helper trait reused across multiple Services or controllers).
+  - **Domain-agnostic** — carries no knowledge of a specific business model, aggregate, feature flow, or domain rule. No hard-coded references to `User`, `Invoice`, `Order`, `Subscription`, or any other concrete domain concept.
+  - **Reusable as-is** — consumers use it without further specialization or per-domain branching inside the trait.
+- **Forbidden in `app/Concerns/`:**
+  - Domain-specific logic — anything tied to a concrete model, aggregate, feature flow, or business rule must live in the relevant business-logic layer under `app/{Domain}/` (Actions, Model Services, Repositories, ModelManagers, Data Validators, Data Builders, Eloquent models — see **Business Logic Layers**).
+  - Single-use traits or helpers consumed by exactly one class with no second consumer expected — inline the logic in that class instead. Keep `app/Concerns/` reserved for genuine reuse.
+  - Orchestration, persistence, query, or HTTP/queue dispatching logic — those still belong to the seven business-logic layers, regardless of how the trait is structured.
+- The **Validation Rules (Traits)** section below is one specific instance of this broader rule — validation rule traits are the canonical worked example of a Concern, not the only allowed category.
+
+## Validation Rules (Traits)
+- Store all validation rules as reusable traits in `app/Concerns/` following the existing naming convention (e.g. `GitHubIssueNumbersValidationRules`, `JiraIssueKeysValidationRules`). Keep this approach consistent across the entire application. This is the canonical worked example of the **Shared Concerns (Traits)** rule above.
+- Use these validation traits in FormRequest classes and Data Validator classes — never duplicate rule arrays.
+- Use custom Rule classes in `app/Rules/` for complex or reusable validation logic that goes beyond simple rule arrays.
+
+## Data Validators
+- All data validation logic must be encapsulated in dedicated Data Validator classes — never inline in Actions, controllers, jobs, commands, listeners, or Livewire components.
+- **Validation-style guard conditions belong in a Data Validator regardless of how they reject the input.** Any condition that checks the validity, type, shape, or business preconditions of data and then rejects or skips it — whether it `throw`s, `return`s early, or `continue`s a loop — is validation logic and must move into a Data Validator. Examples that are violations when left inline in an Action / Service / job / listener:
+  - `if (! $order instanceof OrderModel || $order->paid_at !== null) { continue; }`
+  - `if ((float) $payment->amount < (float) $order->total_gross) { continue; }`
+  These guard the data before business orchestration runs; extract them into a Data Validator method (e.g. `assertPayable(OrderModel $order, PaymentModel $payment): void`) that throws `ValidationException`, and let the caller act on the validated result.
+- **`throw_if()` / `throw_unless()` are inline validation and must live in a Data Validator** — never call `throw_if(...)` / `throw_unless(...)` inside an Action, Service, controller, job, command, listener, or Livewire component to reject input. Move the condition into the Data Validator.
+- **`match()` over an enum mode is domain validation and must live in a Data Validator (only when `pekral/arch-app-services` is installed).** A `match()` expression (or equivalent `if`-chain) that dispatches on an enum-mode value to evaluate a domain condition — for example `return match ($condition->mode) { ContactChangeMode::ANY_CHANGE => true, ContactChangeMode::MATCHES => …, ContactChangeMode::HAS_VALUE => …, ContactChangeMode::IS_EMPTY => … }` — is validation logic: it decides whether the input satisfies a condition variant.
+When this pattern appears inline in an Action `__invoke()`, extract it into a dedicated Data Validator method (e.g. `ContactChangeDataValidator::evaluate(ContactChangeCondition $condition, ChangeModel $change): bool`) and have the Action call that method. The Data Validator class must use the `Pekral\Arch\DataValidation\DataValidator` trait. This rule applies only when `vendor/pekral/arch-app-services` exists or `composer.json` requires `pekral/arch-app-services`; when the package is absent, do not flag this pattern.
+- Data Validators must use validation rules defined as reusable traits in `app/Concerns/` — never define rule arrays inline in the Data Validator.
+- Actions must not throw `ValidationException` directly.
+- Actions must not call `Validator::make()` inline.
+- Actions must not contain inline imperative validation — guard clauses that check input and throw exceptions (`InvalidArgumentException`, `RuntimeException`, `DomainException`, `\LogicException`, or any other exception used to reject invalid input), `throw_if()` / `throw_unless()` calls, and validity guards that `return` / `continue` instead of throwing must all be extracted into a Data Validator.
+- Controllers must not call `Validator::make()` inline — use FormRequest or delegate to a Data Validator via an Action.
+- Services, Facades, Jobs, Commands, and Listeners must not contain inline imperative validation (guard clauses with `in_array`, `is_null`, type/range checks followed by `throw`) — extract into a Data Validator.
+- Data Validators are responsible for validating input data and throwing `ValidationException` when needed.
+- Store Data Validators under `app/DataValidators/{Domain}` by default, but follow the project's existing namespace convention if different.
+- Use the `DataValidator` suffix.
+- Data Validators should be `final readonly` with constructor injection and a single public method `validate()`.
+- **When `pekral/arch-app-services` is installed:** Data Validator classes must use the `Pekral\Arch\DataValidation\DataValidator` trait, which provides the `$this->validate($data, $rules, $messages)` method. Do not call `Validator::make()` directly — always use `$this->validate()` from the trait.
+- Actions must call Data Validators before business orchestration.
+
+## Controllers and Other Entry Points
+- Controllers must stay slim and delegate orchestration to Actions.
+- **Every controller method that consumes request input — resource controller actions (`store`, `update`, `index`, `show`, …), single-action `__invoke()` controllers, and any custom method — must type-hint a project-owned `FormRequest` subclass. Never type-hint the generic `Illuminate\Http\Request`, never leave the parameter untyped, and never read `$request->*` off a generic `Request` instance from inside the controller.** The FormRequest is the single home for that endpoint's validation rules (`rules()`), authorization (`authorize()`), input casting / preparation (`prepareForValidation()`), and any per-request shaping; the controller body reads the already-validated payload via `$request->validated()` (or typed accessors / a DTO named constructor) and forwards it to the Action.
+- **Request → DTO transformation belongs in the FormRequest, not the controller.** When a controller needs a typed DTO built from request input, expose it as a public method on the FormRequest (canonically `toDto(): SomeData`) and call `$request->toDto()` in the controller — do **not** call `SomeData::from($request)` / `SomeData::fromRequest($request)` (or any DTO factory taking the request) directly in the controller body. The FormRequest's `toDto()` may internally delegate to the DTO named constructor (`SomeData::fromRequest($this)`, see **DTOs** / **Data Modification (DRY)**) — the named constructor stays valid, it just runs inside the FormRequest so the request→DTO shaping has one home next to the request's rules.
+Move the construction where a FormRequest already exists for the endpoint; when no FormRequest exists or the mapping is a one-off with no reuse, this is a recommendation, not a hard requirement.
+- **One dedicated FormRequest per request shape.** Do not reuse a single FormRequest across unrelated endpoints, do not share one FormRequest across HTTP verbs with diverging rule sets, and do not branch the rule set on `$this->method()` inside `rules()`. Each request shape gets its own class.
+- Place FormRequests under `app/Http/Requests/{Domain}/` and use the `Request` suffix (`StoreInvoiceRequest`, `UpdateUserProfileRequest`, `ListProjectsRequest`).
+- FormRequest classes must compose validation rules from reusable traits in `app/Concerns/` (see **Validation Rules (Traits)**) and must never duplicate rule arrays already published by an existing trait or custom Rule class.
+- A controller method that genuinely receives no request payload (no body, no query string, no caller-supplied header the action reads, no inputs beyond a route-bound model) may omit the FormRequest parameter entirely; it must not type-hint `Illuminate\Http\Request` "just in case".
+The trigger for the FormRequest requirement is **any read of user-supplied input** off the request — `$request->input(...)`, `$request->all()`, `$request->only(...)`, `$request->except(...)`, `$request->get(...)`, `$request->query(...)`, `$request->post(...)`, `$request->json(...)`, `$request->file(...)`, `$request->boolean(...)`, `$request->date(...)`, `$request->enum(...)`, `$request->validated()`, `$request->safe()`, `$request->header('X-…')` for caller-supplied headers, magic property access (`$request->field_name`), and any equivalent shortcut.
+**Framework accessors are exempt** — `$request->user()`, `$request->ip()`, `$request->ips()`, `$request->method()` / `->isMethod(...)`, `$request->fullUrl()` / `->url()` / `->path()`, `$request->route()`, `$request->bearerToken()`, `$request->session()`, and `$request->expectsJson()` read framework / auth state, not user input subject to validation, and do not trigger the FormRequest requirement on their own. A controller that touches only the exempt accessors and a route-bound model may keep the plain `Illuminate\Http\Request` parameter; the moment it reads a single input field, switch to a project-owned FormRequest.
+- Never call `validate()`, `Validator::make()`, or `$request->validate()` directly in controllers — validation belongs to the FormRequest (or to a Data Validator invoked by the Action for non-HTTP entry points).
+- Never execute database queries directly in controllers.
+- Jobs, console commands, listeners, and Livewire components must also delegate orchestration to Actions.
+- Use direct invocation syntax for Actions:
+  - `$action($params)`
+  - never `$action->__invoke($params)`
+
+### Resource Controllers
+- Resource controllers may contain only standard CRUD methods:
+  - `index`
+  - `create`
+  - `store`
+  - `show`
+  - `edit`
+  - `update`
+  - `destroy`
+- Do not add non-CRUD methods to resource controllers.
+
+### Single-Action Controllers
+- All non-CRUD controller actions must use single-action invokable controllers.
+- These controllers must expose only `__invoke()`.
+- Name controllers after the action they perform.
+
+### Error Handling at the Entry-Point Boundary
+- **Known, expected failure modes must reach the user as an actionable message — never as an unexplained 500.** Distinguish the two error classes an endpoint can produce: **expected domain failures** (a business rule was violated, the resource is in the wrong state, a required external dependency is unavailable, a not-found / conflict / quota / payment-declined condition the user can react to) versus **unexpected errors** (real bugs, infrastructure faults). Today's anti-pattern is that controllers carry no handling for the first class, so *every* exception bubbles straight into the global handler and the error reporter (Bugsnag) and the user sees a blank generic failure with no idea what to do.
+Every expected failure mode must instead be surfaced as a clear, **actionable** message with a **precise HTTP status** (`409`, `422`, `404`, `402`, `503`, … per `@rules/api/general.md`), so the user can resolve the problem themselves (re-enter input, retry later, free up quota, contact billing) instead of filing a support ticket.
+- **Do not solve this with scattered inline `try/catch` that hosts business logic in the controller.** The controller owns client↔server communication, not domain decisions. Use one of two architecture-conformant mechanisms:
+  1. **Typed domain exceptions rendered centrally.** The Action / Service / Data Validator throws a typed, named domain exception (`PaymentDeclinedException`, `OrderAlreadyShippedException`, `ExternalGatewayUnavailableException`); the exception either implements a `render()` method or is mapped once in the framework exception handler (`bootstrap/app.php` `withExceptions()`) to its precise status + safe user message. The controller body stays clean.
+  2. **The controller catches only the known domain exception type** and translates it into the HTTP response. The caught type must be a **specific** domain exception — never a blanket `catch (\Throwable)` / `catch (\Exception)` / `catch (\Exception $e)` that swallows everything, and the `catch` body must build a response, not run domain logic.
+- **Unexpected errors must still propagate to the global handler and Bugsnag.** Surfacing known failures must not become an excuse to swallow the rest: do not wrap an endpoint in a catch-all that hides bugs from the error reporter, do not convert an arbitrary `\Throwable` into a fake-success or a generic "something happened" that loses the report, and do not leave an empty `catch {}` (see `@rules/security/backend.md` *Malicious Code & Supply-Chain Indicators* — suppressed error output). Catch the **named** known types only; let everything else reach the reporter.
+- **User-facing error messages follow the safe-error contract.** Actionable does not mean leaky — every message obeys `@rules/security/backend.md` *Safe Validation & Error Messages*: no identity / account enumeration, no authorization-existence leak, no internal detail (stack trace, class name, SQL, table / column), no verbatim echo of attacker input. Wrap every user-facing string in `__()` / a translation key per the i18n rule and keep the wording identical across all shipped locales. Log the technical detail server-side; show the user only the safe, actionable sentence.
+- **This rule is about runtime / domain failure modes, not schema validation.** Pure input-shape rejection (types, required fields, formats, ranges) still belongs in the FormRequest / Data Validator, which throws `ValidationException` and Laravel already renders as a `422` with per-field messages — do not duplicate that here. This rule covers the failure modes that occur *after* validation passes, when the Action executes and a known domain condition makes the operation fail.
+
+## Livewire
+- Livewire components are entry points and must delegate orchestration to Actions.
+- Mandatory flow:
+  - `Livewire Component -> Action -> ModelService -> Repository / ModelManager`
+- Livewire does not support constructor injection. Use the `boot()` lifecycle hook to inject service dependencies.
+- Do not place business logic in Livewire components.
+- Do not execute direct Eloquent queries or `DB::` calls in Livewire components.
+- Keep component methods slim: validate input, delegate work, update UI state.
+
+## Custom Helpers
+- Small utility functions that do not belong to a specific class should be implemented as global helper functions in `app/helpers.php`.
+- Use plain helper functions, not wrapper classes with a single static method.
+- Helper names should be snake_case.
+- Helper functions are globally available and do not require imports.
+
+## Code Review Enforcement
+- Always enforce the Action pattern in code review for new or materially changed backend flows.
+- New jobs, controller actions, console commands, listeners, and Livewire methods must delegate orchestration to Actions.
+- If a new or changed flow bypasses the Action pattern, request changes.
+- Apply the shared refactoring definition from `@rules/refactoring/general.md` whenever the PR includes refactoring: behavior must be preserved, migration must be incremental, and entry points / responsibilities / DRY / concurrency must follow the recommended process.
+
+### CR Severity Rules
+- Mark as critical:
+  - business logic placed outside the seven allowed layers (Actions, Model Services, Repositories, ModelManagers, Data Validators, Data Builders, Eloquent models) — see "Business Logic Layers" section
+  - an ad-hoc class hosting business logic that is neither a Laravel-native type nor a `pekral/arch-app-services` layer (a bare `Helper` / `Manager` / `Handler` / `Util` / `Processor` / `Builder` / `Mapper` / `Validator` / `Service`-not-extending-`BaseModelService`, etc.) — the logic must move into the correct arch-app-services layer (see **Architecture** → *Only Laravel-native class types exist*)
+  - an Action `__invoke()` that **accepts the HTTP request** — an `Illuminate\Http\Request` or `FormRequest` subclass parameter, or a reach for the request from inside the body (`request()`, the `Request` facade, `app('request')`). This is the input-side mirror of the HTTP-response finding below and carries its severity for the same reason: the controller owns client↔server communication in both directions. The request binds the use case to HTTP, hides what the Action actually consumes, and lets the Action read past `validated()` into the raw payload. 
+The controller converts it first — `$request->toDto()`, or `$request->validated()` mapped by a Data Builder — and passes the DTO (see **Action Rules** → *accept the HTTP request*). Concrete values pulled off the request (an `UploadedFile`, a route-bound Model, the authenticated user, a scalar) are not the request and never trigger this finding.
+  - an Action that returns an HTTP response — `response()` / `response()->json()` / `redirect()` / `back()` / `view()` / `abort()` or a `Response` / `JsonResponse` / `RedirectResponse` return type inside `__invoke()`; the Action must return domain data and the controller must build the HTTP response (see **Action Rules** and **Architecture** → *Actions return plain domain data*)
+  - inline data mapping / transformation / reshaping inside an Action, Service, controller, job, command, listener, or Livewire component (building a payload array, mapping a model/collection, renaming keys, default fallbacks, value formatting — e.g. a private `buildPayload()` in an Action) — must be extracted into a Data Builder (or, for model/request → DTO transformation, a DTO named constructor per **Data Modification (DRY)**) — see **Data Builders**
+  - validation-style guard conditions left inline in an Action / Service / controller / job / command / listener / Livewire component — `instanceof` / null / range / amount checks that reject or skip input via `throw`, `return`, or `continue`, and `throw_if()` / `throw_unless()` calls — must be extracted into a Data Validator (see **Data Validators**)
+  - a single class file mixing responsibilities from two or more of the seven business-logic layers (e.g. validation + persistence, mapping + orchestration)
+  - Eloquent model method that crosses the simple-logic boundary — invoking external services, repositories, model managers, issuing new database queries beyond own loaded data, performing persistence side effects, or coordinating multiple entities (must move to an Action / Service / Repository / ModelManager per "Business Logic Layers")
+  - new orchestration that bypasses Actions
+  - inline `Validator::make()` inside Actions
+  - `ValidationException` thrown directly inside Actions
+  - validation logic not encapsulated in a dedicated Data Validator class (e.g. inline validation in controllers, jobs, commands, listeners, or Livewire components outside of FormRequest)
+  - controller method (resource action, single-action `__invoke()`, or custom method) that consumes request input but type-hints `Illuminate\Http\Request` (or leaves the parameter untyped, or reads user-supplied input — `input()` / `all()` / `only()` / `except()` / `get()` / `query()` / `post()` / `json()` / `file()` / `boolean()` / `date()` / `enum()` / `validated()` / `safe()` / caller-supplied `header('X-…')` / magic field access — off a generic `Request`) instead of a project-owned `FormRequest` subclass;
+framework accessors (`user()`, `ip()`, `method()` / `isMethod()`, `fullUrl()` / `url()` / `path()`, `route()`, `bearerToken()`, `session()`, `expectsJson()`) do not by themselves trigger this finding — see **Controllers and Other Entry Points** for the full exempt list. Every request shape must have its own dedicated FormRequest that owns validation rules, authorization, and input shaping.
+  - one FormRequest reused across unrelated endpoints / HTTP verbs with diverging rule sets, or `rules()` branching on `$this->method()` instead of splitting into separate FormRequest classes per request shape
+  - inline imperative validation in Actions, Services, Facades, Jobs, Commands, or Listeners — guard clauses that check input and throw exceptions (e.g. `if (!in_array(...)) throw new InvalidArgumentException(...)`) must be extracted into a Data Validator
+  - Data Validator class calling `Validator::make()` directly when `pekral/arch-app-services` is installed (must use `DataValidator` trait and `$this->validate()`)
+  - Data Validator defining validation rules inline instead of using reusable traits from `app/Concerns/`
+  - inline database queries (Eloquent or `DB::`) in Actions, Services, Facades, controllers, jobs, commands, listeners, or Livewire components — reads must go through Repositories, writes through ModelManagers (applies only when `pekral/arch-app-services` is installed; without the package raise a Moderate finding per the rule below — never both)
+  - a `Service`-suffixed class that does not extend `BaseModelService` — unconditionally, not gated on whether it is judged to be "tied to one model" (this is the same Critical rule as the **Only-Laravel-and-arch-layers class inventory** bullet above; this condition earns exactly one Critical finding, not two, regardless of which of these two bullets a reviewer cites — the dedup is between those two restatements only, and never suppresses a separately triggered Critical on the same class, such as an inline query / persistence call, inline validation guards, or inline data mapping)
+  - a new project-owned Facade added as a home for business logic, or as a static entry point to it — a class extending `Illuminate\Support\Facades\Facade`, a `*Facade`-suffixed class under `App\`, or a new `App\Facades\…` entry. The logic belongs in a Model Service extending `BaseModelService` (the base service) or in an Action, injected through the constructor (see **Architecture** → *Never introduce a new project-owned Facade*). Consuming a framework / vendor facade is never this finding, and neither is an existing project facade the diff leaves untouched — the rule fires only on a facade the change **adds**
+  - non-CRUD methods inside resource controllers
+  - domain-specific code placed under `app/Concerns/` — anything tied to a concrete model, aggregate, feature flow, or business rule must move into the relevant business-logic layer under `app/{Domain}/` per **Shared Concerns (Traits)**
+  - shared, reusable trait or helper logic placed outside `app/Concerns/` while being consumed by two or more unrelated domains, layers, or entry points — must be consolidated into `app/Concerns/` per **Shared Concerns (Traits)**
+- Mark as moderate:
+  - a controller / entry point that lets a **known, expected** failure mode (business-rule violation, wrong resource state, unavailable external dependency, not-found / conflict / quota / payment-declined the user can act on) propagate uncaught to the global handler and the error reporter (Bugsnag) with only a generic 500 and no actionable user message — the failure must be surfaced as a typed domain exception rendered to a precise status + safe message (centrally or via the controller catching that specific type), so the user can resolve it themselves (see **Error Handling at the Entry-Point Boundary**); escalate to **Critical** when the unhandled failure mode sits on a payment / auth / data-loss path.
+This is the **primary home** for the finding on a Laravel HTTP endpoint — `@rules/api/general.md` *Handling Known Failures After Validation* describes the same defect; raise it **once** here, not under both rules
+  - a blanket `catch (\Throwable)` / `catch (\Exception)` (or empty `catch {}`) in a controller / entry point that swallows **unexpected** errors and hides them from the error reporter, or converts an arbitrary exception into a fake-success — catch only the **named** known domain exception types and let everything else reach Bugsnag (see **Error Handling at the Entry-Point Boundary** and `@rules/security/backend.md` *Malicious Code & Supply-Chain Indicators*); raise it **once** (not also under the `@rules/api/general.md` catch-all entry)
+  - inline Eloquent / query-builder chain written directly in a controller, Livewire component, job, action, or command instead of being encapsulated in a repository method — applies to any multi-condition or business-filter query outside a repository class; simple `Model::find($id)` / `Model::findOrFail($id)` lookups, eager-loading hints (`->with()` / `->load()`), queries already inside a repository, and framework / vendor contract calls are exempt (see **Repositories and ModelManagers**); applies only when `pekral/arch-app-services` is **not** installed — when the package is installed the Critical rule above applies instead; raise one finding per violation, never both
+  - feature-specific or use-case–specific query methods inside Repositories — Repositories must expose only basic, reusable queries; specialization belongs in Services or Actions composing those basic methods
+  - calling Actions via `->__invoke()` instead of `$action(...)`
+  - DTOs overriding `from()` only for key renaming instead of using mapping attributes
+  - a public method returning a structured associative array / array shape where a typed DTO should be returned (see **DTOs** → *Public methods return typed DTOs, not associative arrays*) — excludes single scalars, homogeneous lists / Collections, and array shapes fixed by a framework / vendor contract (`toArray()`, `jsonSerialize()`, `Arrayable`, `casts()`, FormRequest `rules()`)
+  - request → DTO transformation called directly in a controller body (`SomeData::from($request)` / `SomeData::fromRequest($request)` or any DTO factory taking the request) instead of being exposed as a `toDto()` method on the endpoint's FormRequest and read via `$request->toDto()` — applies where a FormRequest already exists for the endpoint; one-off mappings with no reuse and endpoints with no FormRequest are exempt (see **Controllers and Other Entry Points**)
+  - a `Service`-suffixed class that already `extends BaseModelService` (so neither Critical bullet above fires) but whose public methods cross into cross-model / multi-collaborator orchestration that the Action pattern exists for — e.g. it coordinates several unrelated models, or duplicates orchestration an existing Action already owns (see **Model Services** *Do not mix unrelated multi-domain orchestration into one service*). **Gating — never both:** a `Service`-suffixed class that does **not** extend `BaseModelService` is always the Critical finding instead, never this Moderate one. A compliant `BaseModelService` subclass that stays scoped to its single model is not flagged by this bullet regardless of its public method count — including a class with exactly one public business method.
+  - an Action carrying general / reusable logic that is not use-case-specific orchestration — a reusable computation, or an orchestration fragment another flow already reuses (or could reuse) — that should live in a Model Service / Data Builder and be called from the Action (see **Action scope: concrete use case, not general logic**); the litmus test is whether the block could be lifted verbatim into another Action. When the block is inline validation, inline data mapping, or an inline query / persistence call, raise the dedicated Critical finding (inline validation guards → Data Validator; inline mapping → Data Builder; inline read/write → Repository / ModelManager) instead — never both.
+    When the **entire** `__invoke()` body is a single delegating call to a Service / Facade / Model Service method or to another Action, the matching pass-through finding below owns it instead — never both
+  - pass-through Action whose `__invoke()` only forwards a single Service / Facade / Model Service call with no orchestration of its own — inline the single-use method into the Action, or remove the Action and call the reused service method directly (see the **Pass-through Action rule**)
+  - an Action `__invoke()` that declares **more than one DTO parameter**, or a DTO parameter alongside a loose scalar / array that carries part of the same payload — the use case has one payload, so it travels in one typed carrier named after the use case (see **Action Rules** → *One DTO per `__invoke()`*). The Eloquent model (or identifier) the use case acts on, a framework-injected parameter, and the DTO the Action returns are not second payloads and never trigger this finding. **Gating — one finding per signature, never two:** when the signature also exceeds four parameters, `@rules/php/core-standards.md` Structure (>4 → DTO required) owns it, and merging the payloads into one DTO is the same fix — raise that one, not both.
+  - pass-through Action whose `__invoke()` only forwards a call to **another Action** with no orchestration of its own — merge the two Actions when the outer one is the inner one's only caller, otherwise delete the outer Action and repoint its entry point at the inner one (see the **Action-to-Action pass-through rule**)
+  - Data Builder class using Action pattern (`__invoke()`) instead of named public methods
+  - non-trivial or reusable validation logic written inline instead of as a custom Rule class in `app/Rules/`
+  - per-row DB queries inside loops (per-row `update()`, `create()`, `delete()`, or single-row read inside a `foreach`) — must be replaced by ModelManager batch methods, `whereIn(...)->delete()`, or a single bulk read keyed in memory (see `@rules/sql/optimalize.md` "Batch over per-row operations"); allowed only when an explicit comment or PR description justifies an unavoidable per-row side-effect dependency
+  - single-use trait parked in `app/Concerns/` (used by exactly one class, no second consumer expected) — inline the logic into the consuming class per **Shared Concerns (Traits)** *Reusable as-is* criterion
+
+## Exceptions
+- No Action is required for:
+  - trivial pass-through code
+  - a pure single-method delegation to a reused Service / Facade method with no orchestration — call the Service / Facade method directly from the entry point instead of wrapping it in a pass-through Action (see the **Pass-through Action rule**)
+  - a pure single-call delegation to another Action with no orchestration — call that Action directly from the entry point instead of wrapping it in a second, forwarding Action (see the **Action-to-Action pass-through rule**)
+  - pure DTO mapping with no business rules
+  - config-only changes
+  - frontend-only changes with no new PHP orchestration

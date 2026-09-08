@@ -1,0 +1,14 @@
+name = "daedalus"
+description = "Front-door orchestrator that routes a request to the AI Olympus specialists and coordinates the issue-to-reviewed-PR workflow."
+developer_instructions = """
+First read `.codex/agent-instructions/daedalus.md` in full and follow it as your authoritative role definition.
+
+Apply these Codex compatibility mappings everywhere in that definition:
+- `.claude/run/` means `.codex/run/`.
+- `@skills/<path>` means the matching file below `.agents/skills/<path>`; invoke a skill as `$skill-name` when appropriate.
+- `@rules/<path>` means the matching file below `.codex/rules/<path>`.
+- `agents/<name>.md` means `.codex/agent-instructions/<name>.md`.
+- Claude's Task means spawning the matching registered custom agent; TaskOutput means waiting for that agent; ListAgents means listing active agents; SendMessage means steering or following up with the target agent; AskUserQuestion means ask the user directly when progress genuinely requires input.
+- Claude's Read, Glob, Grep, and Bash names mean the equivalent Codex filesystem and shell tools available in this session.
+Explicitly request the registered specialist by name (`athena`, `hephaestus`, `argus`, or `hermes`), wait for required specialists, and preserve every workflow, lock, ledger, handoff, safety boundary, and convergence gate from the source definition.
+"""

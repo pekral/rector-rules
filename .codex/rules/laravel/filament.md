@@ -1,0 +1,31 @@
+---
+description: Filament-specific rules and conventions
+paths:
+  - "app/Filament/**/*.php"
+---
+
+## Resources
+- Generate smoke tests for every Filament Resource.
+- When changing a Resource, add or update tests and ensure they pass.
+- Do not add a View page or Infolist unless explicitly requested.
+- Use `Resource::getUrl('index')` with the exact Resource class.
+
+## Enums
+- When enums back model fields, prefer implementing `HasLabel`, `HasColor`, and `HasIcon` where useful.
+- Use enum instances instead of hardcoded strings when an enum already exists.
+- Do not append `->value` when defining enum defaults unless truly required.
+- Match Filament interface return types exactly.
+
+## Actions and Forms
+- Use `->authorize('ability')` on actions.
+- Do not use `Gate::authorize()` or `Gate::allows()` manually inside Filament actions.
+- In Filament v4, do not specify `ignoreRecord: true` for `unique()` when it is already the default.
+- Use `->schema()` instead of deprecated `->form()` on actions and filters.
+- Use `->mutateDataUsing()` instead of deprecated `->mutateFormDataUsing()`.
+
+## UI
+- Use `Filament\\Support\\Icons\\Heroicon` for icons instead of raw strings.
+- For custom Blade files with Tailwind, create and register a custom theme.
+
+## Testing
+- Use `Livewire::test(...)`, not `livewire(...)`.
