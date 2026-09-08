@@ -1,0 +1,101 @@
+---
+description: API design standards — treat the API as a consumer-facing contract. Apply when designing, reviewing, or changing HTTP endpoints, routes, controllers, request/response payloads, and API resources.
+paths:
+  - "routes/**/*.php"
+  - "app/Http/**/*.php"
+  - "src/**/Http/**/*.php"
+  - "packages/**/Http/**/*.php"
+  - "Modules/**/Http/**/*.php"
+---
+
+## API as a Contract
+An API is a contract with its consumers, not a thin wrapper over the database schema. Design every endpoint from the consumer's point of view, then map it onto the internal model — never the other way around. Hold the contract to five pillars:
+
+- **Consistency** — the same concept is named, shaped, and paginated the same way across every endpoint (field casing, date format, error envelope, pagination shape).
+- **Predictability** — identical inputs produce identical, documented outputs; no hidden side effects, no surprise defaults.
+- **Discoverability** — resources, relationships, and allowed actions are reachable from naming conventions and links, not tribal knowledge.
+- **Stability** — published request/response shapes do not change under consumers; breaking changes go through versioning, never a silent payload edit.
+- **Security by default** — endpoints are authenticated, authorized, validated, and rate-limited unless an explicit, documented reason makes one public.
+
+Do not leak internal database structure across the contract: column names, surrogate keys, join tables, enum integers, and storage-only fields stay behind a DTO / API Resource. The response exposes what the consumer needs, named for the consumer.
+
+## Resource-Oriented REST
+Endpoints represent **resources** (nouns), not actions (verbs). The HTTP method carries the action.
+
+- Use `/users`, `/users/{id}`, `/users/{id}/orders` — never `/getUser`, `/createUser`, `/users/{id}/delete`, `/doPayment`.
+- Use plural collection nouns; nest sub-resources under their parent (`/users/{id}/orders`).
+- The rare genuine non-CRUD operation that cannot be modeled as a resource state change is the only exception, and it is named as a clearly-scoped sub-resource action (`POST /orders/{id}/refunds`), not a verb dangling off the root.
+
+## Correct HTTP Methods & Idempotence
+Pick the method by its contract, and honor its idempotence guarantee:
+
+- **GET** — read-only, safe, idempotent, cacheable. Never mutates state, never carries a request body that changes the outcome.
+- **POST** — creates a subordinate resource or triggers a non-idempotent operation. Repeating it may create duplicates (see Idempotency Keys).
+- **PUT** — full replacement of a resource at a known URI; idempotent (repeating yields the same end state).
+- **PATCH** — partial update; should be idempotent for a given payload.
+- **DELETE** — removes the resource; idempotent (a second delete returns the same terminal state, typically `404` or `204`, not a new error).
+
+A GET, PUT, or DELETE that produces additional side effects on repetition violates its method contract.
+
+## Idempotency Keys for Critical Operations
+For payments, fund transfers, order placement, and any non-idempotent operation a client may legitimately retry after a timeout, support an `Idempotency-Key` request header:
+
+- On the first request, persist the key together with the computed result.
+- On a repeated request carrying the same key, return the stored result without re-executing the operation, so a network retry can never double-charge or double-create.
+- Scope keys per consumer and expire them on a documented window.
+
+A critical, retry-prone, state-changing endpoint with no idempotency protection is a contract defect, not a missing nice-to-have.
+
+## Precise HTTP Status Codes
+Status codes carry meaning; the consumer branches on them. Use the narrowest correct code:
+
+- **200 OK** — successful read or update returning a body.
+- **201 Created** — a resource was created; return it (and a `Location` header).
+- **202 Accepted** — the request was accepted for asynchronous processing.
+- **204 No Content** — success with no body (deletes, some updates) — never return a body with `204`.
+- **400 Bad Request** — malformed syntax / unparseable request.
+- **401 Unauthorized** — authentication is missing or invalid (who are you?).
+- **403 Forbidden** — authenticated but not permitted (you may not). Never use `401` for an authorization failure or `403` for a missing credential.
+- **404 Not Found** — resource does not exist, or is hidden from an unauthorized caller (see Security by default).
+- **409 Conflict** — the request conflicts with current state (duplicate, version clash).
+- **422 Unprocessable Entity** — syntactically valid but fails business/schema validation.
+- **429 Too Many Requests** — rate limit exceeded.
+
+Returning `200` for a creation, an error, or an async hand-off, or collapsing `401`/`403`/`404`/`409`/`422` into a single generic code, breaks the contract.
+
+## Validation at the Trust Boundary
+Every endpoint is a trust boundary. Validate inputs **before** they reach business logic or the database, in three ordered layers:
+
+1. **Schema validation** — types, required fields, formats, ranges, enum membership.
+2. **Business validation** — domain rules that need state (uniqueness, referential integrity, invariants).
+3. **Authorization** — confirm the authenticated caller may perform this action on this resource, after the input is known to be well-formed.
+
+Validation belongs in the dedicated boundary layer (FormRequest / Data Validator), not inline in the action or model. Error responses must follow the project's safe-error contract — see `@rules/security/backend.md` *Safe Validation & Error Messages* (no identity enumeration, no authorization-existence leak, no internal detail, no verbatim echo of attacker input).
+
+## Handling Known Failures After Validation
+Schema and business validation reject *malformed* input up front, but an endpoint can still fail on a **known, expected** condition once the operation runs — a business invariant breaks, the resource is in the wrong state, a downstream dependency is unavailable, a payment is declined, a quota is exhausted. These are not bugs and must not be treated as ones:
+letting them bubble uncaught into the global handler and the error reporter returns a generic `500` with no guidance, so the consumer cannot tell a transient hiccup from an action it must take. Map every known failure mode to its **precise status code** (`402`, `404`, `409`, `422`, `429`, `503`, …) with an **actionable, safe** message the consumer can branch on and a human can act on — model these as typed domain exceptions rendered centrally (or caught by the entry point for the specific type), never as ad-hoc `catch (\Throwable)` swallowing everything. **Unexpected** errors still propagate to the reporter as a generic `500`; do not catch-all to hide them. Messages obey the same safe-error contract above.
+
+## Business Impact
+A poor API is not just a technical smell: it creates technical debt, forces expensive migrations, raises support load, and widens the attack surface. A well-designed, consistent, secure-by-default API lets internal teams and external consumers build faster and more safely. Weigh API changes by this impact, not only by local convenience.
+
+## CR Severity Rules
+- Mark as **Critical**:
+  - action/verb in the endpoint path (`/getUser`, `/createUser`, `/users/{id}/delete`, `/doPayment`) instead of a resource noun + HTTP method
+  - HTTP method whose side effects violate its contract — `GET` that mutates state, or `PUT`/`DELETE` that is not idempotent on repetition
+  - critical, retry-prone, state-changing operation (payment, transfer, order placement) with no `Idempotency-Key` handling, so a client retry can double-execute
+  - input reaching business logic or the database before schema/business validation runs (trust-boundary bypass)
+  - `401` returned for an authorization failure, or `403` returned for a missing/invalid credential (the 401-vs-403 contract is inverted)
+  - internal database structure exposed across the contract — raw column names, surrogate/internal keys, join tables, or storage-only fields returned without a DTO / API Resource boundary
+- Mark as **Moderate**:
+  - imprecise success code — `200` for a creation (`201`), for an async hand-off (`202`), or where `204` (no body) is correct; or a body returned alongside `204`
+  - error code collapsed into a generic one where a narrower code applies (`404`/`409`/`422`/`429` flattened to `400` or `500`)
+  - known, expected post-validation failure mode (business-invariant break, wrong resource state, declined payment, exhausted quota, unavailable dependency) left to bubble into a generic `500` / the error reporter with no precise status and no actionable message — must map to its narrow status code with a safe, actionable body (see **Handling Known Failures After Validation**); escalate to **Critical** on a payment / auth / data-loss path. On a Laravel project the same endpoint is also covered by `@rules/laravel/architecture.md` *Error Handling at the Entry-Point Boundary* — raise this finding **once**, not twice
+  - catch-all (`catch (\Throwable)` / `catch (\Exception)` / empty `catch {}`) at the endpoint that swallows unexpected errors and hides them from the error reporter, or turns an arbitrary exception into a fake success — catch only the named known types and let the rest surface as `500`. On a Laravel project this overlaps the architecture-rule entry above — raise it **once**, not twice
+  - `PUT` used for a partial update or `PATCH` used for a full replacement
+  - inconsistent contract shape across endpoints — divergent field casing, date format, pagination shape, or error envelope for the same concept
+  - validation logic inlined in the action/controller/model instead of the dedicated boundary layer (FormRequest / Data Validator)
+- Mark as **Minor**:
+  - singular collection nouns (`/user`) or a flat URI where a sub-resource nesting reads clearer (`/users/{id}/orders`)
+  - JSON field naming/casing inconsistency that does not change the shape contract
+  - missing `Location` header on a `201 Created` response

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagram</title>
+<style>
+:root {
+  --canvas: #fbfbfa;
+  --surface: #ffffff;
+  --hairline: #c8c4bc;
+  --ink: #1c1b19;
+  --ink-muted: #6b6862;
+  --accent: #c2410c;
+  --accent-soft: #fdf0e8;
+  --alert: #9f1239;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-label: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #171614;
+    --surface: #211f1c;
+    --hairline: #3d3a35;
+    --ink: #f2f0ec;
+    --ink-muted: #a29d94;
+    --accent: #f97316;
+    --accent-soft: #2e1c10;
+    --alert: #fb7185;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-label);
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 48px 16px;
+}
+figure { max-width: 100%; }
+svg { max-width: 100%; height: auto; display: block; }
+
+.title { font-family: var(--font-display); font-size: 24px; fill: var(--ink); }
+.node { fill: var(--surface); stroke: var(--hairline); stroke-width: 1; }
+.node-focal { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+.label { font-size: 14px; font-weight: 500; fill: var(--ink); }
+.sublabel { font-size: 12px; fill: var(--ink-muted); font-family: var(--font-mono); }
+.edge { stroke: var(--hairline); stroke-width: 1; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.edge-async { stroke-dasharray: 4 4; }
+.arrowhead { fill: var(--hairline); }
+.edge-label { font-size: 11px; font-weight: 500; fill: var(--ink-muted); }
+.edge-label-bg { fill: var(--canvas); }
+.caption { font-size: 12px; fill: var(--ink-muted); }
+
+/* Opt-in only: static is the default, so nothing in the scaffold carries this class.
+   Add it to a group when the sequence itself is the message. Every animated element
+   ends in its final state, and the reduced-motion block below shows that frame. */
+.reveal { animation: reveal 480ms ease-out both; }
+@keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; opacity: 1; }
+}
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 720 336" width="720" height="336" role="img" aria-labelledby="d-title d-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="d-title">Checkout request path</title>
+  <desc id="d-desc">A checkout request enters through CheckoutController, which delegates to PlaceOrderAction. The action writes through OrderModelManager and dispatches ConfirmPaymentJob asynchronously, outside the request cycle.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto">
+      <path class="arrowhead" d="M0 0 L8 4 L0 8 z"/>
+    </marker>
+  </defs>
+
+  <text class="title" x="48" y="44" text-anchor="start" dominant-baseline="alphabetic">Checkout request path</text>
+
+  <g>
+    <rect class="node" x="48" y="128" width="160" height="56" rx="8"/>
+    <text class="label" x="128" y="148" text-anchor="middle" dominant-baseline="middle">Controller</text>
+    <text class="sublabel" x="128" y="164" text-anchor="middle" dominant-baseline="middle">CheckoutController</text>
+
+    <rect class="node-focal" x="280" y="128" width="160" height="56" rx="8"/>
+    <text class="label" x="360" y="148" text-anchor="middle" dominant-baseline="middle">Action</text>
+    <text class="sublabel" x="360" y="164" text-anchor="middle" dominant-baseline="middle">PlaceOrderAction</text>
+
+    <rect class="node" x="512" y="128" width="160" height="56" rx="8"/>
+    <text class="label" x="592" y="148" text-anchor="middle" dominant-baseline="middle">ModelManager</text>
+    <text class="sublabel" x="592" y="164" text-anchor="middle" dominant-baseline="middle">OrderModelManager</text>
+
+    <rect class="node" x="280" y="232" width="160" height="56" rx="8"/>
+    <text class="label" x="360" y="252" text-anchor="middle" dominant-baseline="middle">Queued job</text>
+    <text class="sublabel" x="360" y="268" text-anchor="middle" dominant-baseline="middle">ConfirmPaymentJob</text>
+  </g>
+
+  <path class="edge" d="M208 156 L272 156" marker-end="url(#arrow)"/>
+  <rect class="edge-label-bg" x="212" y="148" width="56" height="16" rx="4"/>
+  <text class="edge-label" x="240" y="156" text-anchor="middle" dominant-baseline="middle">OrderData</text>
+
+  <path class="edge" d="M440 156 L504 156" marker-end="url(#arrow)"/>
+  <rect class="edge-label-bg" x="444" y="148" width="56" height="16" rx="4"/>
+  <text class="edge-label" x="472" y="156" text-anchor="middle" dominant-baseline="middle">write</text>
+
+  <path class="edge edge-async" d="M360 184 L360 224" marker-end="url(#arrow)"/>
+  <rect class="edge-label-bg" x="368" y="196" width="48" height="16" rx="4"/>
+  <text class="edge-label" x="392" y="204" text-anchor="middle" dominant-baseline="middle">async</text>
+
+  <text class="caption" x="48" y="324" text-anchor="start" dominant-baseline="alphabetic">Payment confirmation leaves the request cycle, so a failure there never reaches the customer synchronously.</text>
+</svg>
+</figure>
+</body>
+</html>
