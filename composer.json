@@ -1,6 +1,6 @@
 {
   "name": "pekral/rector-rules",
-  "description": "Curated Rector rule set for PHP 8.4+ — 228 hand-picked rules in one import.",
+  "description": "Curated Rector rule set for PHP 8.4+ — 226 hand-picked rules in one import.",
   "type": "library",
   "license": "MIT",
   "homepage": "https://github.com/pekral/rector-rules",
@@ -37,7 +37,7 @@
   ],
   "require": {
     "php": "^8.4",
-    "rector/rector": "^2.6.6"
+    "rector/rector": "^2.6.7"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master",

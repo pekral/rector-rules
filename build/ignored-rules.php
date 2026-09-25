@@ -305,6 +305,7 @@ use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForDimFe
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockFromMethodCallDocblockRector;
 use Rector\TypeDeclarationDocblocks\Rector\Property\MergePhpstanDocTagIntoNativeRector;
 use Rector\Unambiguous\Rector\Class_\RemoveReturnThisFromSetterClassMethodRector;
+use Rector\Unambiguous\Rector\Expression\FluentSettersToStandaloneCallMethodRector;
 use Rector\Visibility\Rector\ClassConst\ChangeConstantVisibilityRector;
 use Rector\Visibility\Rector\ClassMethod\ChangeMethodVisibilityRector;
 use Rector\Visibility\Rector\ClassMethod\ExplicitPublicClassMethodRector;
@@ -628,4 +629,5 @@ const IGNORED_RULES = [
     CombineIfRector::class,
     ShortenElseIfRector::class,
     SimplifyIfElseToTernaryRector::class,
+    FluentSettersToStandaloneCallMethodRector::class,
 ];

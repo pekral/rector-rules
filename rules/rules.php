@@ -160,7 +160,6 @@ use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Privatization\Rector\ClassConst\PrivatizeFinalClassConstantRector;
 use Rector\Privatization\Rector\ClassMethod\PrivatizeFinalClassMethodRector;
 use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
-use Rector\Renaming\Rector\MethodCall\RenameDeprecatedMethodCallRector;
 use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\AddTestsVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
@@ -229,7 +228,6 @@ use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForJsonA
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockGetterReturnArrayFromPropertyDocblockVarRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockReturnArrayFromDirectArrayInstanceRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\NarrowArrayCollectionUnionReturnDocblockRector;
-use Rector\Unambiguous\Rector\Expression\FluentSettersToStandaloneCallMethodRector;
 
 return [
     NullToStrictIntPregSlitFuncCallLimitArgRector::class,
@@ -401,7 +399,6 @@ return [
     RemoveParentDelegatingConstructorRector::class,
     NarrowWideUnionReturnTypeRector::class,
     RemoveNextSameValueConditionRector::class,
-    FluentSettersToStandaloneCallMethodRector::class,
     PrivatizeFinalClassConstantRector::class,
     NewlineBetweenClassLikeStmtsRector::class,
     NarrowObjectReturnTypeRector::class,
@@ -452,7 +449,6 @@ return [
     NarrowArrayAnyAllNullableParamTypeRector::class,
     AddArrayAnyAllClosureParamTypeRector::class,
     ClosureReturnTypeFromAssertInstanceOfRector::class,
-    RenameDeprecatedMethodCallRector::class,
     SwitchTrueToMatchRector::class,
     RemoveParentDelegatingClassMethodRector::class,
     RemoveDeadInstanceOfAssertRector::class,
