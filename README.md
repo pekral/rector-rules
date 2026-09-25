@@ -8,7 +8,7 @@
 A curated, ready-to-use [Rector](https://github.com/rectorphp/rector) rule set for PHP 8.4+ projects.
 
 Rector ships over 500 rules. Picking the useful ones — and re-checking them on every Rector release — is a
-recurring chore. This package does that curation for you: **one import, 228 hand-picked rules**, with every
+recurring chore. This package does that curation for you: **one import, 226 hand-picked rules**, with every
 other rule Rector offers listed as skipped, so a new Rector release cannot add a rule nobody looked at.
 
 ---
@@ -99,7 +99,7 @@ return RectorConfig::configure()
 
 ## What is in the set
 
-228 rules, grouped by what they do:
+226 rules, grouped by what they do:
 
 | Area | Rules | What it covers |
 | --- | ---: | --- |
@@ -109,7 +109,7 @@ return RectorConfig::configure()
 | `PHPUnit` | 19 | Modernise test syntax, attributes, and assertions |
 | `TypeDeclarationDocblocks` | 14 | Narrow `array` docblocks that no native type can express |
 | `Php53` – `Php86` | 34 | Upgrade syntax to newer PHP versions |
-| Other | 13 | `Privatization`, `CodingStyle`, `EarlyReturn`, `Renaming`, `Unambiguous` |
+| Other | 11 | `Privatization`, `CodingStyle`, `EarlyReturn` |
 
 The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array of rule class names.
 
@@ -118,7 +118,7 @@ The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array
 | File | Role |
 | --- | --- |
 | [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` |
-| [`rules/rules.php`](rules/rules.php) | The 228 enabled rules (shipped) |
+| [`rules/rules.php`](rules/rules.php) | The 226 enabled rules (shipped) |
 | `build/ignored-rules.php` | The 305 rules that do not ship (development only). 21 sit under a stated reason — deprecated in Rector, or waiting on PHP 8.5; the other 284 are grouped under a plain `// Ignored rules` heading |
 | `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored (development only) |
 

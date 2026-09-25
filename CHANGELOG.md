@@ -34,6 +34,12 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
   `AddProphecyTraitRector`, `AssertIssetToSpecificMethodRector`, and `NamedArgumentForDataProviderRector`
   each appeared twice. **No rule stopped shipping** — Rector registered each of them once anyway, so this
   changes nothing about what Rector rewrites.
+- **Two rules, for `rector/rector` 2.6.7.** The set now has 226 rules.
+  - `RenameDeprecatedMethodCallRector` was removed from Rector, because inferring the replacement method from a
+    free-text `@deprecated` note is too risky. Rector's replacement is `RenameMethodRector` with an explicit
+    old → new mapping, which a generic rule set cannot provide. Configure it in your own `rector.php` when you need it.
+  - `FluentSettersToStandaloneCallMethodRector` is deprecated in Rector and has no replacement. It moved to
+    `build/ignored-rules.php`.
 
 ## [0.5] - 2026-08-31
 
