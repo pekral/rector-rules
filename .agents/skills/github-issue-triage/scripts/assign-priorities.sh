@@ -389,13 +389,13 @@ STUB
 
   # add: the body fallback labels an issue whose title has no prefix.
   e2e 'add — body form labels an unlabelled issue' \
-    '[{"number":16,"title":"Skill pro štítkovací systém","body":"### What problem does this solve?\n\nIssues have no priority.\n\n### Proposed solution\n\nAdd a triage skill.","labels":[]}]' '' \
+    '[{"number":16,"title":"A skill for the labelling system","body":"### What problem does this solve?\n\nIssues have no priority.\n\n### Proposed solution\n\nAdd a triage skill.","labels":[]}]' '' \
     '#16  enhancement (body) — applied: +enhancement +priority: medium' \
     '16|--add-label|enhancement|--add-label|priority: medium'
 
   # The body is the weaker signal: it never overrules a label a human set.
   e2e 'skip — body never overrides a human type label' \
-    '[{"number":17,"title":"Skill pro štítkovací systém","body":"### What problem does this solve?\n\nIssues have no priority.\n\n### Proposed solution\n\nAdd a triage skill.","labels":[{"name":"bug"}]}]' '' \
+    '[{"number":17,"title":"A skill for the labelling system","body":"### What problem does this solve?\n\nIssues have no priority.\n\n### Proposed solution\n\nAdd a triage skill.","labels":[{"name":"bug"}]}]' '' \
     "#17  skipped — body suggests 'enhancement' but the issue is labelled 'bug'" \
     '-'
 
@@ -408,7 +408,7 @@ STUB
   # The regression the anchoring exists for: a feature request whose free text
   # mentions "Expected behavior:" is an enhancement, not a bug.
   e2e 'add — a prose mention of a form phrase does not flip the type' \
-    '[{"number":19,"title":"Štítky se nepřiřazují automaticky","body":"### What problem does this solve?\n\nNew issues carry no labels.\n\n### Proposed solution\n\nRun the triage after opening an issue. Expected behavior: the label appears right away.","labels":[]}]' '' \
+    '[{"number":19,"title":"Labels are not assigned automatically","body":"### What problem does this solve?\n\nNew issues carry no labels.\n\n### Proposed solution\n\nRun the triage after opening an issue. Expected behavior: the label appears right away.","labels":[]}]' '' \
     '#19  enhancement (body) — applied: +enhancement +priority: medium' \
     '19|--add-label|enhancement|--add-label|priority: medium'
 
@@ -435,16 +435,16 @@ self_test() {
   # title|expected type|expected priority ("-" = not derivable from the title)
   title_cases=(
     '[Bug]: install --force overwrites CLAUDE.md|bug|priority: high'
-    '[Feature]: Skill pro task managment system github|enhancement|priority: medium'
-    'fix(agents): sdílené briefy z minulých běhů přežívají v .claude/run/|bug|priority: high'
+    '[Feature]: A skill for a GitHub task management system|enhancement|priority: medium'
+    'fix(agents): shared briefs from earlier runs survive in .claude/run/|bug|priority: high'
     'fix: drop the stale carve-out|bug|priority: high'
     'fix(installer)!: rename the install flag|bug|priority: high'
     'feat(installer): optional per-agent PreToolUse hook|enhancement|priority: medium'
-    'docs(readme): natočit a vložit 60sekundové demo|documentation|priority: low'
+    'docs(readme): record and embed a 60-second demo|documentation|priority: low'
     'test(security): bind getSensitivePathPatterns() to its prose|test|priority: low'
     'refactor(installer): split InstallerClaudeSettings|refactor|priority: low'
-    'chore(release): otagovat a vydat release v0.1.0|chore|priority: low'
-    'marketing: runbook launch dne|marketing|priority: low'
+    'chore(release): tag and publish release v0.1.0|chore|priority: low'
+    'marketing: launch-day runbook|marketing|priority: low'
     'PLAN (#185): per-agent PreToolUse hook|plan|priority: low'
     'Claude Code appears to never load .mdc rule files|-|-'
     'perf(installer): speed up the copy loop|-|-'

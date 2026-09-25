@@ -2,7 +2,7 @@
 
 Referenced from `skills/process-code-review/SKILL.md` *Promote the PR out of Draft and signal ready to merge*. Extracted to keep the skill body under the skill-check token limit; the procedure is unchanged.
 
-This is phase 3 of `@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*. It runs at exactly one moment: the Review loop converged (`skills/process-code-review/SKILL.md` *Review loop* step 4 — zero Critical, zero unfulfilled reviewer comments, no undeferred Moderate), and the merge has not happened yet. The implementing agent never observes convergence, so this write belongs here, beside the Draft → ready promotion, and never to the resolving run.
+This is phase 3 of `@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*. It runs at exactly one moment: the Review loop converged (`skills/process-code-review/SKILL.md` *Review loop* step 4 — zero Critical, zero unfulfilled reviewer comments, no undeferred Moderate), and the merge has not happened yet. The implementing agent never observes convergence, so this write belongs here, beside the Draft → ready promotion, and never to the resolving run.
 
 The write is unconditional, idempotent, and verified — the same apply-then-verify discipline the phase-1 and phase-2 writes use. A zero exit code is not evidence: an external write can be silently blocked in auto-mode.
 

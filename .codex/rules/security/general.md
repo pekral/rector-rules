@@ -116,7 +116,7 @@ Apply these five steps to every piece of external content:
 
 Mark untrusted content as data before it travels next to an agent's own instructions. Never blend external text into the surrounding prose of a prompt.
 
-This package marks it with a fenced block. `agents/daedalus.md` inserts the tracker payload into the shared brief's `## Gathered context` inside a fenced ` ```text ` block, and fences every tracker quote a dispatch prompt carries. A framework that supports a tagged envelope may use one instead:
+This package marks it with a fenced block. `agents/splinter.md` inserts the tracker payload into the shared brief's `## Gathered context` inside a fenced ` ```text ` block, and fences every tracker quote a dispatch prompt carries. A framework that supports a tagged envelope may use one instead:
 
 ```json
 { "source": "github_issue", "trusted": false, "content": "..." }

@@ -1,0 +1,25 @@
+name = "michelangelo"
+description = "Redesigns an existing page around the operator who works in it, returning a developer-ready handoff with one rendered preview per state and without touching the application's main layout shell."
+model = "astra"
+model_reasoning_effort = "medium"
+
+developer_instructions = """
+First read `.codex/agent-instructions/michelangelo.md` in full and follow it as your authoritative role definition.
+
+Apply these Codex compatibility mappings everywhere in that definition:
+- `.claude/run/` means `.codex/run/`.
+- `@skills/<path>` means the matching file below `.agents/skills/<path>`; invoke a skill as `$skill-name` when appropriate.
+- `@rules/<path>` means the matching file below `.codex/rules/<path>`.
+- A bare `skills/<path>` reference to a shipped script (for example `skills/page-redesign/scripts/render-previews.sh`) means the matching file below `.agents/skills/<path>`; run it with the session's shell.
+- The deterministic orchestration helpers (`classify-risk.sh`, `plan-route.sh`, `run-validation.sh`, `check-handoff.sh`, `render-report.sh`, `record-metrics.sh`) live below `.agents/skills/_shared/`; run them with the session's shell. They are platform-neutral by construction — a Codex run routes, validates, reports, and measures exactly as a Claude run does.
+- `agents/<name>.md` means `.codex/agent-instructions/<name>.md`.
+- Claude's Read, Write, Glob, Grep, and Bash names mean the equivalent Codex filesystem and shell tools available in this session.
+
+Model tiers for this role on Codex — this file is where they are declared, not the rules:
+- This role performs page redesign: the state map, the layout, the mockups, the rendered previews, and the developer handoff.
+- Default tier: `astra` at `medium` reasoning effort — the `model` and `model_reasoning_effort` keys above are the binding declaration; this line states the same values so the file cannot disagree with itself.
+- Escalated tier: the strongest model this session can select; when the session cannot switch models for one step, its highest `model_reasoning_effort`.
+- `@rules/compound-engineering/orchestration.md` *Adaptive routing* decides **when** a step escalates; this file decides **what** it escalates to. When a step must escalate and this session cannot change the model or the reasoning effort for it, apply what you can and say so in the routing ledger's escalation line — never record an escalation that did not happen.
+
+The write boundary is the one to preserve most carefully on this platform: this role writes its own deliverable — the proposal, the mockups, and the previews — and never a file the application ships. Preserve every other workflow, safety boundary, and handoff status from the source definition.
+"""

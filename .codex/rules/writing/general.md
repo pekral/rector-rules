@@ -10,7 +10,7 @@ Every response an agent produces — a reply to the user, a handoff, a pull requ
 
 - **One idea per sentence.** A sentence states one fact, one instruction, or one consequence. When a sentence carries a second idea behind *and*, *but*, *while*, or a semicolon, split it.
 - **Short sentences.** Keep an instruction to roughly **20 words** and a descriptive sentence to roughly **25**. These are working limits, not a character count to game — a 30-word sentence that cannot be split without losing meaning stays.
-- **Active voice, named actor.** Write *`hephaestus` opens the pull request*, never *the pull request is opened*. The passive hides who acts, and in an agent pipeline the actor is the load-bearing part.
+- **Active voice, named actor.** Write *`donatello` opens the pull request*, never *the pull request is opened*. The passive hides who acts, and in an agent pipeline the actor is the load-bearing part.
 - **Present tense for what is true; past tense only for what happened.** A rule, an invariant, and a description of current behaviour are present tense. A report of a completed action is past tense.
 - **One term per concept, always the same term.** Pick one word for each thing and repeat it, however repetitive it reads. *Brief*, *task brief*, *assignment*, and *zadání* used for one artifact in one report force the reader to decide whether they are four things. Synonym variation is a style virtue in prose and a defect in technical writing.
 - **No telegraphic compression.** Simplifying means removing ideas per sentence, never removing words a sentence needs. Keep articles, prepositions, and relative pronouns. *Run gate after fix* is not simpler than *Run the gate after the fix*, it is only shorter.

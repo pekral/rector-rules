@@ -13,10 +13,11 @@
 # or any URL containing ?selectedIssue=<KEY>).
 #
 # Output (stdout): a JSON array in chronological order, one object per comment:
-#   [ { "index", "author", "created", "visibility", "body",
+#   [ { "index", "id", "author", "created", "visibility", "body",
 #       "charCount", "lineCount" }, … ]
 # An issue with no comments yields []. `charCount`/`lineCount` let the caller
-# decide whether to read a comment whole or in chunks.
+# decide whether to read a comment whole or in chunks. `id` is the JIRA comment ID
+# (null when the source carried none), the handle `delete-owned-comment.sh` takes.
 #
 # Exit codes (propagated from load-issue.sh):
 #   1  usage / argument error
@@ -52,6 +53,7 @@ printf '%s' "$ISSUE_JSON" | jq '
     | to_entries[]
     | {
         index:      .key,
+        id:         .value.id,
         author:     .value.author,
         created:    .value.created,
         visibility: .value.visibility,

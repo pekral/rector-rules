@@ -11,8 +11,8 @@ The CR wrapper passes the returned block as an embedded block to `@skills/pr-sum
     - @skills/analyze-problem/SKILL.md — **always run, scoped to assignment conformance.** Run it **inline in this skill's context** (do not dispatch as a subagent) against the issue context already loaded under **Issue Context Analysis** (requirements, acceptance criteria, expected behavior, edge cases, test data) and the PR diff, to answer one question: does the implemented code actually deliver what the assignment asked for? Walk the framework's steps 1–3 only — **Context extraction**, **Problem statement** (reframed as *the assignment*: what the code must do), and **Expected vs actual behavior** (the assignment-required behavior vs what the diff actually implements).
 Treat every required behavior the diff fails to deliver — a missing behavior, a wrong behavior, an acceptance criterion left unimplemented, a stated edge case or sample test scenario not handled — as a **Critical** finding (the code does not satisfy the assignment) carrying the standard reproducer fields (Faulty Example / Expected Behavior / Test Hint / Suggested Fix). **Read-only invocation:** within the CR the skill runs analysis-only — it returns the gap findings as markdown and must **not** write the *Pre-Implementation Research & Plan* artifact, modify code, or run any git write (the CR is read-only); skip the plan-artifact step entirely.
 This is **distinct from** the per-Critical-finding **Critical Findings Verification (issue #537)** below, which uses the same skill to *confirm* each Critical finding one by one; here the skill runs **once over the whole diff** to *detect* assignment gaps up front. Do not duplicate a gap that `@skills/assignment-compliance-check/SKILL.md` already raises in its `## Assignment Compliance` block — when both would surface the same gap, keep the technical **Critical** finding here (with reproducer fields, published under `## Functional Review` per the Two-Part CR Output contract) and let the compliance block carry only the non-technical mirror.
-    - @skills/security-review/SKILL.md — **skipped when `SECURITY_OWNER=athena` is set by the caller.** When a **separate, concurrent** agent owns the security review, this inline pass repeats the same full review over the same diff and lands the same findings twice; the always-run set is strictly sequential, so the duplicate is pure added latency, not added coverage. **Absence of the flag means it runs** — coverage never drops because someone forgot to set it, and a run with no concurrent security pass is unchanged. **No agent this package ships sets the flag** (issue #179): `athena` is the single reviewer, so this inline pass *is* her security pass and suppressing it would skip the review with nothing behind it.
-The flag is for an external caller that genuinely runs a concurrent pass. When it is skipped, say so on the summary line (`security: owned by athena`) so the PR comment never implies a security pass that did not happen here.
+    - @skills/security-review/SKILL.md — **skipped when `SECURITY_OWNER=leonardo` is set by the caller.** When a **separate, concurrent** agent owns the security review, this inline pass repeats the same full review over the same diff and lands the same findings twice; the always-run set is strictly sequential, so the duplicate is pure added latency, not added coverage. **Absence of the flag means it runs** — coverage never drops because someone forgot to set it, and a run with no concurrent security pass is unchanged. **No agent this package ships sets the flag** (issue #179): `leonardo` is the single reviewer, so this inline pass *is* her security pass and suppressing it would skip the review with nothing behind it.
+The flag is for an external caller that genuinely runs a concurrent pass. When it is skipped, say so on the summary line (`security: owned by leonardo`) so the PR comment never implies a security pass that did not happen here.
     - @skills/api-review/SKILL.md — API design contract lens (`@rules/api/general.md`). The skill self-scopes: when the diff touches no HTTP API surface (routes, controllers / `__invoke` request handlers, API Resources / DTOs in responses, FormRequests, status-code handling, `Idempotency-Key` logic) it returns no findings. When it does, fold the Critical / Moderate / Minor findings (with their reproducer fields) into the standard severity buckets — raise each finding once — the retired **Strict rule compliance** walk no longer raises a competing one for `@rules/api/general.md`.
 
 - Run conditionally:
@@ -127,7 +127,7 @@ Fold every finding it produces into the standard **Critical / Moderate / Minor**
 
 ## Skills deliberately not run
 
-The set above says which skills a code review runs. This section says which ones it does **not** run as a lens over the diff, and why. Without it, every analysis of the CR set re-derives the same exclusions from scratch, and nothing stops a skill that writes to the working tree from being added to a review `athena` performs read-only.
+The set above says which skills a code review runs. This section says which ones it does **not** run as a lens over the diff, and why. Without it, every analysis of the CR set re-derives the same exclusions from scratch, and nothing stops a skill that writes to the working tree from being added to a review `leonardo` performs read-only.
 
 **Read the groups below as a rule, never as an inventory.** The names in each group are today's members. The criterion on each group is what classifies a skill this repository does not carry yet. Ask the four questions in this order and stop at the first `yes`:
 
@@ -142,7 +142,7 @@ A skill that answers `no` four times is a candidate lens rather than an excluded
 
 ### Group 1 — writes to the working tree, so it belongs to a write-capable agent
 
-Criterion: the skill authors or edits files — code, tests, documents, or any other project asset. Most of these belong to `hephaestus`; `compact-project-memory` belongs to whichever run wrote the memory file. `athena` is read-only (`agents/athena.md`), so a lens that proposes a write must never perform one in a review. Intent does not make such a skill safe here; the mode contract in *Adding a `MODE=cr` lens* below is what does.
+Criterion: the skill authors or edits files — code, tests, documents, or any other project asset. Most of these belong to `donatello`; `compact-project-memory` belongs to whichever run wrote the memory file. `leonardo` is read-only (`agents/leonardo.md`), so a lens that proposes a write must never perform one in a review. Intent does not make such a skill safe here; the mode contract in *Adding a `MODE=cr` lens* below is what does.
 
 **Question 2 puts a skill here even when a later group also describes it.** The questions overlap, so a skill that writes a file and produces something other than findings answers `yes` twice, and the order decides. Every bullet below that also matches a later group says so, so the reader sees the overlap resolved instead of hidden. This group is also the one the guard in `tests/Installer/AgentsTest.php` reads, so a skill parked in a later group by mistake is a skill the guard stops covering.
 
@@ -150,29 +150,31 @@ Criterion: the skill authors or edits files — code, tests, documents, or any o
 - `test-driven-development` — drives a red / green / refactor cycle that writes both the test and the code.
 - `understand-propose-implement-verify` — implements the proposal it produces.
 - `frontend-design-direction` — chooses a UI direction and then builds it (*"Build the actual usable experience"*). It also matches group 3's shape, because a design direction is a judgment rather than a finding on a changed line. Question 2 is asked before question 4, so it lands here.
+- `page-redesign` — writes the redesign proposal, one HTML mockup per state, and the rendered preview PNGs. It also matches group 3's shape, because a layout proposal is not a finding on a changed line. Question 2 is asked before question 4, so it lands here.
 - `skill-creator` — writes `skills/<slug>/SKILL.md` and edits the changelog and the readme. It also matches group 3's shape, because a new skill is not a finding on a changed line. Question 2 is asked before question 4, so it lands here.
 - `diagram-design`, `frontend-slides` — each ships a self-contained HTML file, one diagram or one deck per file. They also match group 3's shape, because a picture and a deck are not findings on changed lines. Question 2 is asked before question 4, so they land here.
 - `product-capability` — writes its plan to a durable file (`PRODUCT.md`, or a capability document under `docs/`). It also matches group 3's shape, because a capability plan is not a finding on a changed line. Question 2 is asked before question 4, so it lands here.
 - `web-article-writer` — writes the article into the target website project, which its `## Output Format` states outright (*"write only the files requested and follow the verified project structure"*). It also matches group 3's shape, because a published article is not a finding on a changed line. Question 2 is asked before question 4, so it lands here.
 - `compact-project-memory` — edits `docs/memory/PROJECT_MEMORY.md`, the one file it is allowed to touch. It also matches group 3's shape, because maintaining a memory file reads no diff. Question 2 is asked before question 4, so it lands here.
-- `e2e-testing` — authors Playwright `*.spec.ts` files. It also matches group 2's shape, because those tests only produce evidence against a running application, which is why `agents/argus.md` runs them and `agents/hephaestus.md` writes them. Question 2 is asked before question 3, so it lands here.
+- `e2e-testing` — authors Playwright `*.spec.ts` files. It also matches group 2's shape, because those tests only produce evidence against a running application, which is why `agents/raphael.md` runs them and `agents/donatello.md` writes them. Question 2 is asked before question 3, so it lands here.
 - `class-refactoring`, `refactor-entry-point-to-action` — each restructures production code. Both used to run in the review as read-only `MODE=cr` lenses, and both are retired from it: the two refactoring sections they filled are gone (`@rules/code-review/review-process.md` *Refactoring & Tech Debt (DRY) Analysis — retired*). The `MODE=cr` contract stays in each skill for a caller that wants a read-only proposal, but no review invokes it, so question 2's answer — they write code — is what places them here.
 - `git-workflow` — resolves conflicts, stashes work, and undoes commits, so it rewrites the working tree itself. `cleanup-local-branches` stays in group 3 because it deletes local refs and edits no file: acting on git metadata is not a write to the tree, and the two bullets read together are what draws that line.
 
-### Group 2 — needs a running application, so it belongs to `argus`
+### Group 2 — needs a running application, so it belongs to `raphael`
 
 Criterion: the skill's evidence comes from a live instance — an HTTP request, a browser, a queue, or runtime telemetry. A code review reads a diff and has no running instance to read.
 
 - `laravel-telescope` — reads telemetry that a live application recorded, and writes nothing itself, so question 2 passes it on to question 3.
+- `interactive-testing` — exercises a live application through the testing agent's own interactive browser and reports observed acceptance results; it does not edit the implementation.
 
 ### Group 3 — its output is not findings on the changed lines
 
-Criterion: the skill's unit of work is the whole repository, a document, a tracker artifact, or the local git state — not the lines this diff added or modified. A review that ran one would report on code the pull request never touched, which `agents/athena.md` *Review scope — the current diff only* forbids.
+Criterion: the skill's unit of work is the whole repository, a document, a tracker artifact, or the local git state — not the lines this diff added or modified. A review that ran one would report on code the pull request never touched, which `agents/leonardo.md` *Review scope — the current diff only* forbids.
 
 - `simplification-audit` — audits the whole codebase rather than a diff, so it would report on code the pull request never touched.
 - `tester-cookbook` — writes a QA report for a human tester and posts it as a tracker comment.
 - `smartest-project-addition` — proposes the next addition to this package.
-- `github-issue-triage`, `github-release-roadmap`, `create-issue`, `create-issues-from-text` — produce tracker artifacts. The review still calls `create-issue` after it publishes, to file an out-of-scope item (`agents/athena.md`). That call creates a different artifact and reads no diff, so it is not a lens and produces no finding.
+- `github-issue-triage`, `github-release-roadmap`, `create-issue`, `create-issues-from-text` — produce tracker artifacts. The review still calls `create-issue` after it publishes, to file an out-of-scope item (`agents/leonardo.md`). That call creates a different artifact and reads no diff, so it is not a lens and produces no finding.
 - `cleanup-local-branches` — deletes local branch refs. It writes no file, which is what keeps it here while `git-workflow` sits in group 1.
 
 ### Group 4 — moves the run's own artifact forward
@@ -181,7 +183,7 @@ Criterion: the skill produces or advances the very artifact under review, rather
 
 - `resolve-issue` — the implementation phase that produced the diff under review.
 - `process-code-review` — drives the convergence loop this review feeds, and promotes the pull request out of Draft.
-- `prepare-issue-for-merge` — drives the issue and pull request to a merge-ready state without merging it.
+- `verify-merge-readiness` — drives the issue and pull request to a merge-ready state without merging it.
 - `pr-summary` — publishes the run's non-technical tracker summary.
 - `merge-github-pr` — merges the pull request after the review converges.
 

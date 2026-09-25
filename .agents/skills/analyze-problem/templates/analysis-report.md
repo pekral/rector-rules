@@ -112,6 +112,22 @@ Do not put assumptions here. -->
 - ...
 - ...
 
+### Data Damage Already Written
+
+<!-- Whether the root cause has already stored inconsistent data, verified against the storage
+and not inferred from the code. State the storage (table, JSON column, cache key space, queued
+payload), the predicate that identifies a damaged record, and how many records match.
+When the cause writes nothing, or wrote nothing yet, say so explicitly — never leave this blank. -->
+
+**Damaged data found:** <!-- Yes / No -->
+
+...
+
+**Where and how it is recognised:**
+<!-- e.g. `orders` — `total_gross < (SELECT SUM(...) FROM order_items ...)`, 1 842 rows since 2026-03-01 -->
+
+...
+
 ### Risk Areas
 
 <!-- What can break or what to watch out for when fixing. -->
@@ -125,6 +141,16 @@ Do not put assumptions here. -->
 
 **Smallest safe solution:**
 <!-- Describe the smallest effective fix. No unnecessary refactoring. -->
+
+...
+
+**Data repair (only when section 6 found damaged data):**
+<!-- The second half of the fix, which always runs after the cause fix, never before — a repair
+executed while the cause is still live is re-corrupted by the next request that takes the broken
+path. Describe it as its own bounded, re-runnable command or migration, with the predicate it
+uses and the test that proves it (seed a damaged record, run the repair, assert consistency, and
+assert a healthy record was left untouched). When the damaged data is disposable — a cache entry
+that regenerates, a derived value the next run recomputes — say that and say why instead. -->
 
 ...
 

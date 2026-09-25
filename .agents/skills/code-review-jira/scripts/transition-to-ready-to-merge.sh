@@ -8,7 +8,7 @@
 # Progress, Code Review, Closed, Merged, …) so an AI agent cannot use it to push
 # work through the board.
 #
-# This is phase 3 of rules/compound-engineering/general.md *Tracker status
+# This is phase 3 of rules/compound-engineering/tracker.md *Tracker status
 # tracks the phase of work*. It says the review converged and the work waits on
 # a merge — it never merges anything and never closes anything.
 #

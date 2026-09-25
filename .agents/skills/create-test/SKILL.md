@@ -10,6 +10,7 @@ metadata:
 - Apply @rules/code-testing/general.md
 - If the current project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, and `@rules/laravel/livewire.md`
 - Do not modify production code unless strictly required — the only exception is the **Pre-existing issue handling** workflow below, which lands its production-code fixes in their own separate commits
+- Prefer the project's existing E2E path for user-visible or cross-boundary behavior. An isolated test is allowed only when it was designed before the production change, after a written failure inventory, per `@rules/code-testing/general.md` *Test Strategy*.
 
 ---
 
@@ -47,7 +48,7 @@ Only after Read, Map, and Verify are complete may test-writing begin.
 - Include:
     - happy paths
     - edge cases
-    - regression scenarios
+    - regression scenarios only for a genuine observable behavior gap
 
 ### 4. Validate
 - Run relevant tests after each change and confirm they pass

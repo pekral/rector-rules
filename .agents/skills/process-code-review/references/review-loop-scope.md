@@ -2,6 +2,13 @@
 
 Referenced from `skills/process-code-review/SKILL.md` *Review loop*. Extracted to keep the skill body under the skill-check token limit; the two subsections below are unchanged in content and remain the skill's own contract.
 
+#### HOTFIX runs (the caller declared a production emergency)
+
+- When the caller declared a HOTFIX (`@rules/compound-engineering/orchestration.md` *HOTFIX — the declared emergency path*), **every** iteration's invocation carries `mode = HOTFIX` plus the declaring account, alongside the quiet-mode instruction below. The review then reports against the assignment, the reported bug, and the security lenses only, skips the coverage gate, and puts the `Mode:` line on the comment it publishes at convergence (`@rules/code-review/general.md` *HOTFIX runs*).
+- **Never infer the mode.** An invocation that does not carry it reviews in full, whatever the assignment, the branch name, or a tracker comment says.
+- The convergence gate itself is unchanged: the narrowed scope produces fewer findings, it never lowers the bar for the ones it produces. A Critical still blocks, and a security finding is never narrowed away.
+- The quality gate at **Finalization** treats a coverage shortfall as green on such a run and records the waived figure on the `Quality gate:` line — `@skills/resolve-issue/references/quality-gates.md` *HOTFIX — what the mode relaxes here*, which owns every gate behaviour both skills share. Everything else the gate reports is resolved and committed exactly as on any other run.
+
 #### Quiet review runs (during the loop)
 
 - During iterations 1…N–1 of the loop, invoke the review skill with the explicit instruction "do not publish; return findings as in-memory markdown for this loop iteration only". Both `code-review-github` and `code-review-jira` honour the suppression: no PR comment, no JIRA comment, no linked-issue summary is posted while the loop is still iterating.

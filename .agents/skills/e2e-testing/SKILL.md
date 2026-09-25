@@ -11,6 +11,7 @@ metadata:
 - GATED skill: proceed only when the consuming project already ships Playwright. Never install Playwright unprompted.
 - Stable selectors over brittle ones: prefer role and `data-testid` over CSS/structure.
 - No arbitrary `waitForTimeout`. Rely on auto-waiting locators and explicit conditions.
+- Every completed E2E scenario must leave a repeatable artifact that identifies the scenario and outcome: keep the configured trace, screenshot/video, JUnit result, or an equivalent generated report.
 
 ## Use when
 - Writing Playwright E2E browser tests for a Laravel app.

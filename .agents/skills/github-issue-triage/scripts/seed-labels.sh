@@ -58,22 +58,22 @@ fi
 
 # name|color|description — the taxonomy, in triage order (priority first).
 # Descriptions are the ones the repository already uses; they are data, not
-# prose, so they stay verbatim in their original language.
+# prose, so the script and the repository must stay in step.
 LABELS=(
-  "priority: critical|b60205|Blokuje jádro produktu nebo bezpečnostní incident — řeší se první"
-  "priority: high|d93f0b|Bug s reálným dopadem — řeší se po critical"
-  "priority: medium|fbca04|Nová funkcionalita / enhancement"
-  "priority: low|0e8a16|Nice-to-have, testy, chore, docs, marketing, refactor, plány"
+  "priority: critical|b60205|Blocks the core product, or is a security incident — handled first"
+  "priority: high|d93f0b|A bug with real impact — handled after critical"
+  "priority: medium|fbca04|New functionality or enhancement"
+  "priority: low|0e8a16|Nice-to-have: tests, chores, docs, marketing, refactors, plans"
   "bug|d73a4a|Something isn't working"
   "enhancement|a2eeef|New feature or request"
   "documentation|0075ca|Improvements or additions to documentation"
   "question|d876e3|Further information is requested"
-  "test|bfd4f2|Doplnění nebo oprava testů"
-  "refactor|c5def5|Změna struktury bez změny chování"
-  "chore|cfd3d7|Údržba repozitáře, release, konfigurace"
-  "security|ee0701|Bezpečnostní téma (hardening, zranitelnost, capability model)"
-  "marketing|f9d0c4|Launch, komunikace, obsah"
-  "plan|5319e7|Plánovací meta-issue rozpadající větší záměr"
+  "test|bfd4f2|Adding or fixing tests"
+  "refactor|c5def5|A change of structure without a change of behaviour"
+  "chore|cfd3d7|Repository maintenance, releases, configuration"
+  "security|ee0701|A security topic: hardening, a vulnerability, the capability model"
+  "marketing|f9d0c4|Launch, communication, content"
+  "plan|5319e7|A planning meta-issue that breaks down a larger intent"
 )
 
 # Name the target before touching it: `gh` resolves the repository implicitly

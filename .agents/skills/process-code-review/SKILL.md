@@ -84,6 +84,8 @@ If a **CR-skill finding** lacks Faulty Example, Expected Behavior, or Test Hint,
 
 **Free-form reviewer threads are exempt from the reproducer requirement.** Unresolved threads written by human reviewers will not carry the four structured fields. Do **not** request a CR rerun for them and do **not** block. Instead, derive the intent from the comment text, apply the minimal best-effort fix that satisfies it, and add or adjust a test at your discretion (a regression test when the comment describes a behavior bug; none when it is a naming / readability / dead-code remark). Keep the change scoped strictly to what the reviewer asked for. The exemption removes only the mandatory reproducer workflow — a behavior-changing best-effort fix still has to satisfy the diff-scoped coverage gate enforced by the **Review loop** below (`@rules/php/core-standards.md` Testing).
 
+**Reviewer questions:** `references/answering-reviewer-questions.md`.
+
 ---
 
 ### Pre-fix phase — pre-existing issue handling
@@ -105,8 +107,8 @@ Rules:
      - `fix(<scope>): pre-existing — …` (bug, security) — add the regression test in the **same commit** as the fix; the test must fail before the fix lands and pass after.
      - `refactor(<scope>): pre-existing — …` (project-rule violation, behavior-preserving) — apply `@rules/refactoring/general.md` *Test Coverage Contract*: when the target lines are below 100% coverage, author a dedicated `test(<scope>): cover <area> before pre-existing refactor` commit **before** the refactor commit, and do **not** modify pre-existing tests inside the refactor commit (mechanical renames forced by the refactor itself stay exempt and must be flagged in the commit body).
    - Either way, pre-existing fixes follow the same diff-scoped 100% coverage rule as CR fixes.
-4. In the `cr-status` PR comment posted during **PR update**, list every pre-existing fix under a `## Pre-existing fixes` heading with a one-line rationale, so reviewers can review them independently of the CR thread.
-5. If a pre-existing issue is **non-trivial** (would significantly expand the PR or requires architectural discussion), do **not** fix it. Surface it in the `cr-status` comment as a deferred follow-up with the reason, **and file it yourself as a follow-up issue in the originating tracker** per `@rules/compound-engineering/general.md` *File deferred points as follow-up tracker issues* (mechanics in `@skills/resolve-issue/SKILL.md` *Deferred-item follow-up issues*) — do not leave the filing to the reviewer. The `cr-status` entry carries the created issue URL.
+4. In the single CR comment posted during **PR update**, list every pre-existing fix under a `## Pre-existing fixes` heading with a one-line rationale, so reviewers can review them independently of the CR thread.
+5. If a pre-existing issue is **non-trivial** (would significantly expand the PR or requires architectural discussion), do **not** fix it. Surface it in the CR comment as a deferred follow-up with the reason, **and file it yourself as a follow-up issue in the originating tracker** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (mechanics in `@skills/resolve-issue/SKILL.md` *Deferred-item follow-up issues*) — do not leave the filing to the reviewer. The entry carries the created issue URL.
 
 ---
 
@@ -150,7 +152,7 @@ This is a **blocking loop**. Do not advance to **Finalization**, **PR update**, 
 6. **Round 3 — the deferral boundary.** When the review at `iteration == maxIterations` still carries findings, do not iterate again. Triage each one exactly once against `references/round-three-deferral.md`, which owns the resolution table, the per-tracker filing mechanics, and the reporting contract:
    - **Critical → hard stop.** Never deferred, never filed as a sub-issue.
    - **Moderate meeting the S1–S3 security carve-out → hard stop.** Identical treatment to a Critical, because a security finding is never suppressed at any severity.
-   - **Every other Moderate → deferred as a sub-issue, or blocking.** The filing bar in `@rules/compound-engineering/general.md` *File deferred points as follow-up tracker issues* → *The filing bar* decides which (cross-referenced, never restated). Passing it files a sub-issue via `scripts/file-deferred-moderate.sh`; failing it leaves the finding **blocking**, so it never silently vanishes.
+   - **Every other Moderate → deferred as a sub-issue, or blocking.** The filing bar in `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* → *The filing bar* decides which (cross-referenced, never restated). Passing it files a sub-issue via `scripts/file-deferred-moderate.sh`; failing it leaves the finding **blocking**, so it never silently vanishes.
    - A run reaching this step with a blocking finding left **has not converged**: stop, surface the findings, publish nothing.
 
 #### Quiet review runs and incremental review scope
@@ -169,31 +171,35 @@ Apply each fix, commit it, push it, and let the next review iteration read the n
 
 **Precondition:** the Review loop above must have exited **converged** per its step-4 gate — `criticalCount == 0`, `unfulfilledCount == 0`, and no undeferred Moderate. If it stopped at round 3 with a Critical, a security-relevant Moderate, or a Moderate that failed the filing bar, do not proceed — return the remaining findings to the user for manual triage instead.
 
-- **Run the full quality gate now — the branch's gate run happens here.** The loop above deliberately ran no fixers and no checkers, so this is the first point where they execute (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*). Convergence of the loop is a **review** verdict; this is the **build** verdict, and the merge requires both. Run the project's full gate (`composer build`, the Phing target, or the project's equivalent) on the current head. The gate rewrites tracked files and lands a commit, so it is run by the implementing agent (`hephaestus`), never by a read-only orchestrator or reviewer — `agents/hephaestus.md` *Bash boundary* permits `composer build` for exactly this step.
-  - **Green on the first run → nothing more to do here.** Record the command, its result, **and the head SHA it ran on** (`git rev-parse HEAD`) for the `cr-status` comment — read that SHA **after** the branch's last commit is pushed, since any commit landing afterwards invalidates the record and forces the merge to run the gate again. The SHA is what lets `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* accept this run instead of repeating it; without it that step has nothing to compare and must re-run the gate.
+- **Run the full quality gate now — the branch's gate run happens here.** The loop above deliberately ran no fixers and no checkers, so this is the first point where they execute (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*). Convergence of the loop is a **review** verdict; this is the **build** verdict, and the merge requires both. Run the project's full gate (`composer build`, the Phing target, or the project's equivalent) on the current head. The gate rewrites tracked files and lands a commit, so it is run by the implementing agent (`donatello`), never by a read-only orchestrator or reviewer — `agents/donatello.md` *Bash boundary* permits `composer build` for exactly this step.
+  - **Green on the first run → nothing more to do here.** Record the command, its result, **and the head SHA it ran on** (`git rev-parse HEAD`) for the `Quality gate:` line of the CR comment — read that SHA **after** the branch's last commit is pushed, since any commit landing afterwards invalidates the record and forces the merge to run the gate again. The SHA is what lets `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* accept this run instead of repeating it; without it that step has nothing to compare and must re-run the gate.
   - **Anything reported → resolve it and land it as one final commit**, placed last on the branch: `chore(gate): apply fixer and checker fixes`, or a `fix(<scope>):` subject when resolving it changed behaviour. This is the one commit in this skill that is deliberately **not** a CR item — *Commit granularity — one CR item = one commit* above does not apply to it, and the reconciliation walk treats it as a named non-item commit exactly like a pre-existing-fix or coverage commit. Re-run the gate on the new head and repeat until it passes.
-  - **A behaviour-changing gate fix re-opens the review.** When the fix commit carries only the verbatim output of the project's fixers, the converged verdict stands — record which fixer produced it. When it required a hand-written change (a static-analysis error resolved by hand, a failing test, a coverage gap closed with new test code, or a `rector` rewrite that changed behaviour), the diff under review changed: go back to the Review loop at step 2 rather than promoting the PR. When an earlier pass had already promoted it, withdraw both signals now — `references/ready-to-merge-signal.md` *Revert when the review re-opens*. Classify from the commit's own diff, never from its subject line; treat an unclear case as behaviour-changing.
+  - **Only a gate fix that changes business logic re-opens the review.** Apply `@rules/code-review/general.md` *When another review round runs at all — changed business logic, or a changed assignment* to the fix commit.
+A commit carrying only the verbatim output of the project's fixers changes no business logic, so the converged verdict carries forward — record which fixer produced it. A hand-written change (a static-analysis error resolved by hand, a failing test, a coverage gap closed with new test code, or a `rector` rewrite that changed behaviour) does change it: go back to the Review loop at step 2 rather than promoting the PR.
+When an earlier pass had already promoted it, withdraw both signals now — `references/ready-to-merge-signal.md` *Revert when the review re-opens*. Classify from the commit's own diff, never from its subject line; an unclear case counts as business logic and gets the round.
   - **A gate that cannot be run is a hard stop** — do not promote the PR out of Draft and do not report convergence; surface what failed.
 - Commit and push changes
 - If PR does not exist, create it according to @rules/git/general.md — as a **Draft** (`gh pr create --draft`) per *Draft pull requests*; the **Promote the PR out of Draft** step below marks it ready once this converged run is published
   - Title in English (per `@rules/git/general.md`)
   - Body in the assignment language (per `@rules/reports/general.md`)
-  - **Link the PR to the tracker issue the branch resolves** (`@rules/compound-engineering/general.md` *Every pull request links back to its tracker issue*). This is the only other path that opens the PR, so it owns the link on that path. GitHub: the literal English `Closes #<N>` in the **body**, per `@rules/git/general.md` *Issue Linking* — a translated keyword is not parsed. JIRA / Bugsnag: the key or error URL in the PR, plus a comment with the PR URL, per `@skills/resolve-issue/references/tracker-follow-up.md` *JIRA-specific follow-up* / *Bugsnag-specific follow-up*. Re-read both through the deterministic loader and confirm the link landed; report a failed write rather than assuming it. When the branch resolves no tracker issue, there is nothing to link; the step is inapplicable.
-  - When the branch resolves a tracker issue, write that issue's review-waiting phase signal now, exactly as the resolving run would have (`@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*, mechanics in `@skills/resolve-issue/references/tracker-follow-up.md` *GitHub-specific follow-up* / *JIRA-specific follow-up*). This is the only other path that opens the PR, so it owns the phase-2 write on that path. Skip it when the signal is already present — the write is idempotent.
+  - **Link the PR to the tracker issue the branch resolves** (`@rules/compound-engineering/tracker.md` *Every pull request links back to its tracker issue*). This is the only other path that opens the PR, so it owns the link on that path. GitHub: the literal English `Closes #<N>` in the **body**, per `@rules/git/general.md` *Issue Linking* — a translated keyword is not parsed. JIRA / Bugsnag: the key or error URL in the PR, plus a comment with the PR URL, per `@skills/resolve-issue/references/tracker-follow-up.md` *JIRA-specific follow-up* / *Bugsnag-specific follow-up*. Re-read both through the deterministic loader and confirm the link landed; report a failed write rather than assuming it. When the branch resolves no tracker issue, there is nothing to link; the step is inapplicable.
+  - When the branch resolves a tracker issue, write that issue's review-waiting phase signal now, exactly as the resolving run would have (`@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*, mechanics in `@skills/resolve-issue/references/tracker-follow-up.md` *GitHub-specific follow-up* / *JIRA-specific follow-up*). This is the only other path that opens the PR, so it owns the phase-2 write on that path. Skip it when the signal is already present — the write is idempotent.
 
 ---
 
-### PR update (only after Review loop converged)
+### PR update — assemble the one CR comment (only after Review loop converged)
 
 **Precondition:** same as Finalization — convergence required.
 
-- Publish the resolved-items report through the publish helper using the dedicated `cr-status` marker namespace. On GitHub, the marker makes the status comment identifiable as a status post (separate from the `cr-comment` namespace); on JIRA the helper ignores the marker argument, so `cr-status` and `cr-comment` posts are distinguished by content only (resolved-items body vs. `## Pre-existing fixes` section vs. CR findings). Concretely:
-  - GitHub PR: `skills/code-review-github/scripts/upsert-comment.sh <PR-NUMBER|URL> - cr-status` (body on stdin). The helper appends `<!-- cr-status:actor=<gh-login> -->` to the body for traceability and **POSTs a new comment on every run** — it never PATCHes a prior status comment. Action (`created`) is logged on stderr; include it in the in-conversation completion report.
-  - JIRA-originated reviews that also mirror to a JIRA ticket: `skills/code-review-jira/scripts/upsert-comment.sh <KEY|URL> - cr-status`. The helper creates a new comment and updates only that new comment with ADF through `--body-adf`; it never edits a prior status comment. Fall back to the JIRA MCP server's `addCommentToJiraIssue` on exit code 2/3, passing ADF.
-- Do **not** quote / reply to a previous CR or status comment — the always-new-comment convention (both GitHub and JIRA) replaces the previous quoting / in-place edit flow entirely, and every converge run adds its own self-contained status comment so the chronological sequence is the audit trail. The CR comment (`cr-comment` namespace) stays untouched by this skill.
-- Mark resolved items (checkbox or inline) inside the freshly posted body in all cases.
-- When the **Review loop** deferred a Moderate at round 3, render a `## Deferred to sub-issues` section in the `cr-status` body — one entry per finding, each carrying `file:line`, the original severity, the reason, and the sub-issue URL (`references/round-three-deferral.md` *Reporting the deferral*). Omit the section when nothing was deferred.
-- When **Pre-fix phase** produced at least one pre-existing fix commit, render a dedicated `## Pre-existing fixes` section in the `cr-status` body listing each commit subject (`fix/refactor(<scope>): pre-existing — …`) with a one-line rationale derived from the commit body, so reviewers can review the pre-existing fixes independently of the CR thread. Omit the section entirely when no pre-existing fix landed (consistent with the always-omit-empty-section convention).
+This step **assembles** the comment body; **Completion** publishes it. This skill publishes nothing itself. One comment per destination, in the `cr-comment` namespace — canonical contract: `@rules/code-review/general.md` *One published comment per review run — a TL;DR, not a systematic report*. The retired `cr-status` namespace has no publisher left.
+
+- **`## TL;DR`** — one plain-language line per change the loop landed: each CR item fixed, each pre-existing fix, the gate commit, and the reason any reviewer point was rejected or deferred. It replaces the resolved-items checklist: it says what changed, not which checks ran.
+- **The `Quality gate:` header value** — the command, its verdict, and the head SHA from Finalization. `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* reads it here.
+- **`## Deferred to sub-issues`** — only when the Review loop deferred a Moderate at round 3: one entry per finding with `file:line`, the original severity, the reason, and the sub-issue URL (`references/round-three-deferral.md` *Reporting the deferral*).
+- **`## Pre-existing fixes`** — only when **Pre-fix phase** landed one: each commit subject with a one-line rationale from the commit body. Omit when none landed.
+
+Never quote or reply to a previous CR comment body — this run's publish updates the same `cr-comment` in place, replacing it. **Lost:** earlier rounds are no longer visible as a comment chain. **Kept:** that comment's `Reviewed revision:` / `Reviewed diff fingerprint:` header lines still carry the next round's baseline, and this skill holds the previous round's finding dispositions in its own loop state.
+
 
 #### Resolve addressed reviewer threads (GitHub)
 
@@ -203,13 +209,13 @@ After the fixes are committed and pushed (Finalization above), mark every review
 gh api graphql -f query='mutation($threadId:ID!){ resolveReviewThread(input:{threadId:$threadId}){ thread{ isResolved } } }' -F threadId=<thread-id>
 ```
 
-- Resolve **only** threads that were fixed. Leave a thread unresolved when its point was rejected or deferred, and record the rejection reason in the `cr-status` report instead of resolving it. A **deferred** (not rejected) point must additionally be filed as a follow-up issue in the originating tracker per `@rules/compound-engineering/general.md` *File deferred points as follow-up tracker issues* (mechanics in `@skills/resolve-issue/SKILL.md` *Deferred-item follow-up issues*); the `cr-status` entry carries the created issue URL — rejection is a decision, deferral is a promise.
+- Resolve **only** threads that were fixed. Leave a thread unresolved when its point was rejected or deferred, and record the rejection reason in the CR comment instead of resolving it. A **deferred** (not rejected) point must additionally be filed as a follow-up issue in the originating tracker per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (mechanics in `@skills/resolve-issue/SKILL.md` *Deferred-item follow-up issues*); the comment entry carries the created issue URL — rejection is a decision, deferral is a promise.
 - If `gh api graphql` is unavailable, fall back to the GitHub MCP server's resolve-review-thread operation.
 - Resolving a thread is a GitHub PR state change, not a code change — it stays within the read-fixes-push-resolve flow this skill already owns and never touches the protected main branch.
 
 #### Promote the PR out of Draft and signal ready to merge
 
-Convergence is exactly the moment the PR becomes ready to merge, so this skill owns both halves of that signal — the Draft → ready transition per `@rules/git/general.md` *Draft pull requests*, and phase 3 of `@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*:
+Convergence is exactly the moment the PR becomes ready to merge, so this skill owns both halves of that signal — the Draft → ready transition per `@rules/git/general.md` *Draft pull requests*, and phase 3 of `@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*:
 
 - Because this step runs only after the **Review loop converged** (step 4's gate: `criticalCount == 0`, `unfulfilledCount == 0`, no undeferred Moderate), mark the PR ready for review now: `gh pr ready <PR-NUMBER|URL>`. This is the same class of GitHub PR state change as resolving a review thread, not a code change.
 - Do **this only on a converged loop.** If the loop stopped at round 3 without converging, the PR stays a Draft — never promote a PR that still carries a Critical, a security-relevant Moderate, or a Moderate that failed the filing bar. A Moderate deferred into a sub-issue is not such a finding: it is resolved for this PR and recorded in the tracker.
@@ -238,11 +244,12 @@ Rules:
 
 **Precondition:** Review loop has converged (step 4's gate: `criticalCount == 0`, `unfulfilledCount == 0`, no undeferred Moderate).
 
-- **Run the final publishing run inline.** Invoke the appropriate CR wrapper directly in this skill's context with publishing enabled — this is the **only** review whose output reaches the PR / issue tracker. The invocation must include the PR URL, the converged state (`criticalCount == 0`, no undeferred Moderate),
-  the `reviewedRevision` and `reviewedDiffFingerprint` baseline of the last iteration (per **Incremental review scope**, so the published comment carries the `Reviewed revision:`, `Reviewed diff fingerprint:`, and `Review scope:` header lines), and the instruction to post the final PR comment + linked-issue / JIRA mirror per the CR wrapper's contract.
+- **Run the final publishing run inline.** Invoke the appropriate CR wrapper directly in this skill's context with publishing enabled — this is the **only** review whose output reaches the PR / issue tracker, and it posts **one** comment per destination. The invocation must include the PR URL, the converged state (`criticalCount == 0`, no undeferred Moderate),
+  the `reviewedRevision` and `reviewedDiffFingerprint` baseline of the last iteration (per **Incremental review scope**, so the published comment carries the `Reviewed revision:`, `Reviewed diff fingerprint:`, and `Review scope:` header lines), the parts **PR update** assembled, and the instruction to post the final PR comment + linked-issue / JIRA mirror per the CR wrapper's contract.
   Do not dispatch as a subagent — run it sequentially in the current context:
   - GitHub: `@skills/code-review-github/SKILL.md`
   - JIRA: `@skills/code-review-jira/SKILL.md`
+- **The published comment is a TL;DR, never a systematic report.** A converged run carries the header block, `## TL;DR`, `## Functional Review`, and the two conditional sections — nothing else, and no `## Findings` over an empty body. Canonical shape: `@rules/code-review/general.md` *One published comment per review run — a TL;DR, not a systematic report*.
 - Share a concise completion report (in-conversation, not on the tracker):
   - PR link
   - resolved items
@@ -251,13 +258,14 @@ Rules:
   - follow-up tracker issues filed for deferred points (URLs), or the unfiled points listed as blockers when issue creation was blocked
   - Moderate findings deferred at round 3 with the sub-issue URL each was filed as, or `none` when the loop converged before the deferral boundary (`references/round-three-deferral.md`)
   - loop iteration count and final convergence status, plus the review scope the final publish carried (`full PR` on a single-iteration run, `delta since <SHA>` otherwise)
-  - `report: not-published (no-orchestrator)` when the run ended with no `hermes` reporting step and the source is a tracker — this skill publishes no post-convergence report, it only refuses to leave a missing one silent
+  - `report: not-published (no-orchestrator)` when the run ended with no `april` reporting step and the source is a tracker — this skill publishes no post-convergence report, it only refuses to leave a missing one silent
   - remaining blockers (if any — should be empty when convergence was reached)
 
 ---
 
 ## References
 
+- references/answering-reviewer-questions.md
 - references/ready-to-merge-signal.md
 - references/review-loop-scope.md
 - references/round-three-deferral.md

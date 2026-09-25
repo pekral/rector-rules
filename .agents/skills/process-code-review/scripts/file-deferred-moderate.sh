@@ -5,7 +5,7 @@
 # Called by skills/process-code-review/SKILL.md *Review loop* step 6 (the
 # deferral boundary), once per finding that (a) is not Critical, (b) does not
 # meet the S1-S3 security carve-out, and (c) passes the filing bar in
-# rules/compound-engineering/general.md *File deferred points as follow-up
+# rules/compound-engineering/tracker.md *File deferred points as follow-up
 # tracker issues*. The caller makes all three judgments; this script only
 # performs the write and proves it landed.
 #
@@ -17,8 +17,8 @@
 #              a bare JIRA key (ACME-1234), or a /browse/<KEY> URL.
 #   TITLE      Sub-issue title / summary.
 #   BODY-FILE  File holding the sub-issue body, or "-" to read stdin.
-#   LABEL      Optional content label per rules/compound-engineering/general.md
-#              *Label newly created tracker issues*. Selecting it is a semantic
+#   LABEL      Optional content label per rules/compound-engineering/tracker.md
+#              *Label tracker issues, and keep the labels true*. Selecting it is a semantic
 #              judgment the caller makes; this script only applies what it is
 #              given. Omitted means no label, which that rule permits.
 #

@@ -38,7 +38,7 @@ Before starting the resolution flow:
   - **Feature** — new behavior
 - Prefer minimal, safe, and readable changes
 - Keep scope limited unless related fixes are trivial and safe
-- When implementing DB work, prefer batch operations over per-row queries inside loops per `@rules/sql/optimalize.md` "Batch over per-row operations" — ModelManager `batchUpdate` / `batchInsert`, `whereIn(...)->delete()`, or a single bulk read keyed in memory. Per-row queries are allowed only when iterations have an unavoidable side-effect dependency that is justified in a code comment.
+- When implementing DB work, prefer batch operations over per-row queries inside loops per `@rules/sql/optimalize.md` "Batch over per-row operations" — ModelManager `batchUpdate` / `batchInsert`, `whereIn(...)->delete()`, or a single bulk read keyed in memory. Per-row queries are allowed only when iterations have an unavoidable side-effect dependency documented as operational context in a code comment.
 
 ## Execution
 
@@ -57,7 +57,7 @@ Before starting the resolution flow:
      - **JIRA:** a comment or the issue changelog (read via the JIRA MCP server — the deterministic loader intentionally does not carry it) records a prior Done / Resolved / Closed status while the issue sits in an active status again. A merged PR in `pullRequests[]` / `devSummary` alone is **not** sufficient — phased tasks merge PRs while staying In Progress.
      - **Bugsnag:** the mirrored GitHub issue in `linkedIssues[]` was reopened, or comments show the error was previously marked fixed and has regressed.
      When any signal matches, mark the run as a **reopened continuation** and apply the *Reopened task (mandatory deep pass)* clause of the comment analysis in step 5 before making any scoping decision.
-   - **Claim the issue immediately** (per `@rules/compound-engineering/general.md` *Claim a tracker issue before working on it*). Do this before any code change. The same write is phase 1 of *Tracker status tracks the phase of work* in that file: once this step succeeds, the tracker shows the issue as in progress.
+   - **Claim the issue immediately** (per `@rules/compound-engineering/tracker.md` *Claim a tracker issue before working on it*). Do this before any code change. The same write is phase 1 of *Tracker status tracks the phase of work* in that file: once this step succeeds, the tracker shows the issue as in progress.
      - **GitHub:** re-read the issue via `skills/code-review-github/scripts/load-issue.sh <URL>`. If the label `Resolve_by_AI:in-progress` is already present → another run owns it → **abort** with the message `Issue #<N> already claimed (Resolve_by_AI:in-progress) — another run is working on it`. If absent → apply it: `gh issue edit <N> --add-label "Resolve_by_AI:in-progress"`. Then **re-read and verify** the label actually landed (external writes can be silently blocked in auto-mode; verify against the tracker, not just the command exit code). If it did not land → **abort** rather than proceed unclaimed. Note:
 the apply-then-verify is not perfectly atomic (GitHub has no CAS on labels), but it collapses the race window to the gap between two loader reads — adequate to stop two long-running agent pipelines from colliding.
      - **JIRA:** run `skills/code-review-jira/scripts/transition-to-in-progress.sh <KEY|URL>`.
@@ -66,8 +66,8 @@ the apply-then-verify is not perfectly atomic (GitHub has no CAS on labels), but
        Exit 4 = issue is already past In Progress from another run → **abort** with the message `Issue <KEY> is already past In Progress — another run may be working on it`.
        Exit 5 = target status name differs for this project — discover the real name via the JIRA MCP server's available-transitions and re-run with it as the `STATUS` argument, or ask a human.
        Any other non-zero exit, including a failed or unverified self-assignment, stops the run before implementation. This is the second sanctioned status transition (the first is the Code Review transition on PR open); all others remain human-only.
-       It is JIRA's phase-1 write under `@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*.
-     - **Bugsnag:** no claim step, and no in-progress status write either. A Bugsnag error's `status` field is a resolution enum (`open` / `fixed` / `ignored` / `snoozed`) with no in-progress value, so there is nothing to set — this is the named exception in `@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*, not an omission. Parallel-collision protection for Bugsnag is a known limitation — rely on the human/linked-issue workflow.
+       It is JIRA's phase-1 write under `@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*.
+     - **Bugsnag:** no claim step, and no in-progress status write either. A Bugsnag error's `status` field is a resolution enum (`open` / `fixed` / `ignored` / `snoozed`) with no in-progress value, so there is nothing to set — this is the named exception in `@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*, not an omission. Parallel-collision protection for Bugsnag is a known limitation — rely on the human/linked-issue workflow.
      - **Release on Blocked / abort (before PR):** if this run stops `Blocked` or aborts before a PR is opened, it must release its own GitHub claim label: `gh issue edit <N> --remove-label "Resolve_by_AI:in-progress"`. JIRA does not auto-revert (transitions back are human-only); name the issue key in the Blocked handoff so a human can reset it. If the claim was never applied (e.g. abort happened before the claim step), skip the release.
 2. Fetch and analyze the issue from the detected source by running the deterministic loader for that tracker — never call `gh`, `acli`, or REST endpoints directly. Read all required fields off the resulting JSON document.
    - **GitHub:** `skills/code-review-github/scripts/load-issue.sh <URL>` for the structured JSON, or `skills/code-review-github/scripts/gather-issue-context.sh <URL>` for a full Markdown context brief in one pass (issue/PR + comments + changed files + commits + reviews + CI checks + recursively-loaded linked issues/PRs + an inventory of external URLs to follow). Both scripts always take the full GitHub URL (`https://github.com/<owner>/<repo>/issues/<N>`), never a bare number or `#<N>` — the loader rejects bare numbers, so build the URL from the current repo's `origin` remote first when the assignment gives only a number. Read attachment content and the inventoried URLs with your own tools;
@@ -93,7 +93,7 @@ Run `@skills/prepare-issue-context/SKILL.md` with `MODE=resolve-issue` and the s
 7. Review the input from step 6 and split the identified items into three groups:
    - **In scope** — items that directly match the issue requirements; implemented.
    - **Pre-existing issues** — bugs, project-rule violations, security vulnerabilities, or unnecessary comments already in the affected files (see *Pre-existing issue handling* below); fixed in **separate commits** in the same PR.
-   - **Out of scope (deferred)** — valid findings outside the current issue that are not pre-existing to fix now (enhancements, refactors, future features); added to the PR `## TODO` list **and each filed as a follow-up issue** per `@rules/compound-engineering/general.md` *File deferred points as follow-up tracker issues* (see *Deferred-item follow-up issues* below).
+   - **Out of scope (deferred)** — valid findings outside the current issue that are not pre-existing to fix now (enhancements, refactors, future features); added to the PR `## TODO` list **and each filed as a follow-up issue** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (see *Deferred-item follow-up issues* below).
 
 ### Read, Map & Verify before implementing (mandatory pre-flight)
 
@@ -105,14 +105,18 @@ Reading, mapping, and verifying come first; implementing comes last. This pre-fl
    Cover every file category the repository carries: source, tests, `rules/`, `skills/`, `agents/`, documentation, configuration, and generated assets such as `CHANGELOG.md` or `README.md`. Record the full match list before you edit anything, then classify each match as in scope for this change or as a stated exception. An incomplete sweep leaves a stale reference in a file nobody opened, and that reference surfaces later as a failing pinned test or a broken cross-reference.
 3. **Verify** — check your assumptions against the real code and its observed behavior (for bugs, reproduce the failure; for features, confirm the integration points exist as assumed). If reading and mapping contradict the issue framing or the scenario table, stop and surface the discrepancy instead of implementing on a wrong premise.
 
-Only after Read, Map, and Verify are complete may commit planning and implementation begin.
+Only after Read, Map, and Verify are complete may implementation begin.
 
-### Commit planning (one point = one commit)
+### Committing
 
-Before writing any code, split the in-scope work into commits per `references/phase-planning.md`, applying **one phase = one commit** from `@rules/git/general.md` *Git Rules*: inventory the discrete points the assignment enumerates — recommended fixes, review findings, checklist entries, ordered acceptance criteria, `Phase N` headings — map **one point = one commit** in the assignment's order, and order them so each commit is independently cherry-pickable where the files allow. Record that reference's commit-plan table **before** implementing — the plan for step 11 and the source of the PR `## Changes` list — then commit at each point's end.
-Do not run fixers or checkers between commits — the project's gate runs once at the merge boundary (*Quality gates — deferred to the merge boundary* below).
+How the in-scope work is divided into commits is your judgment (`@rules/git/general.md` *Commit granularity*). This skill used to require a commit plan table written before the first line of code, one commit per enumerated assignment point, ordered for cherry-pickability, reconciled against the table before the PR. None of it was ever a review criterion, and all of it cost a planning pass plus a rebase whenever the plan turned out wrong.
 
-Per `@rules/git/general.md` *Git Rules* (*The merged head is green; intermediate commits are not gated*), a point's test and the change that makes it pass land in the **same** commit, and no failing or simulated-failing test is ever committed. Intermediate commits are not individually gated — the project's gate runs once on the head commit being merged. When a branch genuinely needs a bisectable history, replay the range with `git rebase --exec '<the project gate>' <base>`; that replay is available, not required.
+Two constraints remain, and neither is about granularity:
+
+- A point's test and the change that makes it pass land in the **same** commit, and no failing or simulated-failing test is ever committed (`@rules/git/general.md` *The merged head is green; intermediate commits are not gated*).
+- Do not run fixers or checkers between commits — the project's gate runs once at the merge boundary (*Quality gates — deferred to the merge boundary* below).
+
+Intermediate commits are not individually gated; the project's gate runs once on the head commit being merged. When a branch genuinely needs a bisectable history, replay the range with `git rebase --exec '<the project gate>' <base>`; that replay is available, not required.
 
 ### Pre-existing issue handling
 
@@ -126,7 +130,7 @@ Run `@skills/test-driven-development/SKILL.md` as the governing cycle for every 
 
 8. Write or update a test that reproduces the bug (the failing test). Follow the RED step in `@skills/test-driven-development/SKILL.md`.
 9. **Verify RED** — run the test and confirm it fails for the expected reason, not because of a syntax, setup, or typo issue. **Do not proceed to the fix until the test is observed failing.** This step is mandatory and blocking.
-10. Apply the fix (GREEN step) — write the smallest production change that makes the test pass, then verify all relevant tests pass.
+10. Apply the fix (GREEN step) — write the smallest production change that makes the test pass, then verify all relevant tests pass. Then repair the records the defect already wrote — after this fix, never before (`references/data-repair.md`).
 
 ### If feature
 8. Design a minimal implementation aligned with project architecture.
@@ -146,29 +150,33 @@ Run `@skills/test-driven-development/SKILL.md` as the governing cycle for every 
 
 Author the change, commit each planned point, and push. The self-checks below still run — they read the diff and cost no build.
 
-## Code quality self-check (single pass)
+## Pre-PR self-check (lightweight, deterministic)
 
-After implementation, and **before creating the pull request**, run `@skills/code-review/SKILL.md` inline on the local changes — once, over the whole diff — and apply the **Suggested Fix** plus a reproducer test for every Critical and Moderate finding it returns. Do not re-run the full review to convergence: full-diff convergence belongs to the authoritative post-PR loop (`code-review-github` / `process-code-review`), and repeating it here doubles the cost without raising the bar of the merged result.
+After implementation, and **before creating the pull request**, verify only what must hold before the work is handed off. The authoritative LLM review is `leonardo`'s and it happens once (`@rules/compound-engineering/orchestration.md` *Adaptive routing* → *One authoritative LLM review, not two*).
 
-**PR gate — 0 Critical / 0 Moderate.** The pull request may be created only when every Critical / Moderate finding this pass surfaced is resolved. When one cannot be resolved, stop as **Blocked** and surface it instead of opening a PR that knowingly carries it. The full procedure — the invocation contract, the targeted re-verification, and why PR-comment processing is not part of this pre-PR pass — lives in `references/code-quality-self-check.md`.
+Walk these items and record each one's result in the handoff:
 
-## Testing
+1. **Acceptance criteria are covered** — each maps to implemented behaviour and to a test exercising it with the data the assignment states.
+2. **The tests covering the change were executed** — the diff-targeted selection, not the full build.
+3. **Static analysis and the linters pass** for the changed files.
+4. **No debug artifact survives** — no `dd()` / `dump()` / `var_dump()` / `console.log`, no commented-out block, no temporary or editor-backup file.
+5. **No accidental file is staged** — no scratch file, no local config, no committed secret or `.env`.
+6. **The diff matches the requested scope** — anything else is removed or recorded as a deferred follow-up (*Deferred-item follow-up issues* below).
+7. **Nothing obviously warrants escalation** — say so in the handoff when the change turned out to touch a security boundary, a migration, or a payment path.
 
-After the code quality self-check pass, and **still before creating the pull request**, validate the change:
+**This is not a review, and it never substitutes for one.** It does **not** run `code-review` / `security-review` over its own diff, produces no severity-graded findings, and gates nothing on a finding count. Anything needing a reviewer's judgment belongs to `leonardo`, on a tier that dispatches it.
 
-1. **Run the security review inline.** Invoke `@skills/security-review/SKILL.md` directly in this skill's context, passing the current diff context plus the instruction "run `@skills/security-review/SKILL.md` on the local changes and return the Critical / Moderate / Minor findings". Do not dispatch the review as a subagent — run it sequentially in the current context.
-
-Apply the **Suggested Fix** for any **Critical** or **Moderate** finding from the security review. Like the code quality self-check, this is a single full pass — do not re-enter a full review loop; re-verify the fixed findings in a targeted way, and the authoritative post-PR convergence loop re-validates the full diff. The same **PR gate** applies: the pull request may be created only when every surfaced Critical / Moderate security finding is resolved (0 Critical + 0 Moderate remaining) — otherwise stop as **Blocked**.
+**Blocked, not shipped.** When an item cannot be satisfied — a criterion has no implementation, the tests covering the change fail, static analysis is red — stop as **Blocked** and surface it rather than opening a pull request that knowingly carries it. The procedure, the boundary, and what the removed duplicate review cost live in `references/pre-pr-self-check.md`.
 
 ## Security remediation checklist (when a pre-implementation security plan exists)
 
 **Applies only when a security remediation plan was passed into this run** — its link travels in the caller's instruction or in the shared task brief. When no plan was passed, this whole section is a **no-op — skip it**.
 
-When a plan does exist, it runs after the security review above and **still before the pull request is created**: load the plan through the deterministic loader, verify every *Success criteria* item against the diff and the tests, tick it with a one-line verification pointer, and block PR creation on any unticked `[Critical]` / `[Moderate]` item. The full procedure — plan-link provenance, the four steps, and the PR gate — lives in `references/security-remediation-checklist.md`.
+When a plan does exist, it runs after the self-check above and **still before the pull request is created**: load the plan through the deterministic loader, verify every *Success criteria* item against the diff and the tests, tick it with a one-line verification pointer, and block PR creation on any unticked `[Critical]` / `[Moderate]` item. The full procedure — plan-link provenance, the four steps, and the PR gate — lives in `references/security-remediation-checklist.md`.
 
 ## Pull request
 
-**Creating the pull request is the default, mandatory final step.** Once review and testing are clean, open the PR automatically — applying the valid git rules and PR definitions — **without asking the user for confirmation**. The skill is not finished until the PR exists.
+**Creating the pull request is the default, mandatory final step.** Once the self-check is clean, open the PR automatically — applying the valid git rules and PR definitions — **without asking the user for confirmation**. The skill is not finished until the PR exists.
 
 **Opt-out — the user must explicitly ask to skip the PR.** A silent or ambiguous request is **not** an opt-out — when in doubt, create the PR.
 
@@ -178,11 +186,11 @@ The opt-out consequences and the full PR body layout — **Summary**, **Changes*
 
 ### Deferred-item follow-up issues
 
-Every item the run knowingly deferred — the *Out of scope (deferred)* group from step 7 and every non-trivial pre-existing issue deferred per *Pre-existing issue handling* rule 5 — must be registered as a **new issue in the originating tracker** per `@rules/compound-engineering/general.md` *File deferred points as follow-up tracker issues*, right after the PR exists (so the new issue can link to it) and before the final report. **Never report a deferral as handled without a live issue URL.** The full per-tracker procedure — deduplicate, file, verify, cross-link — lives in `references/deferred-follow-up.md`.
+Every item the run knowingly deferred — the *Out of scope (deferred)* group from step 7 and every non-trivial pre-existing issue deferred per *Pre-existing issue handling* rule 5 — must be registered as a **new issue in the originating tracker** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues*, right after the PR exists (so the new issue can link to it) and before the final report. **Never report a deferral as handled without a live issue URL.** The full per-tracker procedure — deduplicate, file, verify, cross-link — lives in `references/deferred-follow-up.md`.
 
 ## Final report
 
-**A missing post-convergence report is stated, never left silent.** This skill publishes no `hermes` report of its own. When the run ends without that reporting step and the source is a tracker, the handoff carries the literal token `report: not-published (no-orchestrator)` — a machine token, identical in every handoff language — so a reader sees the gap instead of assuming it was covered (`agents/daedalus.md` step 6a owns the report itself).
+**A missing post-convergence report is stated, never left silent.** This skill publishes no `april` report of its own. When the run ends without that reporting step and the source is a tracker, the handoff carries the literal token `report: not-published (no-orchestrator)` — a machine token, identical in every handoff language — so a reader sees the gap instead of assuming it was covered (`agents/splinter.md` step 6a owns the report itself).
 
 Reporting is split by audience and destination:
 
@@ -190,15 +198,14 @@ Reporting is split by audience and destination:
 
 Post the technical report as a comment on the GitHub PR, since that is where the codebase and testing state live. It must contain:
 
-- **Code review summary** — outcome of `@skills/code-review/SKILL.md` (findings addressed during the loop and the final clean state)
-- **Security review summary** — outcome of `@skills/security-review/SKILL.md`
+- **Self-check summary** — the result of each item of the *Pre-PR self-check* above. Report what this pass actually did — never a code-review or security-review verdict it did not produce (`@rules/code-review/review-process.md` *Output Rules — Truthful reporting*); those are `leonardo`'s, published by the review loop that runs after this skill.
 
 ### Non-technical report → original task tracker
 
 Post the non-technical report on the issue tracker where the task with the assignment was created (the original tracker, regardless of where the PR lives):
 
 - **GitHub** (task filed as a GitHub issue): post as a comment on the original issue
-- **JIRA** (task filed in JIRA): publish through the canonical JIRA helper, which converts the template source to ADF and applies it through `--body-adf` per `@rules/jira/general.md`
+- **JIRA** (task filed in JIRA): publish through the canonical JIRA helper, which converts the template source to ADF and applies it through `--body-adf` per `@rules/jira/general.md`; use the JIRA shape per `references/tracker-follow-up.md`
 - **Bugsnag** (task originated from a Bugsnag error): post the non-technical report as a comment directly on the Bugsnag error via `skills/code-review-bugsnag/scripts/upsert-comment.sh <URL|TRIPLE> -` (requires `BUGSNAG_TOKEN`; falls back to a Bugsnag MCP server when the script is unavailable). Also mirror it as a comment on the linked GitHub issue from `linkedIssues[]` when one exists.
 
 The non-technical report must be understandable by non-technical testers and product managers and contain:
@@ -210,31 +217,30 @@ The non-technical report must be understandable by non-technical testers and pro
 
 ### Per-tracker follow-up
 
-Once the PR is open, signal the review-waiting phase on the source tracker (phase 2 of `@rules/compound-engineering/general.md` *Tracker status tracks the phase of work*): GitHub applies the `ready for review` label unconditionally, creating it when the repository lacks it; JIRA runs `skills/code-review-jira/scripts/transition-to-code-review.sh <KEY|URL>`; Bugsnag has no phase status to set and relies on the comment above as the substitute signal, which is that rule's named exception.
-The run also writes the PR link-back on the source tracker (`@rules/compound-engineering/general.md` *Every pull request links back to its tracker issue*): on GitHub the `Closes #<N>` already in the PR body is that link, while JIRA and Bugsnag expose no structured link write at all, so on both a comment carrying the PR URL is the mechanism. Every one of these writes is verified by re-reading the item through its deterministic loader.
+Once the PR is open, signal the review-waiting phase on the source tracker (phase 2 of `@rules/compound-engineering/tracker.md` *Tracker status tracks the phase of work*): GitHub applies the `ready for review` label unconditionally, creating it when the repository lacks it; JIRA runs `skills/code-review-jira/scripts/transition-to-code-review.sh <KEY|URL>`; Bugsnag has no phase status to set and relies on the comment above as the substitute signal, which is that rule's named exception.
+The run also writes the PR link-back on the source tracker (`@rules/compound-engineering/tracker.md` *Every pull request links back to its tracker issue*): on GitHub the `Closes #<N>` already in the PR body is that link, while JIRA and Bugsnag expose no structured link write at all, so on both a comment carrying the PR URL is the mechanism. Every one of these writes is verified by re-reading the item through its deterministic loader.
 The full per-tracker procedure — the create-apply-verify steps, the PR link-back, and the claim label that stays in place — lives in `references/tracker-follow-up.md`.
 
 ## References
 
 - references/source-detection.md
 - references/comment-analysis.md
-- references/code-quality-self-check.md
+- references/pre-pr-self-check.md
 - references/quality-gates.md
+- references/data-repair.md
 - references/deferred-follow-up.md
 - references/pre-existing-issue-handling.md
-- references/phase-planning.md
 - references/security-remediation-checklist.md
 - references/pull-request.md
 - references/tracker-follow-up.md
 
 ## Done when
 - The issue is fully addressed
-- Behavior is correct and stable
+- Behavior is correct and stable, and records the defect already wrote are repaired, filed, or stated disposable (`references/data-repair.md`)
 - Tests cover affected logic with 100% coverage and pass
 - Fixers and checkers are **not** run in this skill — the project's full gate runs once before the merge (`references/quality-gates.md` *Gate placement — deferred to the merge boundary*)
 - No sensitive data is exposed
-- Code quality self-check ran as a single full-diff pass and every surfaced Critical / Moderate finding was resolved (0 Critical + 0 Moderate) **before the PR was created**
-- Security review completed **before the PR was created**
+- The *Pre-PR self-check* ran and every one of its items holds **before the PR was created**, with each item's result recorded in the handoff
 - When a pre-implementation security plan was passed in: every `[Critical]` / `[Moderate]` item of its Success-criteria checklist was verified against the diff and ticked **before the PR was created**, and the verified checklist is rendered in the PR body under `## Security acceptance checklist` (no plan = step skipped)
 - A clean pull request is created with a summary **by default** — skipped only when the user explicitly opted out of PR creation (see *Pull request*), in which case the committed local branch and the ready-to-run `gh pr create --draft …` command are reported instead
 - Technical report posted on the GitHub PR (skipped on PR opt-out)
