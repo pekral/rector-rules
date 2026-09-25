@@ -16,7 +16,7 @@ metadata:
 - Use first person only when the user requests it or the target site's established author voice supports it. Never fabricate first-hand experience.
 - Preserve meaningful limitations, prerequisites, alternatives, and trade-offs. Do not turn qualified evidence into absolute marketing claims.
 - Do not publish, deploy, commit, or change unrelated website files unless the user explicitly requests that action.
-- This skill writes long-form editorial content for an arbitrary site and topic. Announcing a change shipped in **this** repository — a tweet, a thread, release notes, or a marketing blurb — belongs to `agents/hermes.md`, not here.
+- This skill writes long-form editorial content for an arbitrary site and topic. Announcing a change shipped in **this** repository — a tweet, a thread, release notes, or a marketing blurb — belongs to `agents/april.md`, not here.
 - When the target is a Laravel application and the request includes a broader SEO audit or SEO implementation, also apply `@skills/seo/SKILL.md`.
 - When the article needs a structural technical picture — architecture, request flow, sequence, state machine, ER model — use `@skills/diagram-design/SKILL.md`. Step 7 below covers editorial illustration and alt text only.
 

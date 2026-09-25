@@ -46,6 +46,7 @@ paths:
 - Use method injection.
 - Never call `validate()` directly in controllers.
 - Never execute database queries directly in controllers.
+- **Return an explicit HTTP response from every controller action.** Never return a raw `array`, scalar, Eloquent model, DTO, `Collection`, or arbitrary object from a controller. Convert the Action's domain value at the HTTP boundary with the response shape the endpoint needs: `response()->json(...)` for JSON, `response(...)` for a regular response, `redirect()` / `back()` for navigation, `view()` for HTML, or Laravel's stream / download response builders for streamed content. A `Responsable` object is allowed only when it is the endpoint's explicit HTTP response contract. Laravel may normalize several raw values, but relying on that implicit conversion hides the status, headers, and representation the client receives.
 - Keep resource controllers CRUD-only:
     - `index`
     - `create`
@@ -65,6 +66,11 @@ paths:
 `$user->sendWelcomeEmail()` (queue dispatch is orchestration → Action), `$order->getRecentForCustomer()` (new query is the repository's job → Repository), `$user->updatePassword(...)` (persistence belongs in a ModelManager → ModelManager / Action).
 - **Accessors and methods that lazy-load relationships count as new database queries.** A method or accessor that touches `$this->relation->...` when the caller has not eager-loaded the relationship issues a query and breaches the simple-logic boundary above. Either eager-load the relationship at the call site (a Repository method) and let the model method consume already-loaded data, or move the logic out of the model entirely.
 - Define relationships, scopes, casts, and accessors in models.
+- **Before you add a query scope, prove that no existing scope already expresses the filter.** A scope is the reusable name of a condition, so a second scope for a condition the model already carries splits one filter into two definitions. They drift apart the moment one of them is corrected, and the caller that reads the stale one keeps working while it returns the wrong rows. Search the model, every trait it uses, and its parent classes before you write the scope.
+  - **Match on the condition, never on the name.** `scopeActive()` and `scopeNotDeleted()` over the same column are one filter under two names. Read the `where` each existing scope applies.
+  - **When an existing scope already expresses the filter, call it.** The new query composes that scope; it never restates the condition.
+  - **When an existing scope almost fits, widen that scope.** Give it the parameter the new call site needs, or compose it with one further condition at the call site. A near-copy under a new name is the violation.
+  - **A condition no existing scope expresses is a new scope.** Two scopes over the same column stay two scopes when they apply genuinely different conditions — `scopePublished()` on `published_at <= now()` beside `scopeScheduled()` on `published_at > now()`.
 - Use eager loading to avoid N+1 queries.
 - Do not query inside loops.
 - Use `withCount()` for counts where appropriate.
@@ -194,7 +200,19 @@ The only exception is a process the test itself owns end-to-end (e.g. the projec
 
 ## String Emptiness Checks
 - In conditions, prefer the Laravel `filled()` / `blank()` helpers over `!== ''` / `=== ''` comparisons. Write `filled($value)` instead of `$value !== ''` and `blank($value)` instead of `$value === ''`.
-- Keep the raw `!== ''` / `=== ''` form only when the exact PHP semantics matter (e.g. a `null`, whitespace-only, or empty-collection value must be treated as non-empty).
+- **`''` is never the only empty case, and that is why the helper exists.** Wherever the code decides a string is empty, whitespace-only input — `' '`, a tab, a newline, a non-breaking space — must reach the same decision. A comparison against `''` alone lets a single space through as if it were content: it satisfies a *required* guard, passes a uniqueness lookup, and is stored as a value that renders as nothing. `blank()` trims first, so it answers `true` for all of them.
+- **`empty()` is not the substitute.** It additionally treats the legitimate string `'0'` as empty, which is a separate defect in the opposite direction. `strlen($value) === 0` has the same whitespace hole as `=== ''`.
+- The same applies to the **normalisation** side. When a getter maps *no value* to `null`, it maps `'   '` to `null` too, or the whitespace is what gets persisted.
+- Laravel's `required` rule already trims, so `['required', 'string']` needs nothing added. The gap is in `nullable` / `sometimes` combinations and in every hand-written comparison in a FormRequest accessor, a Data Builder, or a DTO — that is where this rule bites.
+- Keep the raw `!== ''` / `=== ''` form only when the exact PHP semantics matter (e.g. a `null`, whitespace-only, or empty-collection value must be treated as non-empty) and say so at the call site.
+- Severity in code review: **Moderate** for a `''`-only comparison on a value that reaches the application from outside it. The rule is satisfied only when `' '` demonstrably reaches the same branch as `''`.
+
+## Time
+- **The project's configured timezone is the single source, and `config('app.timezone')` is where it lives.** Read it from there — `now(config('app.timezone'))`, `Carbon::parse($value, config('app.timezone'))` — never from a zone literal repeated at each call site, and never by leaving `now()` to apply it silently.
+- **The explicit argument changes nothing at runtime and everything for the reader.** `now()` already resolves against `config('app.timezone')`, so this is not a behaviour fix — it is what makes the zone reviewable. A bare call is indistinguishable from one whose author never considered the zone, and a literal `'Europe/Prague'` forks the answer the moment the configuration changes.
+- The framework-agnostic half of this rule lives in `@rules/php/core-standards.md` *Time* and applies unchanged: one zone for computing and storing, conversion only at the boundary, no SQL `NOW()`, and a zone on every value that crosses a process boundary.
+- **A queued job, a console command, and a scheduled task resolve it the same way.** A worker is a separate process that loads its own configuration; nothing about the dispatcher's ambient zone travels in the payload.
+- **A per-account or per-user timezone belongs to the presentation and input layers only.** Render in it, interpret typed input in it, and convert back to the configured zone before storing or comparing. A calculation that carries a user's zone into the middle of it has two sources of truth.
 
 ## Collections
 - **Chain collection operations into one fluent pipeline.** A `Collection` method returns a `Collection`, so a sequence of transformations reads as a single expression that states what the data becomes. Write the pipeline, not a running tally of intermediate variables:
@@ -205,8 +223,9 @@ $results = $coupons->chunk(
         fn (Collection $chunk): CouponImportResult => $this->processChunk($chunk, $folderId),
     );
 ```
-- **Reassigning one variable step by step is the shape to replace.** `$x = $c->filter(...); $x = $x->map(...); $x = $x->values();` names the same value three times, and each name says only *step 2 of something* — the reader reconstructs the pipeline the code took apart. Chain the calls instead. The same applies to a `foreach` that walks a collection only to accumulate into an array a `map()` / `filter()` / `groupBy()` / `sum()` call already expresses.
+- **Reassigning one variable step by step is the shape to replace.** `$x = $c->filter(...); $x = $x->map(...); $x = $x->values();` names the same value three times, and each name says only *step 2 of something* — the reader reconstructs the pipeline the code took apart. Chain the calls instead.
 - **Never leave the collection mid-pipeline.** A `->toArray()` (or `->all()`) followed by an array function and a `collect()` back re-materializes the whole set twice to reach a method the collection already has. Stay on the collection until the pipeline's final value is what the caller consumes. Convert once, at the boundary that requires an array.
 - **Break a long chain across lines, one operation per line**, as in the example above, so the pipeline reads top to bottom. Length is not what makes a chain unreadable — a step whose closure needs more than one statement is, and that step becomes a named method the chain calls (`->map($this->toImportResult(...))`), which is also where the Action / Data Builder boundary already puts it.
 - **Name an intermediate result when it genuinely has more than one consumer.** A collection two later statements both read is a value with a name, not a broken chain, and forcing it back into two pipelines computes it twice. This rule replaces reassignment of a single-use temporary; it never mandates one expression per method.
+- **A `foreach` is never a finding, and this section never makes one.** Everything above is authoring guidance for code that is *already* a collection pipeline. Choosing a `foreach` over a `collect()` chain is a style preference between two constructs with identical behaviour, so a review that spends a finding on it spends the reader's attention on nothing — see `@rules/code-review/general.md` *A `foreach` is never a code-review finding*, which owns that boundary. A defect **inside** the loop keeps its own owner: a per-row query is the batching finding, an unbounded materialization is the volume finding, and a `collect()` chain issuing the same per-row query is exactly as wrong.
 - **A chain is not permission to load the set.** How much the pipeline holds at once is owned by `@rules/code-review/general.md` *Bulk Data & Batch Processing (issue #223)*, and what the database should have done instead by `@rules/sql/optimalize.md` — a fluent `->get()->filter()` over a whole table is that finding, at that severity, never this one's.

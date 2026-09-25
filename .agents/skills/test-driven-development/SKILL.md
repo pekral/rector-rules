@@ -15,6 +15,8 @@ metadata:
 ## Core principle
 If you did not watch the test fail, you do not know whether it tests the right thing.
 
+Prefer an existing E2E path for user-visible and cross-boundary behavior. Use an isolated test only after recording its failure inventory, as required by `@rules/code-testing/general.md` *Test Strategy*.
+
 ## Iron law
 `NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST`
 
@@ -39,6 +41,8 @@ Only after Read, Map, and Verify are complete may the first RED test be written.
 ## Pre-flight (mandatory before the first RED)
 
 Before writing the first failing test, run `@skills/prepare-issue-context/SKILL.md` with `MODE=tdd` and the assignment reference, scoped to the scenario(s) the upcoming RED step will cover. The skill seeds the development database with the records the failing test will depend on and captures a reproduction record (entry point + inputs + observed output) that becomes the *arrange* block of the first test. If the skill returns `blocked: <count> open gap(s)`, stop and surface the gaps — writing a RED test against missing or guessed fixtures is the most common cause of stub-grade tests that drift from real behavior.
+
+When the RED step must be isolated rather than E2E, write the failure inventory before the test: list the concrete failure modes, their observable outcomes, and the single gap this test proves. Do not add a test after the production change as retrospective coverage.
 
 ## Required cycle
 
@@ -80,7 +84,7 @@ Only after green:
 Move to the next behavior and repeat the cycle.
 
 ## Bug-fix rule
-Never fix a bug without first writing or updating a test that reproduces it.
+Never add a regression test for a bug unless an E2E reproduction or failure inventory establishes a genuine observable behavior gap. When it does, write and observe the failing test before the fix.
 
 ## Scope control
 - Fix obvious blocking issues only when necessary for safe implementation

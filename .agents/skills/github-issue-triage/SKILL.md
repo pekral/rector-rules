@@ -30,10 +30,10 @@ metadata:
 
 | Label | Color | Meaning |
 | --- | --- | --- |
-| `priority: critical` | `b60205` | Blokuje jádro produktu nebo bezpečnostní incident — řeší se první |
-| `priority: high` | `d93f0b` | Bug s reálným dopadem — řeší se po critical |
-| `priority: medium` | `fbca04` | Nová funkcionalita / enhancement |
-| `priority: low` | `0e8a16` | Nice-to-have, testy, chore, docs, marketing, refactor, plány |
+| `priority: critical` | `b60205` | Blocks the core product, or is a security incident — handled first |
+| `priority: high` | `d93f0b` | A bug with real impact — handled after critical |
+| `priority: medium` | `fbca04` | New functionality or enhancement |
+| `priority: low` | `0e8a16` | Nice-to-have: tests, chores, docs, marketing, refactors, plans |
 
 **Type labels** — the primary type is exclusive; `security` and `question` are topics that may accompany it.
 

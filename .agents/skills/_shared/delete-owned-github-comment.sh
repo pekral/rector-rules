@@ -8,14 +8,14 @@ PROG="${0##*/}"
 
 usage() {
   cat >&2 <<EOF
-Usage: $PROG <GitHub issue-or-PR URL> <comment-id> <final-tldr-id> <current-cr-id> <current-cr-status-id>
+Usage: $PROG <GitHub issue-or-PR URL> <comment-id> <final-tldr-id> <current-cr-id>
 
 Deletes only an authenticated actor-owned top-level issue/PR comment. The final
 TL;DR and current CR evidence must be passed as protected IDs.
 EOF
 }
 
-if [[ "$#" -ne 5 ]]; then
+if [[ "$#" -ne 4 ]]; then
   usage
   exit 1
 fi
@@ -24,7 +24,7 @@ TARGET_URL="$1"
 COMMENT_ID="$2"
 shift 2
 PROTECTED_IDS=("$@")
-PROTECTED_MARKERS=("merge-readiness" "cr-comment" "cr-status")
+PROTECTED_MARKERS=("merge-readiness" "cr-comment")
 
 if [[ ! "$COMMENT_ID" =~ ^[1-9][0-9]*$ ]]; then
   printf '%s\n' "$PROG: comment id must be a positive integer" >&2

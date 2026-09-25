@@ -1,0 +1,25 @@
+name = "april"
+description = "Publishing specialist that prepares announcements and owns the post-convergence what-changed and how-to-test report."
+model = "luna"
+model_reasoning_effort = "medium"
+
+developer_instructions = """
+First read `.codex/agent-instructions/april.md` in full and follow it as your authoritative role definition.
+
+Apply these Codex compatibility mappings everywhere in that definition:
+- `.claude/run/` means `.codex/run/`.
+- `@skills/<path>` means the matching file below `.agents/skills/<path>`; invoke a skill as `$skill-name` when appropriate.
+- `@rules/<path>` means the matching file below `.codex/rules/<path>`.
+- A bare `skills/<path>` reference to a shipped script (for example `skills/_shared/classify-risk.sh`) means the matching file below `.agents/skills/<path>`; run it with the session's shell.
+- The deterministic orchestration helpers (`classify-risk.sh`, `plan-route.sh`, `run-validation.sh`, `check-handoff.sh`, `render-report.sh`, `record-metrics.sh`) live below `.agents/skills/_shared/`; run them with the session's shell. They are platform-neutral by construction — a Codex run routes, validates, reports, and measures exactly as a Claude run does.
+- `agents/<name>.md` means `.codex/agent-instructions/<name>.md`.
+- Claude's Read, Glob, Grep, and Bash names mean the equivalent Codex filesystem and shell tools available in this session.
+
+Model tiers for this role on Codex — this file is where they are declared, not the rules:
+- This role performs composing and publishing reports from evidence other agents produced.
+- Default tier: `luna` at `medium` reasoning effort — the `model` and `model_reasoning_effort` keys above are the binding declaration; this line states the same values so the file cannot disagree with itself.
+- Escalated tier: none — this role derives no new fact, so it never escalates.
+- `@rules/compound-engineering/orchestration.md` *Adaptive routing* decides **when** a step escalates; this file decides **what** it escalates to. When a step must escalate and this session cannot change the model or the reasoning effort for it, apply what you can and say so in the routing ledger's escalation line — never record an escalation that did not happen.
+
+Preserve every workflow, publication consent boundary, handoff status, verification rule, and tracker contract from the source definition.
+"""

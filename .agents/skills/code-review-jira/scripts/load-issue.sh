@@ -27,9 +27,9 @@
 #     "issueLinks":  [ { "id", "type", "direction", "verb", "linkedKey", "linkedSummary", "linkedStatus", "linkedType" } ],
 #     "subtasks":    [ { "key", "summary", "status", "type",
 #                        "descriptionText", "descriptionAdf",
-#                        "comments":    [ { "author", "body", "created", "visibility" } ],
+#                        "comments":    [ { "id", "author", "body", "created", "visibility" } ],
 #                        "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ] } ],
-#     "comments":    [ { "author", "body", "created", "visibility" } ],
+#     "comments":    [ { "id", "author", "body", "created", "visibility" } ],
 #     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],
 #     "customFields":  { "customfield_XXXXX": <parsed value>, … },
 #     "devSummary":    { "pullRequestCount", "branchCount", "commitCount", "state", "isStale", "byInstance" } | null,
@@ -37,6 +37,19 @@
 #   }
 #
 # Notes:
+#   - A comment `body` is rendered from the ADF document `workitem view` embeds under
+#     `.fields.comment.comments[]`, paired to the `comment list` entry by comment `id`. The list
+#     body is flattened by acli itself and drops mentions, emoji, links, and the text of every list
+#     item, so a decision written as a bullet is missing from it entirely. The flattened list text is
+#     only the fallback for a comment the view did not embed. JIRA may embed fewer comments than
+#     the issue carries (`.fields.comment.total` above the embedded count); the loader says so on
+#     stderr, and the comments past the embedded page keep the flattened text. `id` is the comment
+#     ID, which `delete-owned-comment.sh` and `comment update --id` take.
+#   - The ADF renderer keeps every node a reader needs: a mention as its `@Name`, an emoji as its
+#     text (the character, or the `:shortcode:` when JIRA stores no character), a smart link as its URL, a linked text as `text (url)`, a status or a date as
+#     its value, a list item as `- ` / `1. ` indented two spaces per nesting level, a task as
+#     `- [ ]` / `- [x]`, a rule as `---`, a table as `| cell | cell |` rows, and an expand as its
+#     title followed by its content. The same renderer produces `descriptionText`.
 #   - `customFields` runs every customfield_* value through a universal Java/Groovy
 #     toString unwrap: any string that starts with `{` and contains `json={…}` is
 #     parsed back into JSON. The leading-`{` anchor keeps the unwrap from firing
@@ -162,7 +175,20 @@ if [[ -z "$VIEW_JSON" ]] || ! printf '%s' "$VIEW_JSON" | jq -e . >/dev/null 2>&1
   exit 3
 fi
 
-COMMENTS_JSON="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || printf '{"comments": []}')"
+# The issue view can embed fewer comments than the issue carries. Disclose it rather than let a
+# flattened fallback body pass for the full ADF one.
+VIEW_COMMENT_GAP="$(printf '%s' "$VIEW_JSON" | jq -r '((.fields.comment.total // 0) | tonumber? // 0) - ((.fields.comment.comments // []) | length)' 2>/dev/null || true)"
+if [[ "$VIEW_COMMENT_GAP" =~ ^[1-9][0-9]*$ ]]; then
+  echo "load-issue.sh: the issue view embedded $VIEW_COMMENT_GAP fewer comments than $KEY carries; those comments keep the flattened comment-list text" >&2
+fi
+
+# `|| printf` would append the fallback to whatever jq had already written, leaving two JSON
+# documents in one variable and failing `--argjson` below with exit 2 — the load died where it was
+# documented to degrade. Take whatever the pipeline produced, then validate it.
+COMMENTS_JSON="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || true)"
+if [[ -z "$COMMENTS_JSON" ]] || ! printf '%s' "$COMMENTS_JSON" | jq -e . >/dev/null 2>&1; then
+  COMMENTS_JSON='{"comments": []}'
+fi
 
 # Fetch the full context of every subtask (description, comments, attachments).
 # The parent issue only embeds a shallow subtask reference, so each subtask is
@@ -178,7 +204,10 @@ if [[ -n "$SUBTASK_KEYS" ]]; then
     if [[ -z "$SUBTASK_VIEW" ]] || ! printf '%s' "$SUBTASK_VIEW" | jq -e . >/dev/null 2>&1; then
       continue
     fi
-    SUBTASK_COMMENTS="$(acli jira workitem comment list --key "$SUBTASK_KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || printf '{"comments": []}')"
+    SUBTASK_COMMENTS="$(acli jira workitem comment list --key "$SUBTASK_KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || true)"
+    if [[ -z "$SUBTASK_COMMENTS" ]] || ! printf '%s' "$SUBTASK_COMMENTS" | jq -e . >/dev/null 2>&1; then
+      SUBTASK_COMMENTS='{"comments": []}'
+    fi
     SUBTASK_DETAILS="$(jq -c -n \
       --arg key "$SUBTASK_KEY" \
       --argjson acc "$SUBTASK_DETAILS" \
@@ -221,16 +250,95 @@ def unwrapJavaToString:
   else .
   end;
 
-def adfText:
+# `adfInline` renders one inline node. Nothing a reader needs is dropped: a mention keeps its
+# `@Name`, an emoji its text or `:shortcode:`, a smart link its URL, a linked text its target, and a status
+# lozenge or a date its value — the flattened `comment list` text loses exactly these nodes.
+def adfInline:
   if type != "object" then ""
-  elif .type == "text" then (.text // "")
+  elif .type == "text" then
+    (.text // "") as $t
+    | ([(.marks // [])[] | select(.type == "link") | .attrs.href // empty] | first) as $href
+    | if $href != null and $href != $t then $t + " (" + $href + ")" else $t end
   elif .type == "hardBreak" then "\n"
-  elif (.type // "") | IN("paragraph","heading","bulletList","orderedList","listItem","blockquote","codeBlock")
-  then
-    ((.content // []) | map(adfText) | join("")) + "\n"
-  else
-    ((.content // []) | map(adfText) | join(""))
+  elif .type == "mention" then (.attrs.text // "")
+  elif .type == "emoji" then (.attrs.text // .attrs.shortName // "")
+  elif (.type // "") | IN("inlineCard","blockCard","embedCard") then (.attrs.url // "")
+  elif .type == "status" then (.attrs.text // "")
+  elif .type == "date" then
+    ((.attrs.timestamp // "") | tostring) as $raw
+    | ($raw | tonumber? // null) as $ms
+    | if $ms == null then $raw
+      else (try ($ms / 1000 | floor | strftime("%Y-%m-%d")) catch $raw) end
+  else ((.content // []) | map(adfInline) | join(""))
   end;
+
+# `adfBlock($indent)` renders one block node as lines. A list item carries its `- ` / `1. ` marker,
+# and a nested list is indented by two spaces per level, so a decision written as a bullet survives.
+def adfBlock($indent):
+  if type != "object" then ""
+  elif (.type // "") | IN("bulletList","orderedList","taskList","decisionList") then
+    .type as $listType
+    | ((.attrs.order // 1) | tonumber? // 1) as $start
+    | (.content // []) | to_entries
+    | map(
+        (if $listType == "orderedList" then (($start + .key) | tostring) + ". "
+         elif $listType == "taskList" then (if .value.attrs.state == "DONE" then "- [x] " else "- [ ] " end)
+         else "- " end) as $marker
+        | .value as $item
+        | ($item.content // []) as $children
+        | if ($item.type // "") | IN("taskItem","decisionItem") then
+            $indent + $marker + ($item | adfInline) + "\n"
+          elif ($children | length) > 0 and ($children[0].type // "") == "paragraph" then
+            $indent + $marker + ($children[0] | adfInline) + "\n"
+            + ($children[1:] | map(adfBlock($indent + "  ")) | join(""))
+          else
+            $indent + $marker + "\n" + ($children | map(adfBlock($indent + "  ")) | join(""))
+          end)
+    | join("")
+  elif .type == "listItem" then ({ type: "bulletList", content: [.] } | adfBlock($indent))
+  elif (.type // "") | IN("paragraph","heading","codeBlock") then $indent + adfInline + "\n"
+  elif .type == "rule" then $indent + "---\n"
+  elif (.type // "") | IN("blockCard","embedCard") then $indent + adfInline + "\n"
+  elif .type == "table" then
+    (.content // [])
+    | map($indent + "| "
+          + ((.content // [])
+             | map((.content // []) | map(adfBlock("")) | join(" ")
+                   | gsub("\\s*\n\\s*"; " ") | sub("^\\s+"; "") | sub("\\s+$"; ""))
+             | join(" | "))
+          + " |\n")
+    | join("")
+  elif (.type // "") | IN("expand","nestedExpand") then
+    (if (.attrs.title // "") != "" then $indent + .attrs.title + "\n" else "" end)
+    + ((.content // []) | map(adfBlock($indent)) | join(""))
+  elif (.type // "") | IN("text","hardBreak","mention","emoji","inlineCard","status","date") then adfInline
+  else ((.content // []) | map(adfBlock($indent)) | join(""))
+  end;
+
+def adfText: adfBlock("");
+
+def adfPlain: adfText | gsub("\n\n+"; "\n\n") | sub("\n+$"; "");
+
+# The comment body prefers the ADF document `workitem view` embeds for the same comment `id`. The
+# `comment list` body is the flattening acli does itself, which drops mentions, emoji, and every list item —
+# a decision written as a bullet disappears from it entirely. The flattened text stays the fallback
+# for a comment the view did not embed.
+def commentOut($viewIdx):
+  . as $c
+  | (($c.id // "") | tostring) as $id
+  | ($viewIdx[$id] // {}) as $v
+  | {
+      id: (if $id == "" then null else $id end),
+      author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
+      body: (if ($v.body | type) == "object" then ($v.body | adfPlain)
+             elif ($c.body | type) == "object" then ($c.body | adfPlain)
+             else $c.body end),
+      created: ($c.created // $v.created // null),
+      visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $v.visibility // null) end)
+    };
+
+def viewCommentIdx:
+  ((.comment.comments // []) | map({ key: ((.id // "") | tostring), value: { body: .body, created: .created, visibility: (.visibility.value // null) } }) | from_entries);
 
 def adfMedia:
   if type != "object" then []
@@ -245,7 +353,7 @@ def adfMedia:
 | ($f.attachment // []) as $att
 | ($f.subtasks // []) as $sub
 | ($f.issuelinks // []) as $links
-| (($f.comment.comments // []) | map({key: .id, value: {created: .created, visibility: (.visibility.value // null)}}) | from_entries) as $viewCommentIdx
+| ($f | viewCommentIdx) as $viewCommentIdx
 | ($f | to_entries
        | map(select(.key | startswith("customfield_")))
        | map({ key: .key, value: (.value | unwrapJavaToString) })
@@ -315,13 +423,8 @@ def adfMedia:
           status: ($st.fields.status.name // null),
           type: ($st.fields.issuetype.name // null),
           descriptionAdf: $sdesc,
-          descriptionText: (if $sdesc == null then "" else ($sdesc | adfText | gsub("\n\n+"; "\n\n") | sub("\n+$"; "")) end),
-          comments: (if $d == null then [] else (($d.comments // []) | map(. as $c | {
-            author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
-            body: (if ($c.body | type) == "object" then ($c.body | adfText) else $c.body end),
-            created: ($c.created // null),
-            visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // null) end)
-          })) end),
+          descriptionText: (if $sdesc == null then "" else ($sdesc | adfPlain) end),
+          comments: (if $d == null then [] else (($sf | viewCommentIdx) as $subIdx | ($d.comments // []) | map(commentOut($subIdx))) end),
           attachments: (if $sf == null then [] else (($sf.attachment // []) | map({
             id: (.id // null),
             name: (.filename // null),
@@ -332,12 +435,7 @@ def adfMedia:
             created: (.created // null)
           })) end)
         })),
-    comments: ($commentsResp.comments // [] | map(. as $c | {
-      author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
-      body: (if ($c.body | type) == "object" then ($c.body | adfText) else $c.body end),
-      created: ($c.created // $viewCommentIdx[$c.id].created // null),
-      visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $viewCommentIdx[$c.id].visibility) end)
-    })),
+    comments: ($commentsResp.comments // [] | map(commentOut($viewCommentIdx))),
     attachments: ($att | map({
       id: (.id // null),
       name: (.filename // null),

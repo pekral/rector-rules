@@ -165,7 +165,7 @@ Apply the contract in `@rules/code-review/general.md` *Real-Code Grounding for E
 
 - The surrounding context to re-read is whatever the **exploit scenario** depends on — every reachable path from the entry point to the sink, plus any helper, Service, Repository, or config file the scenario or Suggested Fix relies on. Claiming the surrounding code mitigates the flaw requires citing the mitigating `file:line` for **every** reachable path, not just the one in the diff.
 - An inconclusive re-read keeps the finding and lowers its severity per the **risk-based severity** rule above — never drops it.
-- The requirement holds identically in `athena`'s independent security-CR mode (`SECURITY_OWNER=athena` skips `code-review`'s own inline security pass), so a standalone run never skips grounding.
+- The requirement holds identically in `leonardo`'s independent security-CR mode (`SECURITY_OWNER=leonardo` skips `code-review`'s own inline security pass), so a standalone run never skips grounding.
 - The contract's "the reviewer's own re-read is the only ground" clause is what the issue #17 carve-out below rests on: a test-only declaration never removes a finding here.
 
 ### Assignment-declared "test-only" carve-out (issue #17)

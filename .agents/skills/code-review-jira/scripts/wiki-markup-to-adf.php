@@ -19,16 +19,17 @@ function jiraWikiInlineNodes(string $text): array
         jiraWikiAppendTextNode($nodes, substr($text, $offset, $position - $offset));
 
         if ($match['codeText'][1] >= 0) {
+            // Code spans are literal in JIRA, so their content is never re-parsed.
             jiraWikiAppendTextNode($nodes, $match['codeText'][0], [['type' => 'code']]);
         } elseif ($match['linkText'][1] >= 0) {
-            jiraWikiAppendTextNode($nodes, $match['linkText'][0], [[
+            jiraWikiAppendMarkedNodes($nodes, $match['linkText'][0], [
                 'type' => 'link',
                 'attrs' => ['href' => $match['href'][0]],
-            ]]);
+            ]);
         } elseif ($match['strongText'][1] >= 0) {
-            jiraWikiAppendTextNode($nodes, $match['strongText'][0], [['type' => 'strong']]);
+            jiraWikiAppendMarkedNodes($nodes, $match['strongText'][0], ['type' => 'strong']);
         } else {
-            jiraWikiAppendTextNode($nodes, $match['emText'][0], [['type' => 'em']]);
+            jiraWikiAppendMarkedNodes($nodes, $match['emText'][0], ['type' => 'em']);
         }
 
         $offset = $position + strlen($match[0][0]);
@@ -37,6 +38,24 @@ function jiraWikiInlineNodes(string $text): array
     jiraWikiAppendTextNode($nodes, substr($text, $offset));
 
     return $nodes;
+}
+
+/**
+ * Re-parse the span so nested markup — `{{code}}` inside `*bold*`, emphasis inside a link label —
+ * reaches ADF as its own mark instead of leaking into the rendered comment as literal Wiki Markup.
+ *
+ * @param list<array<string, mixed>> $nodes
+ * @param array<string, mixed> $mark
+ */
+function jiraWikiAppendMarkedNodes(array &$nodes, string $text, array $mark): void
+{
+    foreach (jiraWikiInlineNodes($text) as $node) {
+        /** @var list<array<string, mixed>> $marks */
+        $marks = $node['marks'] ?? [];
+        $marks[] = $mark;
+        $node['marks'] = $marks;
+        $nodes[] = $node;
+    }
 }
 
 /**
@@ -199,10 +218,12 @@ if (!is_string($wikiMarkup)) {
     exit(1);
 }
 
+// A body cut mid-character (a byte-based truncation of Czech text) still publishes: the broken
+// bytes become U+FFFD instead of failing the whole comment.
 try {
     echo json_encode(
         jiraWikiMarkupToAdf($wikiMarkup),
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR,
     );
     echo "\n";
 } catch (JsonException $exception) {

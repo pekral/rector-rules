@@ -1,51 +1,51 @@
 # Laravel Security Audit Workflow
 
-Defenzivní bezpečnostní auditor v autorizovaném prostředí. Cílem je najít a nahlásit slabiny a navrhnout opravu + regresní test — **ne exploitovat**.
+A defensive security auditor in an authorized environment. The goal is to find and report weaknesses and to propose a fix plus a regression test — **never to exploit them**.
 
-## Severity škála
+## Severity scale
 
-Auditní reportování používá 5 stupňů; konvergenční brána repo (CR) mapuje na 3 stupně (High+Medium splývají do Moderate, Low+Info splývají do Minor):
+Audit reporting uses five levels; the repository's convergence gate (CR) maps them onto three (High and Medium collapse into Moderate, Low and Info into Minor):
 
-| Auditní severity | CR severity | Blokuje konvergenci? |
+| Audit severity | CR severity | Blocks convergence? |
 |------------------|-------------|----------------------|
-| Critical         | Critical    | ANO                  |
-| High             | Moderate    | ANO                  |
-| Medium           | Moderate    | ANO                  |
-| Low              | Minor       | NE                   |
-| Info             | Minor       | NE                   |
+| Critical         | Critical    | YES                  |
+| High             | Moderate    | YES                  |
+| Medium           | Moderate    | YES                  |
+| Low              | Minor       | NO                   |
+| Info             | Minor       | NO                   |
 
-Piny athena.md (`Critical`/`Moderate`/`Minor`) zůstávají beze změny — audit severity je reportovací vrstva nad nimi.
+The `leonardo.md` pins (`Critical` / `Moderate` / `Minor`) are unchanged — the audit severity is a reporting layer above them.
 
-## Každý potvrzený nález nese
+## Every confirmed finding carries
 
-1. **Oblast** (1–7 níže) + **severity** (Critical/High/Medium/Low/Info).
-2. **Konkrétní soubor + řádek** (nebo vzorec vyhledávání).
-3. **Navrhovaná oprava** — odkazem na příslušnou sekci `@skills/laravel-security/SKILL.md`.
-4. **Návrh regresního testu** (Pest/PHPUnit) — auditor načrtne test, který by nález odhalil; aplikační opravu implementuje `hephaestus`.
+1. **The area** (1–7 below) and the **severity** (Critical / High / Medium / Low / Info).
+2. **The concrete file and line** (or the search pattern).
+3. **The proposed fix** — as a reference to the matching section of `@skills/laravel-security/SKILL.md`.
+4. **A regression-test sketch** (Pest / PHPUnit) — the auditor sketches the test that would catch the finding; `donatello` implements the application fix.
 
-## 7 oblastí auditu
+## The seven audit areas
 
 ### 1. Authorization — IDOR/BOLA
 
-**Co hledat:**
+**What to look for:**
 
-- Chybějící `$this->authorize()` / `Gate::authorize()` / `@can` v controllerech a Livewire komponentách — policy nebo gate pro každý resource endpoint.
-- Přímé dotazy bez scope na aktuálního uživatele: `Post::find($id)` místo `auth()->user()->posts()->findOrFail($id)`.
-- Chybějící Route Model Binding s policy: controller přijme `{post}` a nikdy neověří vlastnictví.
-- Tenant isolation: multi-tenant app bez globálního scope nebo filtrování `tenant_id`.
-- Role bypass: admin route group bez middleware `role:admin`; Filament panel bez `canAccessPanel()`.
-- Livewire actions: mounted component není autorizační hranice — každá action musí znovu volat authorize.
+- A missing `$this->authorize()` / `Gate::authorize()` / `@can` in controllers and Livewire components — every resource endpoint needs a policy or a gate.
+- Direct queries not scoped to the current user: `Post::find($id)` instead of `auth()->user()->posts()->findOrFail($id)`.
+- Route model binding without a policy: the controller accepts `{post}` and never verifies ownership.
+- Tenant isolation: a multi-tenant app with no global scope and no `tenant_id` filtering.
+- Role bypass: an admin route group with no `role:admin` middleware; a Filament panel with no `canAccessPanel()`.
+- Livewire actions: a mounted component is not an authorization boundary — every action must call authorize again.
 
-**Vzory Grep:**
+**Grep patterns:**
 
 ```bash
 grep -rn "::find\(\|::findOrFail\(\|::firstOrFail\(" app/Http/Controllers/
 grep -rn "->authorize\|Gate::authorize\|@can" app/ --include="*.php" --include="*.blade.php"
 ```
 
-**Referenční oprava:** sekce *Authorization* v `@skills/laravel-security/SKILL.md`.
+**Reference fix:** the *Authorization* section of `@skills/laravel-security/SKILL.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
 it('prevents accessing another user post', function (): void {
@@ -55,7 +55,7 @@ it('prevents accessing another user post', function (): void {
 
     $response = actingAs($attacker)->get("/posts/{$post->id}");
 
-    $response->assertForbidden(); // nebo assertNotFound() dle zvolené strategie
+    $response->assertForbidden(); // or assertNotFound(), depending on the chosen strategy
 });
 ```
 
@@ -63,24 +63,24 @@ it('prevents accessing another user post', function (): void {
 
 ### 2. Authentication
 
-**Co hledat:**
+**What to look for:**
 
-- Chybějící rate limiting na `/login`, `/forgot-password`, `/register` — viz sekce *API Security* (RateLimiter).
-- Session fixation: `$request->session()->regenerate()` chybí po úspěšném přihlášení.
-- Logout: session není invalidována (`invalidate()` + `regenerateToken()`) nebo token není revokován.
-- Přístup deaktivovaných uživatelů: `Authenticatable::banned/is_active` není kontrolováno po přihlášení (event `Authenticated` nebo middleware `EnsureUserIsActive`).
-- Reset hesla: tokenová platnost; žetony nejsou jednorázové nebo mají příliš dlouhou expiraci.
+- Missing rate limiting on `/login`, `/forgot-password`, `/register` — see the *API Security* section (RateLimiter).
+- Session fixation: `$request->session()->regenerate()` is missing after a successful login.
+- Logout: the session is not invalidated (`invalidate()` plus `regenerateToken()`), or the token is not revoked.
+- Deactivated users still get in: `Authenticatable::banned` / `is_active` is not checked after login (the `Authenticated` event or an `EnsureUserIsActive` middleware).
+- Password reset: token validity — tokens are not single-use, or they expire far too late.
 
-**Vzory Grep:**
+**Grep patterns:**
 
 ```bash
 grep -rn "session()->regenerate\b" app/
 grep -rn "throttle:" routes/ app/
 ```
 
-**Referenční oprava:** sekce *Authentication* a *API Security* v `@skills/laravel-security/SKILL.md`.
+**Reference fix:** the *Authentication* and *API Security* sections of `@skills/laravel-security/SKILL.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
 it('regenerates session on login', function (): void {
@@ -96,17 +96,17 @@ it('regenerates session on login', function (): void {
 
 ---
 
-### 3. Validation a requesty
+### 3. Validation and requests
 
-**Co hledat:**
+**What to look for:**
 
-- Chybějící FormRequest — inline `$request->validate()` ve více místech nebo žádná validace.
-- `authorize()` vrací `true` napevno nebo chybí logika — FormRequest musí skutečně autorizovat.
-- Mass assignment: `$request->all()` nebo `$request->except(...)` předáno do `create()`/`fill()`; model nemá `$fillable`.
-- Nevalidované parametry: query string / route parameter použit v dotazu bez sanitizace.
-- DB::raw nebo whereRaw s interpolací: `DB::select("... '{$input}'")`; `orderByRaw($request->sort)`.
+- A missing FormRequest — an inline `$request->validate()` in several places, or no validation at all.
+- `authorize()` returns a hardcoded `true`, or carries no logic — a FormRequest must actually authorize.
+- Mass assignment: `$request->all()` or `$request->except(...)` passed into `create()` / `fill()`; the model declares no `$fillable`.
+- Unvalidated parameters: a query string or route parameter used in a query without sanitization.
+- `DB::raw` or `whereRaw` with interpolation: `DB::select("... '{$input}'")`; `orderByRaw($request->sort)`.
 
-**Vzory Grep:**
+**Grep patterns:**
 
 ```bash
 grep -rn "request()->all()\|->all()" app/Http/Controllers/
@@ -114,14 +114,14 @@ grep -rn "DB::raw\|whereRaw\|orderByRaw\|selectRaw" app/ --include="*.php"
 grep -rn "return true;" app/Http/Requests/ --include="*.php"
 ```
 
-**Referenční oprava:** sekce *Eloquent Security* a *Input Validation* v `@skills/laravel-security/SKILL.md`.
+**Reference fix:** the *Eloquent Security* and *Input Validation* sections of `@skills/laravel-security/SKILL.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
 it('rejects unvalidated sort parameter', function (): void {
     $response = get('/posts?sort=malicious_sql_fragment--');
-    $response->assertUnprocessable(); // nebo assertBadRequest()
+    $response->assertUnprocessable(); // or assertBadRequest()
 });
 ```
 
@@ -129,15 +129,15 @@ it('rejects unvalidated sort parameter', function (): void {
 
 ### 4. XSS
 
-**Co hledat:**
+**What to look for:**
 
-- `{!! $variable !!}` v Blade šablonách — zkontroluj, zda proměnná pochází z uživatelského vstupu.
-- `innerHTML` nebo `x-html` v Alpine.js bez sanitizace.
-- Markdown renderování bez HTML purification (nepurifikovaný výstup v `{!! Str::markdown($input) !!}`).
-- Livewire / Inertia: props z databáze zobrazené bez escapování ve Vue/React.
-- `@json($data)` s citlivými nebo uživatelskými daty — ověř, co se serializuje.
+- `{!! $variable !!}` in Blade templates — check whether the variable comes from user input.
+- `innerHTML` or `x-html` in Alpine.js without sanitization.
+- Markdown rendered without HTML purification (unpurified output in `{!! Str::markdown($input) !!}`).
+- Livewire / Inertia: database-sourced props rendered without escaping in Vue or React.
+- `@json($data)` carrying sensitive or user data — verify what is being serialized.
 
-**Vzory Grep:**
+**Grep patterns:**
 
 ```bash
 grep -rn "{!!" resources/views/ --include="*.blade.php"
@@ -145,9 +145,9 @@ grep -rn "x-html\|innerHTML" resources/
 grep -rn "Str::markdown\|commonmark" app/ resources/
 ```
 
-**Referenční oprava:** sekce *XSS Prevention* v `@skills/laravel-security/SKILL.md`.
+**Reference fix:** the *XSS Prevention* section of `@skills/laravel-security/SKILL.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
 it('escapes user-supplied content in view', function (): void {
@@ -164,15 +164,15 @@ it('escapes user-supplied content in view', function (): void {
 
 ### 5. File upload
 
-**Co hledat:**
+**What to look for:**
 
-- Chybějící `mimes:` nebo `extensions:` validace — lze nahrát `.php`, `.html`, `.svg`, `.phar`.
-- Chybějící `max:` — DoS přes velké soubory.
-- Uložení na `public` disk bez autorizačního serve endpointu — soubory dostupné přímo bez auth.
-- Path traversal: použití `$request->file('f')->getClientOriginalName()` v cestě bez sanitizace.
-- SVG upload bez sanitizace (SVG může obsahovat `<script>`).
+- Missing `mimes:` or `extensions:` validation — `.php`, `.html`, `.svg`, and `.phar` can be uploaded.
+- Missing `max:` — a DoS through oversized files.
+- Stored on the `public` disk with no authorizing serve endpoint — the files are reachable directly, with no auth.
+- Path traversal: `$request->file('f')->getClientOriginalName()` used in a path without sanitization.
+- SVG upload without sanitization (an SVG can carry `<script>`).
 
-**Vzory Grep:**
+**Grep patterns:**
 
 ```bash
 grep -rn "->store\|->storeAs" app/ --include="*.php"
@@ -180,9 +180,9 @@ grep -rn "getClientOriginalName\|getClientOriginalExtension" app/ --include="*.p
 grep -rn "'public'" app/ --include="*.php"
 ```
 
-**Referenční oprava:** sekce *File Upload Security* v `@skills/laravel-security/SKILL.md`.
+**Reference fix:** the *File Upload Security* section of `@skills/laravel-security/SKILL.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
 it('rejects php file upload', function (): void {
@@ -197,37 +197,37 @@ it('rejects php file upload', function (): void {
 
 ---
 
-### 6. Secrets a konfigurace
+### 6. Secrets and configuration
 
-**Co hledat:**
+**What to look for:**
 
-- `.env` commitováno do repozitáře (`.gitignore` chybí nebo je chybné).
-- API klíče, hesla, tokeny napevno v kódu nebo v testech (např. `'secret' => 'hardcoded_key'`).
-- `APP_DEBUG=true` v `.env.example` nebo v production configu.
-- Credentials v logu: `Log::info('Login', ['password' => $password])`.
-- Cookie nastavení: `Secure`, `HttpOnly`, `SameSite` — viz sekce *Production Configuration*.
+- `.env` committed to the repository (a missing or wrong `.gitignore`).
+- API keys, passwords, or tokens hardcoded in the code or in tests (e.g. `'secret' => 'hardcoded_key'`).
+- `APP_DEBUG=true` in `.env.example` or in the production config.
+- Credentials in the log: `Log::info('Login', ['password' => $password])`.
+- Cookie settings: `Secure`, `HttpOnly`, `SameSite` — see the *Production Configuration* section.
 
-**Vzory Grep:**
+**Grep patterns:**
 
-Čtení `.env*` je per `@rules/compound-engineering/orchestration.md` *Bash capability boundary* zakázáno až na jedinou pojmenovanou výjimku — committnutou šablonu `.env.example`, která nese jen placeholder hodnoty, nikdy skutečné tajemství. Vzor (a) níže je proto jediné místo, kde tato sekce čte `.env*` obsah, a cílí výhradně na `.env.example`. Vzory (b) a (c) pokrývají zbytek tvrzení výše (produkční config, `.env` git-tracking) bez čtení jiné `.env*` varianty.
+Reading `.env*` is forbidden by `@rules/compound-engineering/orchestration.md` *Bash capability boundary*, with one named exception — the committed `.env.example` template, which carries placeholder values only and never a real secret. Pattern (a) below is therefore the one place this section reads `.env*` content, and it targets `.env.example` exclusively. Patterns (b) and (c) cover the rest of the claims above (the production config, and `.env` git-tracking) without reading any other `.env*` variant.
 
 ```bash
-# (a) šablona — jediné povolené čtení .env* obsahu
+# (a) the template — the only permitted read of .env* content
 grep -rn "APP_DEBUG=true" . --include=".env.example"
-# (b) produkční config — hardcoded 'debug' => true obcházející env()
+# (b) the production config — a hardcoded 'debug' => true bypassing env()
 grep -rn "'debug'" config/ --include="*.php" | grep -v "env("
-# (c) .env git-tracking — čte seznam trackovaných souborů, nikdy obsah .env
+# (c) .env git-tracking — reads the list of tracked files, never the content of .env
 git ls-files | grep -qx '\.env' && echo "CRITICAL: .env is tracked by git"
 grep -rn "password\|secret\|api_key" --include="*.php" app/ config/ | grep -v "env(\|config("
 grep -rn "Log::" app/ --include="*.php" | grep -i "password\|secret\|token"
 ```
 
-**Referenční oprava:** sekce *Production Configuration* a *Secrets and Dependencies* v `@skills/laravel-security/SKILL.md` — zahrnuje i produkční config-check vzor (b) výše. Pro cookie viz `@rules/security/backend.md`.
+**Reference fix:** the *Production Configuration* and *Secrets and Dependencies* sections of `@skills/laravel-security/SKILL.md`, which also cover the production config check in pattern (b) above. For cookies see `@rules/security/backend.md`.
 
-**Příklad regresního testu:**
+**Regression-test example:**
 
 ```php
-// Cíl: ten konkrétní Log:: řádek, který grep výše odhalí, např.:
+// Target: the specific Log:: line the grep above reveals, for example:
 // Log::info('Auth attempt', ['token' => $request->bearerToken(), 'api_key' => $request->input('api_key')]);
 it('does not include secret/token/api_key value in the flagged log call context', function (): void {
     $logs = [];
@@ -236,7 +236,7 @@ it('does not include secret/token/api_key value in the flagged log call context'
     });
 
     $secret = 'supersecret-' . uniqid();
-    // Nahraď volání endpointu tím, kde grep odhalil Log:: s citlivým klíčem.
+    // Replace this endpoint call with the one where the grep found a Log:: carrying a sensitive key.
     $this->post('/api/example', ['api_key' => $secret]);
 
     foreach ($logs as $context) {
@@ -249,24 +249,24 @@ it('does not include secret/token/api_key value in the flagged log call context'
 
 ### 7. Dependencies
 
-**Co hledat:**
+**What to look for:**
 
-- Nespuštěný `composer audit` — CI pipeline bez audit stepu.
-- Zastaralé balíčky s CVE v `composer.lock`.
-- Frontend: `npm audit` / `yarn audit` pokud projekt obsahuje `package.json`.
-- Balíčky nainstalované z dev-dependencies v produkci (nedostatečný `--no-dev`).
+- `composer audit` never runs — a CI pipeline with no audit step.
+- Outdated packages carrying a CVE in `composer.lock`.
+- Frontend: `npm audit` / `yarn audit` when the project ships a `package.json`.
+- Dev dependencies installed in production (a missing `--no-dev`).
 
-**Příkazy:**
+**Commands:**
 
 ```bash
 composer audit
-# pokud frontend:
+# when there is a frontend:
 npm audit --audit-level=high
 ```
 
-**Referenční oprava:** sekce *Secrets and Dependencies* v `@skills/laravel-security/SKILL.md`. Pro dependency-selection viz `@rules/php/dependency-selection.md`.
+**Reference fix:** the *Secrets and Dependencies* section of `@skills/laravel-security/SKILL.md`. For dependency selection see `@rules/php/dependency-selection.md`.
 
-**Příklad regresního testu (CI pin):**
+**Regression-test example (CI pin):**
 
 ```yaml
 # .github/workflows/ci.yml
@@ -274,21 +274,21 @@ npm audit --audit-level=high
   run: composer audit
 ```
 
-Regresní test pro PHP: ověřit, že CI krok `composer audit` existuje v pipeline YML (obsahový test v testsuite).
+The PHP regression test: assert that the `composer audit` CI step exists in the pipeline YAML (a content test in the test suite).
 
 ---
 
-## Výstupní formát nálezu
+## Finding output format
 
 ```
-[Oblast] [Severity] Popis nálezu
+[Area] [Severity] Description of the finding
 Soubor: app/Http/Controllers/PostController.php:42
-Oprava: viz sekce Authorization v @skills/laravel-security/SKILL.md
-Regresní test: <načrtnutý test výše>
+Fix: see the Authorization section of @skills/laravel-security/SKILL.md
+Regression test: <the sketch above>
 ```
 
-Severity-sorted výstup (Critical → High → Medium → Low → Info). Každý confirmed nález musí mít návrh regresního testu.
+The output is severity-sorted (Critical → High → Medium → Low → Info). Every confirmed finding must carry a regression-test sketch.
 
 ## Dedup/gating
 
-Pokud oblast už pokrývá existující bullet v `@skills/laravel-security/SKILL.md` nebo v `@rules/security/backend.md` / `@rules/security/frontend.md`, audit sekce odkazuje na něj a nepřidává duplicitní detekční logiku. Nová detekce v tomto souboru pokrývá pouze vzory specifické pro auditní workflow (Grep příkazy, příklady testů), nikoli secure-by-default bloky (ty žijí v SKILL.md).
+When an area is already covered by an existing bullet in `@skills/laravel-security/SKILL.md` or in `@rules/security/backend.md` / `@rules/security/frontend.md`, the audit section references it and adds no duplicate detection logic. New detection in this file covers only the patterns specific to the audit workflow (grep commands, test examples), never the secure-by-default blocks — those live in SKILL.md.

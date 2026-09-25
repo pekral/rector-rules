@@ -87,8 +87,8 @@ Apply these 10 steps in order. Each step feeds the next — never jump ahead to 
 3. **Expected vs actual behavior** — what should happen, and what is happening instead.
 4. **Evidence** — logs, screenshots, issue comments, files, reproduction steps. Verified facts only.
 5. **Root cause hypothesis** — the most likely cause, clearly separated from facts. State certainty.
-6. **Impact / risk** — who and what is affected (users, business, technical, risk areas).
-7. **Smallest safe solution** — the smallest, lowest-risk fix that addresses the root cause.
+6. **Impact / risk** — who and what is affected (users, business, technical, risk areas). This step also settles the **data damage**: state whether the root cause has already written inconsistent data, which storage holds it (table, JSON column, cache key space, queued payload), the predicate that identifies a damaged record, and how many records match. Verify it against the storage rather than inferring it from the code — a count plus a predicate is an assessment, *"it probably corrupted some records"* is not. When the cause writes nothing, or wrote nothing yet, say that explicitly; an unstated answer reads as an unasked question.
+7. **Smallest safe solution** — the smallest, lowest-risk fix that addresses the root cause. When step 6 found damaged data, the solution has **two ordered halves**: fix the cause first, then repair the records it already wrote, per `@rules/compound-engineering/tracker.md` *Fix the cause first, then repair the data it already wrote*. Never propose the repair first or alone — a repair that runs while the cause is live is re-corrupted by the next request that takes the broken path.
 8. **Alternatives rejected** — competing solutions considered and why they were not chosen.
 9. **Verification plan** — manual checks, automated tests, edge cases, and regression checks.
 10. **Non-technical summary** — plain-language explanation for PM, support, or business stakeholders.
@@ -131,8 +131,8 @@ The output uses the template at `templates/analysis-report.md`. The template has
 3. **Verified Facts** — verified facts only (step 4)
 4. **Assumptions and Missing Information** — assumptions and unknowns (supports step 5)
 5. **Probable Root Cause** — root cause, certainty, alternative causes (step 5)
-6. **Problem Impact** — user/business impact, technical impact, risk areas (step 6)
-7. **Recommended Solution** — recommended solution, things to avoid, side effects (steps 7–8)
+6. **Problem Impact** — user/business impact, technical impact, data damage already written, risk areas (step 6)
+7. **Recommended Solution** — recommended solution, the ordered cause-then-repair halves when data damage exists, things to avoid, side effects (steps 7–8)
 8. **Implementation Outline** — likely change locations, recommended steps, architecture notes (step 7)
 9. **Solution Verification** — manual checks, automated tests, edge cases, regression checks (step 9)
 10. **Non-Technical Explanation** — explanation for non-technical stakeholders (step 10)
@@ -148,6 +148,7 @@ The **Sources** section is mandatory and must always be present — list every i
 ## Principles
 
 - Focus on root cause, not symptoms
+- Fix the cause before repairing the data it already wrote — never the other way round
 - Prefer evidence over assumptions
 - Avoid confirmation bias
 - Keep analysis structured and concise

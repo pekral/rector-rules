@@ -113,7 +113,7 @@ gh api --method POST "/repos/OWNER/REPO/milestones" \
   -f title="<title>" -f description="<description>" -f due_on="<YYYY-MM-DDT00:00:00Z>"
 ```
 
-**Issue** (only an approved draft issue; label it per `@rules/compound-engineering/general.md`):
+**Issue** (only an approved draft issue; label it per `@rules/compound-engineering/tracker.md`):
 
 ```bash
 gh issue create --repo OWNER/REPO --title "<title>" --body "<body>" --label "<existing-label>"

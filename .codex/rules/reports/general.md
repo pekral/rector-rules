@@ -33,7 +33,8 @@ The exception does **not** extend to:
 - the non-technical mirror published on the linked GitHub issue (`closingIssues[]`) — that follows the assignment language
 - the JIRA-side comment from `code-review-jira` (delegated to `pr-summary`) — that follows the assignment language
 - the assignment-compliance comment from `assignment-compliance-check` — that follows the assignment language
-- the `pr-summary` comment, regardless of where it is posted — that follows the assignment language. Every target (GitHub, JIRA, Bugsnag) carries the same shape: *What changed* (Problem / Cause / Result / What I fixed, plus the conditional *Side benefit* / *Filed separately* fields), then *How to test*, then a closing line linking the PR and the source issue, plus any conditional *Clarifying questions* / *Assignment Compliance* blocks. The section headings and the field labels are part of the report's prose, so they are translated too — a Czech assignment renders *Co se změnilo* and *Jak otestovat*, never an English heading above Czech prose.
+- the `pr-summary` comment, regardless of where it is posted — that follows the assignment language. GitHub and Bugsnag carry the same shape: *What changed* (Problem / Cause / Result / What I fixed, plus the conditional *Side benefit* / *Filed separately* fields), then *How to test*, then a closing line linking the PR and the source issue, plus any conditional *Clarifying questions* / *Assignment Compliance* blocks.
+JIRA carries its own order — a status sentence, *Acceptance criteria*, *How to test*, *What changed*, then the same closing line — for the reason *A JIRA comment is written for a non-technical reader* below states. The section headings and the field labels are part of the report's prose, so they are translated too — a Czech assignment renders *Co se změnilo* and *Jak otestovat*, never an English heading above Czech prose.
 
 ### How to detect the assignment language
 1. Read the issue description and the most recent author-written comment off the deterministic loader (`skills/code-review-github/scripts/load-issue.sh` for GitHub, `skills/code-review-jira/scripts/load-issue.sh` for JIRA). The wording the reporter used there is the canonical signal.
@@ -53,3 +54,37 @@ The exception does **not** extend to:
 - Translating the non-technical issue / JIRA summary to English when the assignment is in Czech — the exception is narrow and does **not** cover those.
 - Posting in the language of the agent's chat session instead of the language of the assignment.
 - Switching mid-comment between Czech and English when quoting requirements verbatim — quote the requirement verbatim, then continue in the assignment language without a parenthetical translation.
+
+## A JIRA comment is written for a non-technical reader
+
+The person who reads a JIRA ticket is the person who asked for the work — a product manager, not a developer. A run once published a 10 964 B comment to such a ticket. It carried method names, test file names, the head SHA, the diff fingerprint, the quality-gate result, three CI check statuses, test and assertion counts, and per-line coverage. Rewriting it by hand into what that reader actually needs produced 3 063 B, so 72 % of the published comment was noise for its only audience. This section states what a JIRA comment never carries, what it may always carry, and how long it is.
+
+The section is binding on **every** comment a skill or an agent publishes to a JIRA issue — the `pr-summary` report, the assignment verdict rendered inside it, the merge-readiness TL;DR, and any other. It governs content, never language: *Tracker-Published Reports — Language* above still picks the language, and `@rules/writing/general.md` still shapes the sentences.
+
+### Never in a JIRA comment
+
+- class, method, function, variable, enum, and file names
+- file paths and line numbers
+- commit SHAs, diff fingerprints, branch names
+- quality-gate results, CI status, test / assertion counts, coverage figures
+- severity labels, finding counts, rule references
+- code blocks, and the names of internal layers (Action, Repository, Data Builder)
+
+An item on this list is **removed, never annotated**. A comment that says *"the head SHA is omitted here"* has still spent the reader's attention on the head SHA.
+
+### Two exceptions, and there is no third
+
+1. **A string the end user sees is quoted verbatim.** A button label, a menu item, an error message the tester has to match, a toggle name, a value typed into a field. The tester matches it character by character in the application, so a translation or a paraphrase destroys its purpose. Quoting it is not a technical note; it is the input the step needs.
+2. **One pull-request link at the end.** That is navigation, not a technical note, and the tracker must point at the work it describes.
+
+### The technical evidence moves to the pull request; it does not disappear
+
+Nothing on the banned list is lost. Every one of those facts belongs on the **pull-request comment**, which is where `@skills/merge-github-pr/SKILL.md` reads it: the head SHA, the effective diff fingerprint, the quality-gate command and its verdict, the CI statuses, the coverage figures, the finding counts, and the severity labels. That comment is the merge gate's evidence and the reviewer's report. This section moves that content to the surface that consumes it. It never deletes it, and it is never a reason to stop producing it. Read this section as a loss of information and the next agent works around it in good faith.
+
+### Length — 3 000 characters
+
+A JIRA comment fits within **3 000 characters**, counted over the published body. When it overflows, shorten *What changed*. **Never shorten *How to test***: a tester follows those steps literally, and a step missing its concrete input or its must-hold outcome is a step nobody can run.
+
+### Boundary — this section and the GitHub-PR English exception never fire on the same comment
+
+*Exception — technical CR findings on the GitHub PR* above keeps the technical code-review comment in canonical English. That exception is scoped to a comment published **on a GitHub pull request**. This section is scoped to a comment published **on a JIRA issue**. The two destinations are disjoint, so no comment is ever governed by both — and the technical content the exception protects is exactly the content this section redirects to that same GitHub PR comment. A JIRA-sourced code review already splits along that line: `@skills/code-review-jira/SKILL.md` publishes technical findings to the GitHub PR and the non-technical summary to the JIRA ticket.
