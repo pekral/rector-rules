@@ -1,13 +1,13 @@
 ---
 name: git-workflow
-description: "Use when choosing a Git branching strategy or handling merge vs rebase, conflicts, stashing, undoing mistakes, and release tagging — complementing the commit/PR conventions in the git rules."
+description: "Use when choosing a Git branching strategy or handling merge vs rebase, conflicts, undoing mistakes, and release tagging — complementing the commit/PR conventions in the git rules."
 license: MIT
 metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
 ## Constraints
-- Commit, PR, and merge conventions live in `@rules/git/general.md` — English `type(scope)` commits, lowercase, no trailing period, no push to `main`, small focused commits, `Closes #` issue linking, English PR titles, rebase-and-merge, `gh` CLI. This skill does NOT restate them.
+- Commit, PR, and merge conventions live in `@rules/git/general.md` — English `type(scope)` commits, lowercase, no trailing period, no push to `main`, `Closes #` issue linking, English PR titles, rebase-and-merge, `gh` CLI. This skill does NOT restate them.
 - Branch cleanup is owned by `@skills/cleanup-local-branches/SKILL.md`. Defer to it; do not duplicate.
 - PR merging is owned by `@skills/merge-github-pr/SKILL.md`. Defer to it; do not duplicate.
 - This skill covers only the complementary gaps below.
@@ -16,7 +16,6 @@ metadata:
 - Choosing or changing a branching strategy.
 - Deciding merge vs rebase for a specific situation.
 - Resolving a merge conflict.
-- Stashing work in progress.
 - Undoing a mistake (bad commit, wrong reset, accidental change).
 - Cutting a release and tagging a version.
 
@@ -52,9 +51,9 @@ Use when preserving exact history matters or several people worked on the branch
 ```bash
 git checkout feature/user-auth
 git fetch origin
-git rebase origin/main         # replays your commits on top of main
+git rebase "origin/$DEFAULT_BRANCH"   # replays your commits on top of the default branch
 ```
-Use to update your local branch with the latest `main` before opening or refreshing a PR. Keeps history linear.
+Use to update your local branch with the latest default branch before opening or refreshing a PR. Keeps history linear. Resolve `DEFAULT_BRANCH` as in *Pull policy* below; never hardcode `origin/main`.
 
 ```bash
 # only if you are the sole contributor on the branch
@@ -73,12 +72,13 @@ git rebase "origin/$DEFAULT_BRANCH"   # 2) bring the latest default branch in
 # resolve conflicts if any, then: git rebase --continue
 git push --force-with-lease           # 3) publish; do NOT git pull again — it would undo the rebase
 ```
-The rebase in step 2 replayed every commit onto a different base, so the head commit now has a tree that was never gated. That is caught at the merge boundary: `@rules/git/general.md` *The merged head is green; intermediate commits are not gated* runs the project's gate on the new head before the merge, and a reshaped branch never inherits an earlier verdict. Replaying the whole range with `git rebase --exec '<the project gate>' <base>` is available when a bisectable history is wanted; substitute the project's own gate for `composer build` where it differs.
+The rebase in step 2 replayed every commit onto a different base, so the head commit now has a tree that was never gated. That is caught at the merge boundary: `@rules/git/general.md` *The merged head is green; intermediate commits are not gated* runs the project's gate on the new head before the merge, and a reshaped branch never inherits an earlier verdict.
+The one exception is a rebase that only moved the base and brought in changes unrelated to the branch, per `@skills/resolve-issue/references/quality-gates.md` *Rebase that moves the head — analyse the incoming changes first*. Replaying the whole range with `git rebase --exec '<the project gate>' <base>` is available when a bisectable history is wanted. `<the project gate>` is the project's gate command, discovered per `@skills/resolve-issue/references/quality-gates.md`.
 
 Run that replay only when you actually want a bisectable history — it executes the whole gate once per commit, which is the cost the single end-of-work gate exists to avoid:
 
 ```bash
-git rebase --exec 'composer build' "origin/$DEFAULT_BRANCH"   # optional; stops on the first commit that fails
+git rebase --exec '<the project gate>' "origin/$DEFAULT_BRANCH"   # optional; stops on the first commit that fails
 ```
 If the rebase changed `composer.lock` (the default branch updated dependencies), reinstall before continuing so the installed packages match the new lockfile:
 ```bash
@@ -99,7 +99,7 @@ A conflict is a question about **intent**, not a formatting problem. Both sides 
 
 **3. Resolve each hunk.** Preserve both intents wherever they are compatible. Where they genuinely conflict, keep the one matching the merge's stated goal and record the trade-off in the merge commit body. **Never invent new behaviour in a conflict resolution** — a merge commit is the worst place to introduce a change nobody reviewed, because reviewers read the diff against each parent and a third behaviour appears in neither.
 
-**4. Run the project's checks.** Discover them rather than assuming (`composer.json` scripts, `package.json` scripts, the CI workflow) and run the full gate — for this project `composer build`. A conflict resolved to something that compiles is not the same as one resolved correctly; the tests are what tell the two apart.
+**4. Run the tests covering the conflicted code.** Use the project's own test command, discovered per `@skills/resolve-issue/references/quality-gates.md`. A conflict resolved to something that compiles is not the same as one resolved correctly; the tests are what tell the two apart. The full gate runs once at the merge boundary (see *Hooks* below).
 
 **5. Finish.** Stage and continue (`git commit` for a merge, `git rebase --continue` for a rebase, repeating until every commit is replayed).
 
@@ -115,7 +115,7 @@ git log --merge -p path/to/file  # 2. the commits behind this hunk
 git checkout --ours  path/to/file    # keep current branch version
 git checkout --theirs path/to/file   # keep incoming version
 
-git add path/to/file             # 4. after the project checks pass
+git add path/to/file             # 4. after the covering tests pass
 git commit                       # 5. merge
 git rebase --continue            #    or rebase, until all commits are replayed
 ```
@@ -127,16 +127,6 @@ git rebase --continue            #    or rebase, until all commits are replayed
 Prevention: keep branches small and short-lived, rebase onto the default branch frequently, and coordinate before touching shared files.
 
 Adapted from [mattpocock/skills — resolving-merge-conflicts](https://github.com/mattpocock/skills/blob/main/skills/engineering/resolving-merge-conflicts/SKILL.md).
-
-## Stash workflow
-```bash
-git stash push -m "wip: user auth"   # shelve tracked changes
-git stash push -u -m "wip"           # include untracked files
-git stash list
-git stash pop                        # apply newest and drop it
-git stash apply stash@{2}            # apply a specific stash, keep it
-git stash drop stash@{0}
-```
 
 ## Undoing mistakes
 ```bash

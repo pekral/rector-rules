@@ -10,9 +10,9 @@ metadata:
 - Apply `@rules/php/core-standards.md`
 - Apply `@rules/laravel/laravel.md` and `@rules/laravel/architecture.md`
 - Apply `@rules/security/backend.md` — *Database* (authentication & authorization, least privilege) and *Safe Validation & Error Messages* (a 403-vs-404 distinction that confirms a resource exists is itself an authorization-granularity leak)
-- Apply `@rules/code-review/general.md` — map every finding onto the CR severity scale (Critical / Moderate / Minor) so this skill plugs into a Laravel CR run
+- Apply `@rules/code-review/general.md` — map every finding onto the CR severity scale (Critical / Moderate) so this skill plugs into a Laravel CR run
 - **Advise-only.** Reads files and runs one read-only command (`php artisan route:list --json`). Never edits routes, controllers, policies, or any source; emits a report plus fix sketches for a human to apply.
-- Output in English
+- Apply `@rules/reports/general.md` — output in English, or in the language the project manifest sets in `language.github` when the findings fold into the GitHub PR comment (*Project override — `language.github` in the manifest*).
 
 ---
 
@@ -21,7 +21,7 @@ metadata:
 This skill runs in one of two modes, selected by the caller via `MODE` (default `audit`):
 
 - **`audit` (default)** — the full walk below: every application route in the inventory, the per-route coverage map, and the whole report template. Every section behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches an authorization surface)** — **never modify a route, a controller, a policy, or any other file, never author a test, never stage / commit / push, never run a fixer or a checker, and never chain a follow-up review.** The one command the lens runs stays the read-only `php artisan route:list --json` of step 1. Scope the walk to the routes the PR diff touches — step 1.3's intersection with the changed files is mandatory here, not optional — and return the findings as markdown carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets. Emit every fix as a written snippet, never applied.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches an authorization surface)** — **never modify a route, a controller, a policy, or any other file, never author a test, never stage / commit / push, never run a fixer or a checker, and never chain a follow-up review.** The one command the lens runs stays the read-only `php artisan route:list --json` of step 1. Scope the walk to the routes the PR diff touches — step 1.3's intersection with the changed files is mandatory here, not optional — and return the findings as markdown carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets. Emit every fix as a written snippet, never applied.
 
 > **What this lens owns in a CR:** object-level authorization — whether the record a changed route reads, returns, or writes is scoped to the actor who asked for it (**IDOR / BOLA**), and whether that route's middleware → policy / gate → scoping → Resource-output chain authorizes at all. It reports on the routes the diff touched and never on a pre-existing route it did not.
 > **What it does not render on a CR:** the per-route coverage map and the standalone report header of `templates/report.md`. A CR carries findings, and the coverage map is an audit artifact.
@@ -114,8 +114,18 @@ For each in-scope route, record which layers are present:
 
 To judge "should this be scoped?", look for ownership signals: `user_id` / `team_id` /
 `tenant_id` columns, `belongsTo(User::class)`, a global scope, or the user's relationship
-methods. **If you can't establish the model is owned, the finding is Moderate / Minor and
+methods. **If you can't establish the model is owned, the finding is Moderate and
 phrased as "verify", not asserted as a hole.**
+
+> **Tenancy comes from the project manifest.** Read `tenancy` through
+> `skills/_shared/read-manifest.sh` (`@rules/general/general.md` *Project manifest*).
+> When it is `database`, each tenant owns its own database, and the tenant connection is
+> the tenant boundary. A model on the tenant connection is scoped by that connection, so a
+> missing tenant `where` (`tenant_id`, `account_id`) on it is **not** IDOR — do not report it.
+> A model on a shared connection still needs tenant scoping, and a missing tenant `where`
+> there stays a finding. Owner scoping inside one tenant (one user reading another user's
+> record) does not change: judge it by the ownership signals above. When `tenancy` is
+> absent, tables are shared, and tenant scoping is always required.
 
 > Ownership can be **conditional on edition / config / feature flag** — the same model
 > shared-by-design in one mode and user-owned in another. Say which mode the finding
@@ -148,8 +158,8 @@ evidence chain. Map onto the CR scale per `@rules/code-review/general.md`:
 | `FormRequest::authorize(){ return true; }` on an otherwise-unprotected owned-data route | High | **Critical** |
 | Cross-account write — record to mutate selected from request **input**, no ownership check, on an authenticated route | High | **Critical** |
 | Route-model binding / `find($id)` on a likely-owned model, no `authorize()` and no owner scoping | Medium | **Moderate** |
-| `Model::all()` / unscoped query, or an API Resource exposing owned / internal fields | Medium / Low | **Moderate / Minor** |
-| No policy for a managed model, ad-hoc inline check instead of a policy, mass-assignment of ownership keys | Low — defense-in-depth | **Minor** |
+| `Model::all()` / unscoped query, or an API Resource exposing owned / internal fields | Medium / Low | **Moderate** |
+| No policy for a managed model, ad-hoc inline check instead of a policy, mass-assignment of ownership keys | Low — defense-in-depth | **Moderate** |
 | All applicable layers present | — | Covered ✅ |
 
 > **Confidence rule.** *High* = you can point at the missing layer structurally (route +
@@ -167,14 +177,14 @@ evidence chain. Map onto the CR scale per `@rules/code-review/general.md`:
 Produce the report using `templates/report.md` as the template:
 1. **Summary** — counts per severity + the 1–2 things to fix today.
 2. **Coverage map** — a table of **every in-scope route** → `auth ✓ · authz ✓ · scoped ✓ · policy ✓` (✓ / ✗ / n/a). Never silently omit a route you reviewed.
-   > The `policy` column is **defense-in-depth, not a pass/fail gate.** When `authz` and `scoped` are satisfied *inline* the route is covered even with `policy ✗` — mark it ✗ and lane it Minor (extract a policy), not Critical.
-3. **Findings by lane**, each row carrying its evidence chain (`route → Controller@method:line → missing layer` + snippet) and confidence: **Critical** (verify & fix now) → **Moderate** (needs judgment, state the assumption) → **Minor** (hardening) → **Covered** (summarized from the map).
+   > The `policy` column is **defense-in-depth**. When `authz` and `scoped` are satisfied *inline*, `policy ✗` is not an exposure, but it is still a **blocking Moderate** (extract a policy) — never Critical, and as a security-lens finding never deferred or excluded.
+3. **Findings by lane**, each row carrying its evidence chain (`route → Controller@method:line → missing layer` + snippet) and confidence: **Critical** (verify & fix now) → **Moderate** (needs judgment or hardening, state the assumption) → **Covered** (summarized from the map).
 4. For each Critical / Moderate: a **fix sketch** in Laravel idiom (add `authorize()`, scope the query through the relationship, write the policy) — as *advice for the human to apply*, not an edit.
 
 List each route once, in its most-severe lane; the coverage map carries the rest.
 
 ### Assignment-declared "test-only" carve-out (issue #17)
-Findings from this skill are **never** eligible for the Assignment-Declared Test-Only Conditions — Exclusion Gate (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*), at **any** severity (Critical/Moderate/Minor). A "test-only" declaration on an assignment source may at most annotate a finding here as *"author claims test-only"* — it never removes the finding, never excludes it into `## Excluded per assignment`, and never drops it below the merge gate.
+Findings from this skill are **never** eligible for the Assignment-Declared Test-Only Conditions — Exclusion Gate (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*), at **any** severity (Critical/Moderate). A "test-only" declaration on an assignment source may at most annotate a finding here as *"author claims test-only"* — it never removes the finding, never excludes it into `## Excluded per assignment`, and never drops it below the merge gate.
 
 ### 8. Saving the report (optional, on request only)
 By default **output to the conversation only**. You may offer to save to
@@ -206,7 +216,7 @@ Eloquent query scoping, API Resource output. Does **NOT** cover (say so when rel
 - ❌ **Treat a code comment as evidence** — cite the structural reality (the missing call, the unscoped query, the route + line), never what a comment claims.
 - ❌ **Flag "missing authorize()" without checking all four layers** — a `can:` middleware, `authorizeResource()`, or FormRequest may already cover it.
 - ❌ **Flag a public-by-design route** (login / register / webhook / landing) for missing auth — consult `references/public-by-design.md`.
-- ❌ **Assert IDOR on a model you haven't shown is owned** — Moderate / Minor "verify", not a confirmed hole.
+- ❌ **Assert IDOR on a model you haven't shown is owned** — Moderate "verify", not a confirmed hole.
 - ❌ **Flag unscoped queries inside an admin / role-gated context** as IDOR — that's expected.
 - ❌ **Present Medium / Low confidence as a confirmed vulnerability.**
 - ❌ **Drop a reviewed route from the coverage map** — show every route you checked, including the covered ones.

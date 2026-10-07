@@ -4,17 +4,17 @@ A defensive security auditor in an authorized environment. The goal is to find a
 
 ## Severity scale
 
-Audit reporting uses five levels; the repository's convergence gate (CR) maps them onto three (High and Medium collapse into Moderate, Low and Info into Minor):
+Audit reporting uses five levels. The repository's convergence gate (CR) knows two severities, Critical and Moderate, so the audit maps onto them (High, Medium, and Low collapse into Moderate; Info is not published):
 
-| Audit severity | CR severity | Blocks convergence? |
-|------------------|-------------|----------------------|
-| Critical         | Critical    | YES                  |
-| High             | Moderate    | YES                  |
-| Medium           | Moderate    | YES                  |
-| Low              | Minor       | NO                   |
-| Info             | Minor       | NO                   |
+| Audit severity | CR severity   | Blocks convergence? |
+|------------------|---------------|----------------------|
+| Critical         | Critical      | YES                  |
+| High             | Moderate      | YES                  |
+| Medium           | Moderate      | YES                  |
+| Low              | Moderate      | YES                  |
+| Info             | not published | NO                   |
 
-The `leonardo.md` pins (`Critical` / `Moderate` / `Minor`) are unchanged — the audit severity is a reporting layer above them.
+An `Info` observation is not a finding. It never reaches a published CR report or its counts. The CR severities in `agents/leonardo.md` (`Critical` / `Moderate`) stay the gate; the audit severity is a reporting layer above them.
 
 ## Every confirmed finding carries
 
@@ -282,7 +282,7 @@ The PHP regression test: assert that the `composer audit` CI step exists in the 
 
 ```
 [Area] [Severity] Description of the finding
-Soubor: app/Http/Controllers/PostController.php:42
+File: app/Http/Controllers/PostController.php:42
 Fix: see the Authorization section of @skills/laravel-security/SKILL.md
 Regression test: <the sketch above>
 ```

@@ -67,10 +67,21 @@
 #        turns "inert" into "refused", so a manifest that tries is visible
 #        rather than merely harmless.
 #     3. An executable allow-list: the first token must name one of the
-#        project-local tools below. `curl`, `rm`, `git`, and everything else the
+#        project-local tools in project-commands.sh. `curl`, `rm`, `git`, and everything else the
 #        list does not carry is refused, whatever it is passed.
 #   A refusal is `status: invalid` with `escalate: true` — never a silent skip,
 #   and never a pass.
+#
+# Project manifest
+#   A project whose checks run through a tool the list does not carry names it
+#   in its manifest (@rules/general/general.md *Project manifest*), read through
+#   `read-manifest.sh` from the default branch, never from the working tree:
+#     "validation": { "executables": ["vendor/bin/castor"] },
+#     "env": { "CLAUDECODE": "1" }
+#   An extra executable must be a `vendor/bin/<name>` path. `env` is exported to
+#   every executed command exactly as `read-manifest.sh --env` validates it — the
+#   one check every consumer of the manifest environment shares. An unacceptable
+#   manifest entry refuses the whole run, exactly like an unacceptable command.
 #
 # Exit codes
 #   0  every executed check passed
@@ -97,39 +108,12 @@ EOF
 # localises a problem first, so a broken lint does not wait behind a suite.
 CATEGORIES=(lint static_analysis tests)
 
-# Executables a manifest may name. Everything here is a project-local developer
-# tool that a validation step legitimately runs. Anything that writes outside
-# the project, talks to the network, or manipulates history is deliberately
-# absent — this list is the difference between "runs the project's checks" and
-# "runs whatever it was told to".
-ALLOWED_EXECUTABLES=(
-  vendor/bin/pest
-  vendor/bin/phpunit
-  vendor/bin/phpstan
-  vendor/bin/psalm
-  vendor/bin/pint
-  vendor/bin/phpcs
-  vendor/bin/php-cs-fixer
-  vendor/bin/rector
-  vendor/bin/phpcbf
-  composer
-  php
-  artisan
-  npm
-  npx
-  yarn
-  pnpm
-  make
-)
-
-# Characters that have meaning to a shell. This script never invokes one, so
-# these are already inert — the check exists so a manifest that carries them is
-# refused loudly instead of running with them as literal argument text.
-SHELL_METACHARACTERS=';|&$`(){}<>*?!#'
-
-safe_display() {
-  printf '%s' "$1" | LC_ALL=C tr -cd '[:print:]' | cut -c1-200
-}
+# The command checks and the executor live in project-commands.sh, shared with
+# run-gate.sh and verify-gate.sh, so all three refuse the same things the same
+# way: ALLOWED_EXECUTABLES, SHELL_METACHARACTERS, validate_command, run_command,
+# and load_project_manifest.
+# shellcheck source=project-commands.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project-commands.sh"
 
 json_string() {
   # Escape for a JSON string literal without depending on jq being able to read
@@ -177,72 +161,6 @@ refuse() {
   local reason="$1"
   emit invalid true "$reason"
   exit 3
-}
-
-# Validate one command string and echo its argv, one token per line.
-#
-# Returns 1 with a reason on stderr when the command is refused. The caller
-# turns that into a refusal of the whole manifest: a manifest carrying one
-# unacceptable command is not partially trustworthy.
-validate_command() {
-  local command="$1" token executable allowed found=0
-
-  [[ -n "$command" ]] || { echo 'empty command' >&2; return 1; }
-
-  case "$command" in
-  *$'\n'* | *$'\r'*) echo 'command contains a newline' >&2; return 1 ;;
-  esac
-
-  # A quote would only matter to a shell; this script splits on whitespace, so a
-  # quoted argument would silently become two. Refuse rather than mis-split.
-  case "$command" in
-  *\'* | *\"* | *\\*) echo 'command contains a quote or backslash' >&2; return 1 ;;
-  esac
-
-  local index char
-  for ((index = 0; index < ${#SHELL_METACHARACTERS}; index++)); do
-    char="${SHELL_METACHARACTERS:index:1}"
-    case "$command" in
-    *"$char"*)
-      echo "command contains the shell metacharacter '$char'" >&2
-      return 1
-      ;;
-    esac
-  done
-
-  # No leading `-`: a first token that looks like an option means the manifest
-  # is malformed, and passing it on would let it be read as an option by
-  # whatever ran next.
-  read -r executable _ <<<"$command"
-  case "$executable" in
-  -*) echo 'command starts with an option' >&2; return 1 ;;
-  esac
-
-  # Path traversal in the executable, in the one spelling that escapes the
-  # project: a relative segment climbing out of it.
-  case "$executable" in
-  */../* | ../* | /*) echo 'executable is an absolute path or climbs out of the project' >&2; return 1 ;;
-  esac
-
-  executable="${executable#./}"
-
-  for allowed in "${ALLOWED_EXECUTABLES[@]}"; do
-    if [[ "$executable" == "$allowed" ]]; then
-      found=1
-      break
-    fi
-  done
-
-  if [[ "$found" -ne 1 ]]; then
-    echo "executable is not allow-listed: $(safe_display "$executable")" >&2
-    return 1
-  fi
-
-  # Intentional word splitting: the command has been proven to carry no quote,
-  # no backslash, and no metacharacter, so whitespace is the only separator.
-  # shellcheck disable=SC2086
-  printf '%s\n' $command
-  return 0
 }
 
 run_manifest() {
@@ -304,6 +222,8 @@ run_manifest() {
     fi
   fi
 
+  load_project_manifest || refuse "$PROJECT_REFUSAL"
+
   # --- Validate every command before running any of them ---------------------
   #
   # All-or-nothing on purpose: a manifest whose third command is refused must
@@ -328,6 +248,9 @@ run_manifest() {
 
   if [[ "$dry_run" -eq 1 ]]; then
     local item
+    for item in ${PROJECT_ENV[@]+"${PROJECT_ENV[@]}"}; do
+      printf 'env|%s\n' "$item" >&2
+    done
     for item in "${plan[@]}"; do
       printf '%s\n' "$item" >&2
     done
@@ -345,13 +268,8 @@ run_manifest() {
       [[ "${item%%|*}" == "$category" ]] || continue
       command="${item#*|}"
 
-      local -a argv=()
-      while IFS= read -r token; do
-        argv+=("$token")
-      done < <(validate_command "$command")
-
       set +e
-      "${argv[@]}" >>"$log" 2>&1
+      run_command "$command" "$log"
       status=$?
       set -e
 
@@ -420,7 +338,7 @@ STUB
 
     local out actual status escalate
     set +e
-    out="$(cd "$tmp/project" && "$script" --manifest "$manifest" --logs "${VERDICT_LOGS:-$tmp/logs}" 2>/dev/null)"
+    out="$(cd "${VERDICT_PROJECT:-$tmp/project}" && "$script" --manifest "$manifest" --logs "${VERDICT_LOGS:-$tmp/logs}" 2>/dev/null)"
     actual=$?
     set -e
     status="$(printf '%s' "$out" | jq -r '.status // "none"' 2>/dev/null || printf 'unparseable')"
@@ -499,6 +417,61 @@ STUB
   else
     printf 'ok    %-54s nothing executed\n' 'refusal happens before execution'
   fi
+
+  # --- Project manifest ------------------------------------------------------
+  #
+  # The castor stub fails unless the probe variable reaches it, so the passing
+  # case proves both the allow-list extension and the exported environment.
+  unset RUN_VALIDATION_PROBE
+  manifest_project() {
+    local dir="$1" committed="$2"
+    mkdir -p "$dir/vendor/bin"
+    cat >"$dir/vendor/bin/castor" <<'STUB'
+#!/usr/bin/env bash
+[[ "${RUN_VALIDATION_PROBE:-}" == "manifest-env" ]] || { echo "probe missing"; exit 1; }
+echo "castor ok"
+STUB
+    chmod +x "$dir/vendor/bin/castor"
+    git -C "$dir" init -q
+    printf '%s\n' "$committed" >"$dir/composer.json"
+    git -C "$dir" add composer.json
+    git -C "$dir" -c user.name=t -c user.email=t@t commit -q -m manifest
+    git -C "$dir" update-ref refs/remotes/origin/master HEAD
+  }
+
+  manifest_project "$tmp/manifest" '{ "extra": { "ai-olympus": { "validation": { "executables": ["vendor/bin/castor"] }, "env": { "RUN_VALIDATION_PROBE": "manifest-env" } } } }'
+  VERDICT_PROJECT="$tmp/manifest"
+  verdict 'a manifest executable runs with the manifest env' \
+    '{ "head_sha": "abc1234", "lint": ["vendor/bin/castor php-ai"] }' 0 passed false
+  printf '%s\n' '{ "extra": { "ai-olympus": { "validation": { "executables": ["vendor/bin/castor", "vendor/bin/evil"] } } } }' >"$tmp/manifest/composer.json"
+  verdict 'an executable only the working tree lists is refused' \
+    '{ "head_sha": "abc1234", "lint": ["vendor/bin/evil"] }' 3 invalid true
+
+  manifest_project "$tmp/no-env" '{ "extra": { "ai-olympus": { "validation": { "executables": ["vendor/bin/castor"] } } } }'
+  VERDICT_PROJECT="$tmp/no-env"
+  verdict 'without the manifest env the same command fails' \
+    '{ "head_sha": "abc1234", "lint": ["vendor/bin/castor php-ai"] }' 4 failed true
+
+  manifest_project "$tmp/outside" '{ "extra": { "ai-olympus": { "validation": { "executables": ["curl"] } } } }'
+  VERDICT_PROJECT="$tmp/outside"
+  verdict 'a manifest executable outside vendor/bin refuses the run' \
+    '{ "head_sha": "abc1234", "tests": ["vendor/bin/pest"] }' 3 invalid true
+
+  manifest_project "$tmp/path-env" '{ "extra": { "ai-olympus": { "env": { "PATH": "/tmp/evil" } } } }'
+  VERDICT_PROJECT="$tmp/path-env"
+  verdict 'a manifest env that redirects PATH refuses the run' \
+    '{ "head_sha": "abc1234", "tests": ["vendor/bin/pest"] }' 3 invalid true
+
+  manifest_project "$tmp/git-env" '{ "extra": { "ai-olympus": { "env": { "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.fsmonitor" } } } }'
+  VERDICT_PROJECT="$tmp/git-env"
+  verdict 'a manifest env that injects git configuration refuses the run' \
+    '{ "head_sha": "abc1234", "tests": ["vendor/bin/pest"] }' 3 invalid true
+
+  manifest_project "$tmp/value-env" '{ "extra": { "ai-olympus": { "env": { "FOO": "a b" } } } }'
+  VERDICT_PROJECT="$tmp/value-env"
+  verdict 'a manifest env value with a space refuses the run' \
+    '{ "head_sha": "abc1234", "tests": ["vendor/bin/pest"] }' 3 invalid true
+  VERDICT_PROJECT=""
 
   # --- Usage -----------------------------------------------------------------
   usage_error() {

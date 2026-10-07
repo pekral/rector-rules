@@ -47,7 +47,7 @@ Recognize all of these as a registered policy:
 
 A `policy ✗` in the coverage map means "no centralized policy", not "unprotected" —
 inline `abort_unless($x->user_id === auth()->id())` or a `can:` middleware still covers
-the route (lane it Minor: extract a policy).
+the route (lane it Moderate: extract a policy).
 
 ## 5. Custom / package authorization
 - **spatie/laravel-permission** — `role:`, `permission:`, `role_or_permission:` middleware are valid authorization layers; read the package's middleware to confirm.

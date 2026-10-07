@@ -5,12 +5,12 @@
 > `php artisan route:list --json` (or: static `routes/*.php` fallback — confidence lowered).
 
 ## Summary
-- **Critical:** <n>  ·  **Moderate:** <n>  ·  **Minor:** <n>  ·  **Covered:** <n>
+- **Critical:** <n>  ·  **Moderate:** <n>  ·  **Covered:** <n>
 - **Fix today:** <the 1–2 highest-impact exposures, one line each>
 
 ## Coverage map
 Every in-scope route, with the four layers (✓ / ✗ / n/a). `policy ✗` = no centralized
-policy (defense-in-depth), not "unprotected".
+policy: a Moderate hardening finding, not an exposure.
 
 | Method | URI | auth | authz | scoped | policy | Lane |
 |--------|-----|:----:|:-----:|:------:|:------:|------|
@@ -32,13 +32,13 @@ public function show($id)
 ```
 - **Fix sketch (advice — apply by hand):** use route-model binding + `authorize('view', $order)`, or scope the query: `$request->user()->orders()->findOrFail($id)`.
 
-### 🟡 Moderate — needs judgment (state the assumption)
+### 🟡 Moderate — needs judgment or hardening (state the assumption)
 **Likely IDOR on `PATCH /posts/{post}`** — `PostController@update:41` · confidence **Medium**
 - Assumes `Post` is user-owned (`belongsTo(User::class)` on `Post`). If so, the bound model is not authorized.
 - **Fix sketch:** add `authorize('update', $post)` or scope through `$request->user()->posts()`.
 
-### 🔵 Minor — hardening
-- `Post` has inline ownership checks but no `PostPolicy` — extract a centralized policy.
+**Hardening** — `Post` has inline ownership checks but no `PostPolicy` · confidence **Low**
+- **Fix sketch:** extract a centralized policy.
 
 ### ✅ Covered
 - Summarized from the coverage map — not repeated per route.

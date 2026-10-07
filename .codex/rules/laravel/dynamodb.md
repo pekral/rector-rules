@@ -45,7 +45,7 @@ For every PR that touches DynamoDB code, reviewers must verify:
 
 - Each new or changed read specifies a partition key or uses `GetItem` / `BatchGetItem`.
 - No new `Scan` requests were introduced.
-- Any pre-existing `Scan` that is modified is re-justified in code or in the PR description.
+- Any pre-existing `Scan` that is modified is re-justified in the PR description.
 - `FilterExpression` is not used as the primary access pattern.
 - When a GSI is used, the index exists in the table definition and the query passes the correct index name.
 

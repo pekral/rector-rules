@@ -43,6 +43,7 @@
 #   override-refused=<tier>            (only when a force signal overrode it)
 #   forced=none|<signal name>
 #   floor=none|FAST|STANDARD|CRITICAL
+#   project-paths=unavailable          (only when the manifest could not be read)
 #   signal=<+/-delta>|<name>|<evidence>   (one per fired signal, fixed order)
 #
 #   Every line is greppable and every point in `score` is attributable to a
@@ -53,6 +54,7 @@
 #   +3 auth / security / secrets        (forces CRITICAL)
 #   +3 migrations / data-loss risk      (forces CRITICAL)
 #   +3 payments / billing               (forces CRITICAL)
+#   +3 project-declared critical path   (forces CRITICAL)
 #   +2 queues / concurrency / locking / cache
 #   +2 public API
 #   +2 shared / core architecture
@@ -88,6 +90,20 @@
 #   code at all restores that default while leaving the genuinely small change —
 #   one or two files, tests included — at FAST, which is the tier that pays for
 #   this whole mechanism.
+#
+# Project-declared critical paths
+#   A project names the paths that are sensitive for it and invisible to the
+#   generic patterns — a deploy descriptor, a schema snapshot, a shard map — in
+#   its manifest (@rules/general/general.md *Project manifest*):
+#     "risk": { "critical-paths": ["^serverless.*\\.yml$", "^resources/db/"] }
+#   Each entry is an extended regex matched against every changed path as
+#   written, documentation and tests included: the project, not this script,
+#   decides what is sensitive. A match forces CRITICAL like the built-in forces.
+#   The manifest is read through `read-manifest.sh` from the default branch, so
+#   a branch under review cannot remove a path to route itself past review. An
+#   entry that is not a valid regex forces CRITICAL too, and so does a manifest
+#   that declares critical paths but cannot be parsed: a broken escalation rule
+#   fails towards more review, never less. The list can only raise a tier.
 #
 # Override precedence
 #   1. A force signal (auth / data / payments) wins over everything and yields
@@ -141,6 +157,31 @@ CORE_RE='(^|/)config/|serviceprovider|(^|/)bootstrap/|(^|/)routes/|kernel\.php$|
 AC_RE='acceptance criteria|acceptance-criteria|expected behaviou?r|expected result|definition of done|akceptačn|očekávan|kritéria|- \[ \]'
 
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+# Print the project's critical-path regexes, one per line. Returns 2 when the
+# manifest cannot be read at all, and 3 when it cannot be parsed although the
+# default-branch composer.json declares critical paths.
+project_critical_paths() {
+  local reader manifest status=0
+  reader="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/read-manifest.sh"
+  [[ -f "$reader" ]] || return 0
+  command -v git >/dev/null 2>&1 || return 2
+
+  if command -v jq >/dev/null 2>&1; then
+    manifest="$(bash "$reader" 2>/dev/null)" || status=$?
+  else
+    status=2
+  fi
+
+  if [[ "$status" -ne 0 ]]; then
+    if bash "$reader" --raw 2>/dev/null | grep -q '"critical-paths"'; then
+      return 3
+    fi
+    return 2
+  fi
+
+  printf '%s' "$manifest" | jq -r '(.risk // {}) | if type == "object" then (.["critical-paths"] // []) else [] end | if type == "array" then .[] | tostring else empty end'
+}
 
 # Render untrusted text safely: file paths and assignment text come from a
 # tracker anyone may write to, and they are printed in this script's own
@@ -338,6 +379,38 @@ classify() {
     add_signal 3 'payments-billing' "$evidence"
     [[ "$forced" == "none" ]] && forced='payments-billing'
   fi
+  local project_paths_state="" project_regexes="" project_regex project_path project_match="" regex_status
+  if [[ "$basis" == "diff" ]]; then
+    local project_status=0
+    project_regexes="$(project_critical_paths)" || project_status=$?
+    if [[ "$project_status" -eq 3 ]]; then
+      project_match='manifest-unreadable'
+      project_regexes=""
+    elif [[ "$project_status" -ne 0 ]]; then
+      project_paths_state='unavailable'
+      project_regexes=""
+    fi
+  fi
+  while IFS= read -r project_regex; do
+    [[ -n "$project_regex" ]] || continue
+    regex_status=0
+    grep -Eq -- "$project_regex" </dev/null 2>/dev/null || regex_status=$?
+    if [[ "$regex_status" -eq 2 ]]; then
+      project_match="invalid-regex:${project_regex}"
+      break
+    fi
+    for project_path in ${all[@]+"${all[@]}"}; do
+      if [[ "$project_path" =~ $project_regex ]]; then
+        project_match="${project_regex}:${project_path}"
+        break 2
+      fi
+    done
+  done <<<"$project_regexes"
+  if [[ -n "$project_match" ]]; then
+    add_signal 3 'project-critical-path' "$(printf '%s' "$project_match" | cut -c1-80)"
+    [[ "$forced" == "none" ]] && forced='project-critical-path'
+  fi
+
   if evidence="$(first_match "$QUEUE_RE")"; then
     add_signal 2 'queues-concurrency-locking' "$evidence"
   fi
@@ -407,6 +480,7 @@ classify() {
   [[ -n "$override_refused" ]] && printf 'override-refused=%s\n' "$override_refused"
   printf 'forced=%s\n' "$forced"
   printf 'floor=%s\n' "$floor_label"
+  [[ -n "$project_paths_state" ]] && printf 'project-paths=%s\n' "$project_paths_state"
 
   local entry
   for entry in ${signals[@]+"${signals[@]}"}; do
@@ -434,6 +508,10 @@ self_test() {
   trap cleanup_self_test EXIT
 
   local tmp="$SELF_TEST_TMP"
+
+  # Outside any checkout, so the manifest of the repository running the
+  # self-test cannot change a built-in verdict.
+  cd "$tmp"
 
   # An assignment that does state its acceptance criteria, so the clarity point
   # does not fire and each scenario below measures what it means to measure.
@@ -601,6 +679,42 @@ self_test() {
     --files "$(writefiles 'src/Formatter.php' 'tests/Unit/FormatterTest.php')" --assignment "$tmp/clear.txt"
   expect_line 'every point is attributable to a signal line' 'signal=-2|documentation-only' \
     --files "$(writefiles 'README.md' 'docs/agents.md')" --assignment "$tmp/clear.txt"
+
+  # --- Project-declared critical paths ---------------------------------------
+  manifest_repo() {
+    local dir="$1" json="$2"
+    mkdir -p "$dir"
+    git -C "$dir" init -q
+    printf '%s\n' "$json" >"$dir/composer.json"
+    git -C "$dir" add composer.json
+    git -C "$dir" -c user.name=t -c user.email=t@t commit -q -m manifest
+    git -C "$dir" update-ref refs/remotes/origin/master HEAD
+  }
+
+  expect_tier 'without a manifest a deploy descriptor is STANDARD' STANDARD \
+    --files "$(writefiles 'serverless-bref2.yml')" --assignment "$tmp/clear.txt"
+
+  manifest_repo "$tmp/project" '{ "extra": { "ai-olympus": { "risk": { "critical-paths": ["^serverless.*\\.yml$", "^resources/db/"] } } } }'
+  cd "$tmp/project"
+  expect_tier 'a project critical path is CRITICAL' CRITICAL \
+    --files "$(writefiles 'serverless-bref2.yml')" --assignment "$tmp/clear.txt"
+  expect_line 'the project force names its own signal' 'forced=project-critical-path' \
+    --files "$(writefiles 'serverless-bref2.yml' 'README.md')" --assignment "$tmp/clear.txt"
+  printf '%s\n' '{ "extra": { "ai-olympus": { "risk": { "critical-paths": [] } } } }' >"$tmp/project/composer.json"
+  expect_tier 'the working tree cannot remove a project critical path' CRITICAL \
+    --files "$(writefiles 'serverless-bref2.yml')" --assignment "$tmp/clear.txt"
+
+  manifest_repo "$tmp/broken" '{ "extra": { "ai-olympus": { "risk": { "critical-paths": ["(["] } } } }'
+  cd "$tmp/broken"
+  expect_tier 'an invalid project regex fails towards CRITICAL' CRITICAL \
+    --files "$(writefiles 'src/Formatter.php' 'tests/Unit/FormatterTest.php')" --assignment "$tmp/clear.txt"
+  manifest_repo "$tmp/unparsable" '{ "extra": { "ai-olympus": { "risk": { "critical-paths": ["^serverless"] } } }, }'
+  cd "$tmp/unparsable"
+  expect_tier 'an unparsable manifest with critical paths fails towards CRITICAL' CRITICAL \
+    --files "$(writefiles 'serverless.yml')" --assignment "$tmp/clear.txt"
+  expect_line 'the unparsable manifest names its own signal' 'project-critical-path|manifest-unreadable' \
+    --files "$(writefiles 'serverless.yml')" --assignment "$tmp/clear.txt"
+  cd "$tmp"
 
   # --- Input handling --------------------------------------------------------
   expect_line 'stdin file list is accepted' 'basis=diff' --files - --assignment "$tmp/clear.txt" <<<'README.md'

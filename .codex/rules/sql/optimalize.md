@@ -27,6 +27,7 @@ paths:
 - Use `EXPLAIN ANALYZE` for actual vs estimated row counts.
 - Check slow query log — prioritize frequent or longest-running queries.
 - Apply one optimization at a time; measure before and after.
+- **In code review, name the connection a changed query runs on and its blast radius**: tenant (one tenant's data), shared (every tenant on one server or shard), global (one database every tenant reads), or analytics. The same query costs orders of magnitude more on a shared or global connection than on a tenant one, and a review that does not name the connection has not assessed the risk. This is a statement in the review's database analysis, not a finding of its own.
 
 ## Performance Non-Regression on Query Changes
 Whenever a query is **refactored or changed** (Eloquent / query-builder rewrite, raw-SQL edit, added / removed `JOIN` / `WHERE` / `ORDER BY` / `GROUP BY` / subquery / eager load, pagination change, index-driven rewrite, or a refactor that moves the query into another layer), the changed query **must be at least as fast as the original — ideally faster**. Never ship a query change that is slower without a documented justification.
@@ -54,22 +55,22 @@ Whenever a query is **refactored or changed** (Eloquent / query-builder rewrite,
 
 ```sql
 -- Bad — function on indexed column
-SELECT * FROM users WHERE DATE(created_at) = '2025-01-01';
+SELECT id, email FROM user WHERE DATE(created_at) = '2025-01-01';
 
 -- Good — SARGable range
-SELECT * FROM users WHERE created_at BETWEEN '2025-01-01 00:00:00' AND '2025-01-01 23:59:59';
+SELECT id, email FROM user WHERE created_at BETWEEN '2025-01-01 00:00:00' AND '2025-01-01 23:59:59';
 
 -- Bad — OFFSET pagination on large table
-SELECT * FROM users ORDER BY id LIMIT 25 OFFSET 25000;
+SELECT id, email FROM user ORDER BY id LIMIT 25 OFFSET 25000;
 
 -- Good — seek pagination
-SELECT * FROM users WHERE id > 25000 ORDER BY id LIMIT 25;
+SELECT id, email FROM user WHERE id > 25000 ORDER BY id LIMIT 25;
 
 -- Bad — COUNT for existence
-SELECT * FROM users WHERE (SELECT COUNT(*) FROM orders WHERE orders.user_id = users.id) > 0;
+SELECT id, email FROM user WHERE (SELECT COUNT(*) FROM customer_order WHERE customer_order.user_id = user.id) > 0;
 
 -- Good — EXISTS
-SELECT * FROM users WHERE EXISTS (SELECT 1 FROM orders WHERE orders.user_id = users.id);
+SELECT id, email FROM user WHERE EXISTS (SELECT 1 FROM customer_order WHERE customer_order.user_id = user.id);
 ```
 
 ## Reuse existing indexes first
@@ -102,7 +103,7 @@ ALTER TABLE orders ADD INDEX idx_user_status_created (user_id, status, created_a
 - **Bulk delete:** prefer a single `whereIn(...)->delete()` over per-row `Model::delete()` calls.
 - **Bulk read:** fetch the whole working set in one query (e.g. `findBy{Attribute}In(...)`) and key it in memory; never look rows up one by one inside a loop.
 - **Goal:** minimize DB round-trips and lock contention.
-- **Acceptable exception:** per-row work that genuinely cannot be batched because each iteration depends on a side effect of the previous one (e.g. each row triggers a downstream API call that mutates DB state the next row reads). The exception must be justified in a short code comment or in the PR description.
+- **Acceptable exception:** per-row work that genuinely cannot be batched because each iteration depends on a side effect of the previous one (e.g. each row triggers a downstream API call that mutates DB state the next row reads). The exception must be justified in the PR description.
 
 ```php
 // Bad — per-row update inside a loop
@@ -150,14 +151,21 @@ foreach (Order::all() as $order) {
     $rows[] = ['id' => $order->id, 'total' => $order->recalculateTotal()];
 }
 
-// Bad — offset paging while writing to the same filtered set skips rows
-Order::query()->where('needs_recalc', true)->chunk(500, function (Collection $orders): void {
-    $this->orderModelManager->batchUpdate(Order::class, $this->recalculate($orders), 'id');
-});
+// Bad — OrderRepository: offset paging while the caller writes to the same filtered set skips rows
+public function lazyNeedingRecalc(int $size): LazyCollection
+{
+    return Order::query()->where('needs_recalc', true)->lazy($size);
+}
 
-// Good — keyset paging cannot skip, and peak memory is one chunk
-Order::query()->where('needs_recalc', true)->chunkById(500, function (Collection $orders): void {
-    $this->orderModelManager->batchUpdate(Order::class, $this->recalculate($orders), 'id');
+// Good — OrderRepository: keyset paging cannot skip, and peak memory is one chunk
+public function lazyNeedingRecalc(int $size): LazyCollection
+{
+    return Order::query()->where('needs_recalc', true)->lazyById($size);
+}
+
+// The Action reads through the Repository and writes through the ModelManager
+$this->orderRepository->lazyNeedingRecalc(500)->chunk(500)->each(function (LazyCollection $orders): void {
+    $this->orderModelManager->batchUpdate(Order::class, $this->recalculate($orders->collect()), 'id');
 });
 
 // Good — an unbounded id list is chunked instead of one oversized statement
@@ -414,7 +422,7 @@ SELECT * FROM category_tree;
 ```
 
 ## New storage reuse analysis
-When a diff introduces a new storage surface — a new DB table (`Schema::create(...)` in a migration), a new cache store or Redis namespace, a new filesystem disk, or a new NoSQL / DynamoDB table — an explicit analysis must appear in the PR description or a PR comment before the change merges. The analysis must answer: *"Can this data be stored in an existing storage without a drastic impact on performance?"* It must name the candidate existing storage(s) evaluated and state the reason they were ruled out — or confirm that an existing storage is reused instead. A diff that adds a new storage surface without this documented analysis is a **Moderate** finding in code review (see `@skills/code-review/SKILL.md` *New storage reuse analysis*).
+When a diff introduces a new storage surface — a new DB table (`Schema::create(...)` in a migration), a new cache store or Redis namespace, a new filesystem disk, or a new NoSQL / DynamoDB table — an explicit analysis must appear in the PR description or a PR comment before the change merges. The analysis must answer: *"Can this data be stored in an existing storage without a drastic impact on performance?"* It must name the candidate existing storage(s) evaluated and state the reason they were ruled out — or confirm that an existing storage is reused instead. A diff that adds a new storage surface without this documented analysis is a **Moderate** finding in code review (see `@rules/code-review/core-analysis.md` *New storage reuse analysis*, which `@skills/code-review/SKILL.md` applies).
 Do not flag migrations that only add a column or index to an existing table — only net-new storage surfaces trigger this check.
 
 ## Caching at DB Level

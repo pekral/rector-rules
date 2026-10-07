@@ -43,7 +43,7 @@ paths:
 - DTOs should be simple, explicit, and immutable where practical.
 
 ## Controllers
-- Use method injection.
+- Inject the FormRequest and route-bound models as action parameters; inject services through the constructor (see **Dependency Injection**).
 - Never call `validate()` directly in controllers.
 - Never execute database queries directly in controllers.
 - **Return an explicit HTTP response from every controller action.** Never return a raw `array`, scalar, Eloquent model, DTO, `Collection`, or arbitrary object from a controller. Convert the Action's domain value at the HTTP boundary with the response shape the endpoint needs: `response()->json(...)` for JSON, `response(...)` for a regular response, `redirect()` / `back()` for navigation, `view()` for HTML, or Laravel's stream / download response builders for streamed content. A `Responsable` object is allowed only when it is the endpoint's explicit HTTP response contract. Laravel may normalize several raw values, but relying on that implicit conversion hides the status, headers, and representation the client receives.
@@ -71,7 +71,7 @@ paths:
   - **When an existing scope already expresses the filter, call it.** The new query composes that scope; it never restates the condition.
   - **When an existing scope almost fits, widen that scope.** Give it the parameter the new call site needs, or compose it with one further condition at the call site. A near-copy under a new name is the violation.
   - **A condition no existing scope expresses is a new scope.** Two scopes over the same column stay two scopes when they apply genuinely different conditions — `scopePublished()` on `published_at <= now()` beside `scopeScheduled()` on `published_at > now()`.
-- Use eager loading to avoid N+1 queries.
+- Use eager loading to avoid N+1 queries. Code review detects them with the *N+1 queries* walk in `@rules/code-review/core-analysis.md`.
 - Do not query inside loops.
 - Use `withCount()` for counts where appropriate.
 - Use chunking for large datasets.
@@ -110,11 +110,18 @@ paths:
 - **Never allow real external HTTP calls in tests.** Every test that exercises an outbound HTTP integration must register `Http::fake()` (or an equivalent fake / mock client). A test that can reach a real network endpoint is a defect, even when the endpoint happens to be available.
 - **Never let tests run real system processes outside the application.** Tests must not shell out to or spawn real OS processes via `Process::run()` / `Process::start()` (Laravel), `Symfony\Component\Process`, `exec()`, `shell_exec()`, `system()`, `passthru()`, `proc_open()`, or backticks. **Tests must never invoke an external binary or script directly on the system** (`git`, `node`, `npm`, `composer`, `ffmpeg`, `docker`, a `.sh` / `.py` script, or any other host executable) — the process layer must be mocked. Fake them with `Process::fake()` (Laravel 10+) or inject a test double, so the test asserts the intended command without executing it on the host.
 The only exception is a process the test itself owns end-to-end (e.g. the project's own Artisan command run through `Artisan::call()`), never an external binary or system command.
+- **Never let tests perform a real DNS lookup or open a raw network socket.** Production code calls `dns_get_record()`, `gethostbynamel()`, `fsockopen()`, and similar functions only through an injectable seam class dedicated to that capability — a resolver seam for DNS lookups, a separate connector seam for raw sockets. `tests/TestCase.php` binds a fake of each such seam in `setUp()` with `$this->app->instance(...)`, so no test reaches the real resolver or a real socket. The full contract is `@rules/code-testing/general.md` *External Calls*.
 - Use factories for Eloquent persistence in tests.
 - Prefer storing real data in the database and using it in tests over mocking ModelManager or Repository classes. Only mock external services that cannot run in test environment.
 - Add or update tests for every meaningful behavior change.
 - Use `Artisan::call(CommandClass::class)` for console command execution in tests.
 - Use `app()->call([$job, 'handle'])` to invoke a job under test. The container resolves the `handle()` dependencies, so the test needs no doubles and runs the same wiring the queue worker runs. See `@rules/code-testing/general.md` *Jobs* for the full contract, including when to swap a container binding instead.
+
+## Agent Tool Output (`laravel/pao`)
+Applies only when the project installs `laravel/pao`. The package detects an agent through `CLAUDECODE=1` and replaces the human output of Pest, PHPUnit, Paratest, PHPStan, Rector, and Artisan with compact JSON.
+- **Run every such tool whose output you read with `CLAUDECODE=1`.** The manifest `env` provides it when the project sets it there (`@rules/general/general.md` *Project manifest*). Do not add it to a command a human reads.
+- **The process exit code is the only green signal.** pao can print `passed` while the process exits non-zero — for example a risky test under `failOnRisky`. Read the exit code, never the summary.
+- **Never parse pao's JSON in committed code.** It is an output format, not an API. Severity in code review: **Moderate**.
 
 ## Queue and Jobs
 - Queue long-running or external-dependent work.
@@ -131,6 +138,7 @@ The only exception is a process the test itself owns end-to-end (e.g. the projec
 - Queue constructors must only accept lightweight scalar values, DTOs, enums, or value objects. Avoid hydrated models, collections, large arrays, files, and service instances.
 - Use `Bus::bulk()` to dispatch many jobs onto the queue in a single call when you do **not** need batch tracking — bulk notifications, imports, email campaigns, and mass background tasks. It enqueues the jobs without the overhead of a tracked batch.
 - Reserve `Bus::batch()` for cases that genuinely need progress tracking, completion/failure callbacks, or cancellation. When none of those are required, prefer `Bus::bulk()` as the lighter option, and never loop over `dispatch()` per job when a single bulk call covers the same work.
+- **Every queue the code dispatches to has a consumer.** A new queue name — `onQueue()`, a job's `$queue`, a connection's default queue — ships together with its worker entry in the deploy configuration the project already uses: Horizon, supervisor, a Bref / serverless worker, or Vapor. A dispatch target with no consumer enqueues messages nobody processes. This rule never asks a project to adopt a worker technology it does not run; the consumer is added in the one it has. Severity in code review: **Critical**. When the deploy configuration lives outside this repository, record a verification gap instead of a finding.
 
 ## Scheduling
 - Attach structured metadata to scheduled commands with `withAttributes()` (e.g. a tag or a priority) so monitoring, logging, and alerting can group, filter, and prioritize scheduled runs.
@@ -204,11 +212,12 @@ The only exception is a process the test itself owns end-to-end (e.g. the projec
 - **`empty()` is not the substitute.** It additionally treats the legitimate string `'0'` as empty, which is a separate defect in the opposite direction. `strlen($value) === 0` has the same whitespace hole as `=== ''`.
 - The same applies to the **normalisation** side. When a getter maps *no value* to `null`, it maps `'   '` to `null` too, or the whitespace is what gets persisted.
 - Laravel's `required` rule already trims, so `['required', 'string']` needs nothing added. The gap is in `nullable` / `sometimes` combinations and in every hand-written comparison in a FormRequest accessor, a Data Builder, or a DTO — that is where this rule bites.
-- Keep the raw `!== ''` / `=== ''` form only when the exact PHP semantics matter (e.g. a `null`, whitespace-only, or empty-collection value must be treated as non-empty) and say so at the call site.
+- Keep the raw `!== ''` / `=== ''` form only when the exact PHP semantics matter (e.g. a `null`, whitespace-only, or empty-collection value must be treated as non-empty), and state why in the PR description.
 - Severity in code review: **Moderate** for a `''`-only comparison on a value that reaches the application from outside it. The rule is satisfied only when `' '` demonstrably reaches the same branch as `''`.
 
 ## Time
-- **The project's configured timezone is the single source, and `config('app.timezone')` is where it lives.** Read it from there — `now(config('app.timezone'))`, `Carbon::parse($value, config('app.timezone'))` — never from a zone literal repeated at each call site, and never by leaving `now()` to apply it silently.
+- **When the project manifest sets `timezone`, that zone wins** over `config('app.timezone')` (`@rules/general/general.md` *Project manifest*). Pass it explicitly on every call, exactly as the rest of this section passes the configured zone.
+- **Absent the manifest key, the project's configured timezone is the single source, and `config('app.timezone')` is where it lives.** Read it from there — `now(config('app.timezone'))`, `Carbon::parse($value, config('app.timezone'))` — never from a zone literal repeated at each call site, and never by leaving `now()` to apply it silently.
 - **The explicit argument changes nothing at runtime and everything for the reader.** `now()` already resolves against `config('app.timezone')`, so this is not a behaviour fix — it is what makes the zone reviewable. A bare call is indistinguishable from one whose author never considered the zone, and a literal `'Europe/Prague'` forks the answer the moment the configuration changes.
 - The framework-agnostic half of this rule lives in `@rules/php/core-standards.md` *Time* and applies unchanged: one zone for computing and storing, conversion only at the boundary, no SQL `NOW()`, and a zone on every value that crosses a process boundary.
 - **A queued job, a console command, and a scheduled task resolve it the same way.** A worker is a separate process that loads its own configuration; nothing about the dispatcher's ambient zone travels in the payload.

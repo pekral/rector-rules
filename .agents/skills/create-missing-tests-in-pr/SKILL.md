@@ -1,6 +1,6 @@
 ---
 name: create-missing-tests-in-pr
-description: Use when a PR review already exists and missing tests must be completed with 100% coverage for current changes. Reads the pull request code review, verifies that all recommended test coverage is implemented in the codebase, and adds missing tests using the create-test skill.
+description: Use when a PR review already exists and its missing tests must be completed. Reads the pull request code review, verifies which recommended behaviours are already protected, adds only the tests for a missing behavioural contract using the create-test skill, and verifies 100% coverage of the changed code.
 license: MIT
 metadata:
   author: Petr Král (pekral.cz)
@@ -12,7 +12,7 @@ metadata:
 -   Apply @rules/git/general.md
 -   Apply @rules/code-testing/general.md
 -   If the current project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, and `@rules/laravel/livewire.md`
--   If you are not on the main git branch in the project, switch to it.
+-   Work on the pull request's own branch, synced per `@rules/git/general.md` *Pull Policy*; never commit to the default branch.
 -   This task is based on the existing pull request review.
 -   First read your existing code review for the current pull request
     and identify all testing recommendations related to current changes.
@@ -24,6 +24,11 @@ metadata:
     handling** workflow below, which lands its production-code fixes in
     their own separate commits.
 -   Use @skills/create-test/SKILL.md for all test-writing work.
+-   **Coverage alone is never evidence that a new test is required.** For every uncovered line or branch:
+    1.  identify the observable behaviour or credible risk it carries;
+    2.  check whether a stronger test already protects that behaviour;
+    3.  add a test only for a missing behavioural contract, through the authoring gate of `@skills/test-audit/SKILL.md`.
+    When coverage is below the required threshold but no meaningful testable contract exists, never write a fake or implementation-coupled test to reach the number — report the conflict per `@skills/test-audit/SKILL.md` *Coverage*.
 
 ---
 
@@ -32,7 +37,7 @@ metadata:
 Reading, mapping, and verifying come first; writing tests comes last. This pre-flight is **blocking** — do not add or modify a single line until all three steps pass, and never act on an assumption you have not confirmed by reading the code.
 
 1.  **Read** — open and read the actual changed code and the code it depends on (callers, called methods, related existing tests, configuration). Confirm what the code does by reading it, not by guessing from the review text or names.
-2.  **Map** — map the change's blast radius: every uncovered code path the review flagged, its call sites, the branches a test must exercise, and the existing test conventions, helpers, and fixtures to reuse instead of reinventing.
+2.  **Map** — map the change's blast radius: every missing behaviour and uncovered code path the review flagged, its call sites, the branches a test must exercise, and the existing test conventions, helpers, and fixtures to reuse instead of reinventing.
     Then run a **completeness sweep** over the whole tree. Grep the entire repository for every name, pattern, and convention the flagged code path touches, and every test path, helper, and fixture that already exercises it — never only the files the assignment names, and never only the files you have already opened.
     Cover every file category the repository carries: source, tests, `rules/`, `skills/`, `agents/`, documentation, configuration, and generated assets such as `CHANGELOG.md` or `README.md`. Record the full match list before you add the first missing test, then classify each match as in scope for this batch of missing tests or as a stated exception. An incomplete sweep re-adds coverage that already exists elsewhere in the tree, or closes the review item while a sibling call site of the same code path stays untested.
 3.  **Verify** — check your assumptions against the real code and its observed behavior, and confirm each recommended test does not already exist before adding it. If what you read contradicts the review recommendation, surface the discrepancy instead of writing tests on a wrong premise.
@@ -43,8 +48,8 @@ Only after Read, Map, and Verify are complete may test-writing begin.
 
 ## Execution
 
--   Load the current pull request context using GitHub CLI (`gh`) first.
-    If `gh` is not available, use a GitHub MCP server. If neither is
+-   Load the pull request context through `skills/code-review-github/scripts/load-issue.sh <PR-URL>`.
+    If the script is unavailable (exit code 2/3), use a GitHub MCP server. If neither is
     available, stop and return a failed result about missing GitHub tools.
 -   Read your existing code review for the pull request.
 -   Extract all recommendations related to missing tests, missing
@@ -63,9 +68,8 @@ Only after Read, Map, and Verify are complete may test-writing begin.
     abstractions.
 -   Prefer updating existing tests first. Create new tests only if
     required.
--   Create deterministic every time!
 -   Make sure tests are deterministic and not flaky.
--   In tests, avoid reflection; use mocks instead (even partial ones, if they are effective and easy to read).
+-   In tests, avoid reflection; test through the public boundary, and mock only what `@rules/code-testing/general.md` *Mocking* allows.
 -   Tests must not contain conditions (e.g., `if`, `switch`); split conditional logic into separate test cases instead.
 -   Use data providers where they improve readability and simplify
     repeated test cases.
@@ -73,14 +77,14 @@ Only after Read, Map, and Verify are complete may test-writing begin.
     current changes.
 -   If coverage tooling exists, verify that current changes are covered
     with 100% coverage for the changed files only, using the project's available coverage tooling (per the Coverage gate in `@skills/code-review/SKILL.md`) — do not gate on the full-suite coverage percentage. Delete any generated coverage report file once read so it is not accidentally committed.
--   If fixers or test-related wrappers exist in the project, use them (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
+-   Use the project's coverage command, discovered per `@skills/resolve-issue/references/quality-gates.md`. Do not run fixers or checkers here; the project's gate runs once at the merge boundary (*Gate placement — deferred to the merge boundary* in that file).
 -   Do not run the whole test suite unless it is required for the
     changed files workflow.
 -   If the review recommendation is already satisfied by existing tests,
     do not duplicate test coverage.
 -   **Place new test files per `@rules/code-testing/general.md` *Test Organization*** — the test file path mirrors the namespace of the SUT (e.g. `App\Service\Billing\InvoiceCalculator` → `tests/Service/Billing/InvoiceCalculatorTest.php`), the file name is `{ClassName}Test.php` (or `{ClassName}{Scenario}Test.php` for an extracted scenario file of the same SUT), and cross-cutting tests sit under an intent-named directory (`tests/Feature/<flow>`, `tests/Contract/<vendor>`, `tests/Integration/<area>`).
 -   **Name every `it()` / `test()` block to match the scenario the body asserts** — plain-language descriptions such as `it('returns zero for an empty cart')` or `test('throws InvalidArgumentException when the discount is negative')`. Never use placeholders (`it('it works')`, `test('test1')`, `test('happy path')`), method names (`test('calculate')`, `it('handles getUser')`), or descriptions that contradict the assertions, so the code-review test-organization gate passes when the PR is re-reviewed.
--   **Structure every test body arrange-act-assert per `@rules/php/core-standards.md` Testing** — phases in order (setup → action → assertions), comments optional; see the canonical rule for the exception list.
+-   **Structure every test body arrange-act-assert per `@rules/php/core-standards.md` Testing** — phases in order (setup → action → assertions), separated by blank lines, never by `// Arrange` / `// Act` / `// Assert` comments; see the canonical rule for the exception list.
 
 ### Pre-existing issue handling
 
@@ -105,16 +109,13 @@ Rules:
 
 ### After completing the tasks
 
--   Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
--   Run available fixers on all changed test files and fix any violations.
--   Run available checkers/analyzers on all changed test files and resolve all reported errors.
 -   Run a quick code review of all added or updated tests against `@rules/code-testing/general.md` and fix any findings.
 -   Summarize what testing recommendations from the code review were
     verified.
 -   List added or modified test files.
 -   Confirm whether current changes now meet the required test coverage (must be 100%).
--   If something is still missing, clearly describe the blocker or
-    uncovered scenario.
+-   If something is still missing, clearly describe the blocker, the
+    uncovered scenario, or the coverage conflict that has no meaningful test.
 - Create a new commit with the missing tests, separate from any pre-existing fix commits produced by *Pre-existing issue handling* above
 
 ---
@@ -126,7 +127,7 @@ Provide a brief markdown summary including:
 -   reviewed PR testing recommendations
 -   which recommendations were already covered
 -   which tests were added or updated
--   whether 100% coverage for current changes was achieved
+-   whether 100% coverage for current changes was achieved, or which coverage conflict was reported instead
 -   list of pre-existing fix commits (if any), each with a one-line rationale, plus any pre-existing issue deferred as a follow-up with the reason
 -   any blocker preventing full completion
 
@@ -137,7 +138,7 @@ Provide a brief markdown summary including:
 - Follow code review recommendations strictly
 - Data a finding names are copied verbatim, never re-invented
 - Do not duplicate existing tests
-- Prefer minimal changes for full coverage
+- Minimum tests, maximum confidence; coverage verifies them
 - Use data providers where they improve readability and reduce duplication
 - Every test change must be verified to pass before moving on
 - Focus on changed code only

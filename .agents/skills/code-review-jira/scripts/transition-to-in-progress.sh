@@ -6,7 +6,12 @@
 # script is one of three sanctioned exceptions: it can ONLY land an issue in an
 # In Progress (start-of-work) status. It structurally refuses any other target
 # (Done, Closed, Review, …) so an AI agent cannot use it to push work through
-# the board in unintended directions.
+# the board in unintended directions. It also returns an issue from a review
+# status to In Progress when the owner resumes work on the code (a code-review
+# fix round, a conflict resolution on the open pull request). Ready to Merge
+# already means an approved review sits behind the issue, so it is never
+# returned from there, whoever owns it — reverting Ready to Merge goes through
+# transition-to-code-review.sh instead.
 #
 # Usage:
 #   transition-to-in-progress.sh <KEY|URL> [<STATUS>]
@@ -35,9 +40,15 @@
 #   3. Read the current status via load-issue.sh. If already in the target
 #      status, continue only when currentUser() already owns it; otherwise abort
 #      instead of stealing another run's claim.
-#   4. If already in a status that is lexically past In Progress (contains
-#      "review", "done", "closed", "resolved", "cancelled"), treat it as
-#      claimed-by-another-run and exit 4 (caller should abort).
+#   4. If already in a finished status (contains "done", "closed", "resolved",
+#      "cancelled", "canceled", "merged", "hotovo", "deploy", "testování", or
+#      "testovani"), exit 4 (caller should abort). If already in a
+#      ready-to-merge status (contains "merge", or matches
+#      $JIRA_READY_TO_MERGE_SYNONYMS), exit 4 unconditionally — never returned,
+#      whoever owns it. If already in a review status (contains "review", or
+#      matches $JIRA_CODE_REVIEW_SYNONYMS), continue only when currentUser()
+#      owns the issue — the owner is resuming work on it; otherwise exit 4
+#      instead of taking back another run's issue.
 #   5. Run `acli jira workitem transition --key <KEY> --status <target> --yes`.
 #   6. Run `acli jira workitem assign --key <KEY> --assignee "@me" --yes` and
 #      verify it with JQL `key = <KEY> AND assignee = currentUser()`.
@@ -59,7 +70,8 @@
 #   2  missing required tool (acli, jq)
 #   3  JIRA API call failed (read, transition, assignment, or verification;
 #      transition failures classified as 4/5 retain those exit codes)
-#   4  issue is already past In Progress — treat as claimed-by-another, abort
+#   4  issue is finished, or claimed by another run (in progress or in review
+#      and not owned by currentUser()) — abort
 #   5  target status not available in this project — discover via MCP / ask
 set -euo pipefail
 
@@ -151,14 +163,37 @@ assign_to_current_user() {
   return 3
 }
 
+# The search requests summary, not key: key is a top-level attribute, and acli
+# answers a search whose only requested field is key with [null], so an owned
+# issue would read as unowned.
 current_user_owns_issue() {
   local assignment_json
 
-  if ! assignment_json="$(acli jira workitem search --jql "key = $KEY AND assignee = currentUser()" --fields key --limit 1 --json 2>/dev/null)"; then
+  if ! assignment_json="$(acli jira workitem search --jql "key = $KEY AND assignee = currentUser()" --fields summary --limit 1 --json 2>/dev/null)"; then
     return 3
   fi
 
   printf '%s' "$assignment_json" | jq -e --arg key "$KEY" '[.. | objects | .key? // empty] | index($key) != null' >/dev/null
+}
+
+# $1 = a lower-cased status, $2 = a comma-separated synonym list. Matches the
+# same trim/lowercase handling as the progress-name guard above and the
+# review-name / merge-name guards in transition-to-code-review.sh and
+# transition-to-ready-to-merge.sh.
+status_in_list() {
+  local status="$1" list="$2" entry entry_trimmed
+
+  [[ -z "$list" ]] && return 1
+
+  IFS=',' read -ra entries <<<"$list"
+  for entry in "${entries[@]}"; do
+    entry_trimmed="$(printf '%s' "$entry" | sed -E 's#^[[:space:]]+|[[:space:]]+$##g' | tr '[:upper:]' '[:lower:]')"
+    if [[ -n "$entry_trimmed" && "$status" == "$entry_trimmed" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 # Read current status for the idempotence check and past-In-Progress guard.
@@ -193,20 +228,54 @@ if [[ -n "$CURRENT_STATUS" && "$(printf '%s' "$CURRENT_STATUS" | tr '[:upper:]' 
   exit 4
 fi
 
-# Past-In-Progress guard: if the issue is already in a review/done/closed status,
-# treat it as claimed-by-another-run so the caller can abort rather than re-transition.
+# Past-In-Progress guard: a finished issue is never re-opened, a ready-to-merge
+# issue is never returned by anyone, and an issue in review returns to In
+# Progress only for the user who owns it. The finished check runs first so a
+# resolution status such as "Merged" is never misread as the ready-to-merge
+# column below.
 current_lower="$(printf '%s' "${CURRENT_STATUS:-}" | tr '[:upper:]' '[:lower:]')"
-is_past=false
-for keyword in review 'done' closed resolved cancelled; do
+is_finished=false
+for keyword in 'done' closed resolved cancelled canceled merged hotovo deploy 'testování' testovani; do
   if [[ "$current_lower" == *"$keyword"* ]]; then
-    is_past=true
+    is_finished=true
     break
   fi
 done
 
-if [[ "$is_past" == true ]]; then
+if [[ "$is_finished" == true ]]; then
   echo "transition-to-in-progress.sh: $KEY is already in '${CURRENT_STATUS}' (past In Progress) — treat as claimed-by-another-run and abort." >&2
   exit 4
+fi
+
+# Ready-to-merge guard: Ready to Merge already means an approved code review
+# sits behind the issue and it is ready to merge into the main branch, so it
+# is refused unconditionally here — like the finished check, before any
+# ownership lookup, transition, or assignment. Reverting it goes through
+# transition-to-code-review.sh (exception (2), run again), not this helper.
+if [[ "$current_lower" == *merge* ]] || status_in_list "$current_lower" "${JIRA_READY_TO_MERGE_SYNONYMS:-}"; then
+  echo "transition-to-in-progress.sh: $KEY is in '${CURRENT_STATUS}' (Ready to Merge) — never returned to In Progress; use transition-to-code-review.sh to revert it instead." >&2
+  exit 4
+fi
+
+# Review-phase guard: the same synonym-aware detection transition-to-code-review.sh
+# uses for its own target, so a board whose review column carries no "review"
+# substring is still recognised here. Only the issue's owner may return it.
+if [[ "$current_lower" == *review* ]] || status_in_list "$current_lower" "${JIRA_CODE_REVIEW_SYNONYMS:-}"; then
+  if current_user_owns_issue; then
+    ownership_status=0
+  else
+    ownership_status=$?
+  fi
+
+  if [[ "$ownership_status" -eq 3 ]]; then
+    echo "transition-to-in-progress.sh: could not verify who owns $KEY in '${CURRENT_STATUS}'" >&2
+    exit 3
+  fi
+
+  if [[ "$ownership_status" -ne 0 ]]; then
+    echo "transition-to-in-progress.sh: $KEY is in '${CURRENT_STATUS}' and is not assigned to currentUser() — another run owns the review; abort." >&2
+    exit 4
+  fi
 fi
 
 # acli transitions by target status name. Capture stderr so a "status not

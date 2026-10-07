@@ -58,7 +58,7 @@ If running interactively, confirm the inputs with the user. If running autonomou
 - Slug must be kebab-case, ≤ 64 chars, and not collide with an existing folder under `skills/`.
 - Create `skills/<slug>/SKILL.md`. Add a subfolder only when the skill genuinely needs one — see the layout below.
 
-**Directory layout (Anthropic's recommended structure).** A skill is a directory whose entrypoint is `SKILL.md`; every other file is optional and exists so `SKILL.md` stays the overview rather than the whole payload ([skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/ai-olympus/best-practices), [Claude Code skills](https://code.claude.com/docs/en/skills)):
+**Directory layout (Anthropic's recommended structure).** A skill is a directory whose entrypoint is `SKILL.md`; every other file is optional and exists so `SKILL.md` stays the overview rather than the whole payload ([skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices), [Claude Code skills](https://code.claude.com/docs/en/skills)):
 
 ```text
 <slug>/
@@ -124,7 +124,7 @@ Examples in the repo: `refactor-entry-point-to-action`, `smartest-project-additi
 6. `## Principles` — short guiding rules (optional)
 7. `## Done when`
 
-No skill in this repo uses Layout B any more — issue #278 migrated the last 24 to Layout A. It stays documented so a skill imported from elsewhere in this shape is still recognized; never pick it for a new skill.
+Layout B is documented only so a skill imported from elsewhere in this shape is still recognized; never pick it for a new skill.
 
 Omit a section only when it does not apply.
 
@@ -185,7 +185,6 @@ Skip the README update only when the skill is intentionally internal and not par
 ## Done when
 - `skills/<slug>/SKILL.md` exists with valid frontmatter and required sections
 - `composer skill-check` passes with no warnings on the new file
-- `composer skill-check` reports `PASS` (the full build is not run here — it runs once at the end of the work)
 - `CHANGELOG.md` and `README.md` reflect the new skill (or the omission is justified)
 - The summary lists the slug, references, and validation result
 

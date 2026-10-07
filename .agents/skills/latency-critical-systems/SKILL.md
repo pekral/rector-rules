@@ -18,7 +18,7 @@ metadata:
 This skill runs in one of two modes, selected by the caller via `MODE` (default `tune`):
 
 - **`tune` (default)** — full latency work: instrument the hot path, rewrite queries and caches, change queue, worker, and broadcast configuration, and read the numbers back from the running system. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a latency-critical surface)** — **never modify project code or configuration, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a latency-critical surface)** — **never modify project code or configuration, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
 Every instruction below that would touch a file or a running system — instrument, cache, batch, replicate, split, throttle, stream, or any other such verb — is emitted as a written proposal carrying a concrete snippet, never applied to the project.
 
 > **What this lens owns in a CR:** the latency budget of the changed path and the freshness of the data it serves — whether the path the diff adds or changes carries a stated p50 / p95 / p99 target, whether the hot path is mapped rather than assumed, whether a cached or broadcast read carries a freshness age and a staleness window, whether a fast cache hit is allowed to masquerade as live data, and whether backpressure bounds queue depth instead of letting lag compound.
@@ -81,9 +81,10 @@ Apply in this order; stop when the target is met.
    window. Store the computed-at timestamp alongside the value.
 
    ```php
-   $stats = Cache::remember('dashboard:stats', now()->addSeconds(30), fn () =>
-       Order::query()->selectRaw('count(*) c, sum(total) t')->first()
-   );
+   $stats = Cache::remember('dashboard:stats', 30, fn () => [
+       'computed_at' => now(config('app.timezone'))->toIso8601String(),
+       ...$this->orderRepository->getCountAndTotal()->toArray(),
+   ]);
    ```
 
 3. **Batch small calls and writes.** Combine per-row queries into bulk

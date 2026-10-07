@@ -95,7 +95,3 @@ A poor API is not just a technical smell: it creates technical debt, forces expe
   - `PUT` used for a partial update or `PATCH` used for a full replacement
   - inconsistent contract shape across endpoints — divergent field casing, date format, pagination shape, or error envelope for the same concept
   - validation logic inlined in the action/controller/model instead of the dedicated boundary layer (FormRequest / Data Validator)
-- Mark as **Minor**:
-  - singular collection nouns (`/user`) or a flat URI where a sub-resource nesting reads clearer (`/users/{id}/orders`)
-  - JSON field naming/casing inconsistency that does not change the shape contract
-  - missing `Location` header on a `201 Created` response

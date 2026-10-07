@@ -57,14 +57,14 @@ The candidate must additionally:
    - **Why this one:** <one-sentence justification tied to the scoring signals above>
    ```
 
-   Concrete rendered example (Laravel project picking a typed-data DTO library):
+   Illustrative rendered example (Laravel project picking a typed-data DTO library; the dates, counts, and verdicts are placeholders, not facts to reuse):
 
    ```
    ### Proposed dependency: spatie/laravel-data
    - **Activity:** last commit 2026-04-18, last release v4.11.0 @ 2026-04-15
    - **Compatibility:** PHP ^8.2, illuminate/* ^11.0, license MIT
    - **Adoption:** 6,800,000 installs, 2,500 stars
-   - **Alternatives considered:** cuyz/valinor (failed Activity gate: last release 2024-09 @ 2024-09-12, > 12 months old), spatie/data-transfer-object (failed Compatibility gate: marked abandoned on Packagist with replacement pointer to spatie/laravel-data)
+   - **Alternatives considered:** cuyz/valinor (failed Activity gate: last release 2024-09 @ 2024-09-12, > 12 months old), spatie/data-transfer-object (failed Activity gate: marked abandoned on Packagist with replacement pointer to spatie/laravel-data)
    - **Why this one:** highest adoption among the candidates, fresh release cadence, ships typed return values + attribute-based mapping that match @rules/php/core-standards.md Structure section.
    ```
 

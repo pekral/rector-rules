@@ -12,18 +12,18 @@ metadata:
 - Apply `@rules/laravel/architecture.md` and `@rules/laravel/laravel.md` for file placement.
 - Apply `@rules/security/frontend.md` if any audit fix touches output rendering or CSP.
 - Stack is Blade + Livewire + Alpine.js + Filament + Tailwind. No React/Vue/Next.
-- Any live-URL or browser-screenshot step is OPTIONAL and tool-agnostic — never a hard dependency.
+- Any live-URL or browser-screenshot step is optional and tool-agnostic — never a hard dependency.
 
 ## Modes
 
 This skill runs in one of two modes, selected by the caller via `MODE` (default `design`):
 
 - **`design` (default)** — full design work: write tokens into the Tailwind config and CSS variables, register the Filament theme, build shared components, and author `DESIGN.md`. The three working modes below (Generate / Visual audit / AI-slop detection) are how that work is scoped; every section behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view, a token, a config, or a theme, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Run the Mode 2 audit dimensions and the Mode 3 slop patterns over the lines added or modified by the PR diff only, and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view, a token, a config, or a theme, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Run the Mode 2 audit dimensions and the Mode 3 slop patterns over the lines added or modified by the PR diff only, and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
 Skip Mode 1 entirely — generating a design system is not a review. Drop the 0–10 per-dimension scoring too: a score is not a finding, and the CR reports findings. Every instruction below that would touch a file — define, extract, register, build, replace, or any other such verb — is emitted as a written proposal carrying a concrete token / class / theme snippet, never applied to the project.
 
 > **What this lens owns in a CR:** token and theme consistency — an ad-hoc hex or arbitrary spacing value where a token exists, a component built outside the shared `<x-ui.*>` set, incomplete `dark:` coverage, and the AI-slop patterns. It **defers** every accessibility finding, contrast ratio included, to `@skills/frontend-a11y/SKILL.md`, and never raises one of its own. Dimension 10 (*Polish*) splits between two owners: this lens keeps the **hover and transition half**, which is visual finish it owns anyway, and **defers the loading (`wire:loading`), empty, and error half** to `@skills/frontend-patterns/SKILL.md`, which owns whether those states exist and behave. Never raise a missing loading or empty state as a token finding.
-> It **defers the decision that a component should exist at all** — a repeated markup block with no `<x-ui.*>` component yet, an inline visual shell a designer would name — to the walk *Livewire / Blade layout splitting* (`@rules/laravel/livewire.md` *Triggers*): this lens judges consistency across components that already exist, so *Component consistency* (dimension 4) reads as *these elements should use the same existing `<x-ui.*>` component*, never as *build one for them*, and it never raises a finding whose fix is *create a component*.
+> It judges consistency across components that already exist, so *Component consistency* (dimension 4) reads as *these elements should use the same existing `<x-ui.*>` component*, never as *build one for them*. It never raises a finding whose fix is *create a component*.
 
 ## Use when
 - Starting a project that needs a coherent design system.
@@ -118,7 +118,7 @@ Score the UI across 10 dimensions, 0–10 each. Every dimension needs a score, a
 1. **Color consistency** — palette tokens vs ad-hoc hex/`rgb()` strings in Blade.
 2. **Typographic hierarchy** — clear `h1 > h2 > h3 > body > caption`; no skipped levels.
 3. **Spacing rhythm** — a consistent scale (4/8/16) vs arbitrary `mt-[13px]`.
-4. **Component consistency** — similar elements built from the same `<x-ui.*>` component (in `MODE=cr` the decision that the component should exist at all belongs to the layout-splitting walk; see *Modes*).
+4. **Component consistency** — similar elements built from the same `<x-ui.*>` component (in `MODE=cr` a finding whose fix is to create a new component is not raised; see *Modes*).
 5. **Responsive behavior** — fluid across breakpoints; no overflow or layout breaks.
 6. **Dark mode** — complete `dark:` coverage, not half-applied.
 7. **Motion** — purposeful Alpine/`transition` use vs gratuitous animation.
@@ -126,7 +126,7 @@ Score the UI across 10 dimensions, 0–10 each. Every dimension needs a score, a
 9. **Information density** — clean and scannable vs cluttered.
 10. **Polish** — hover, transition, loading (`wire:loading`), and empty states present (in `MODE=cr` the loading / empty / error half belongs to `frontend-patterns`; see *Modes*).
 
-A live-URL crawl or screenshot pass is OPTIONAL. If no browser tool exists, audit from the Blade/Tailwind source and Filament config directly — that is sufficient.
+A live-URL crawl or screenshot pass is optional. If no browser tool exists, audit from the Blade/Tailwind source and Filament config directly — that is sufficient.
 
 **Report format per dimension:**
 ```

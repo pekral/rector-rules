@@ -29,7 +29,10 @@
 #                              produces the layout specification the implementer
 #                              then builds. Tier-independent by design: a
 #                              redesign is a kind of work, not a level of risk.
-#   --runtime-acceptance       the change alters behaviour a user can observe
+#   --runtime-acceptance       the change alters behaviour a user can observe, so
+#                              `raphael` exercises the running application.
+#                              Tier-independent by design: a user-visible change
+#                              is checked in the UI at every level of risk.
 #   --escalated-from <tier>    a post-implementation re-classification raised the
 #                              tier from this one; emits the stages the earlier
 #                              plan had already skipped
@@ -200,7 +203,6 @@ plan() {
       [[ "$tier" == "CRITICAL" ]] && stage_deterministic deterministic_validation pre_review
       stage_agent leonardo "$review_mode" "$model_tier"
       stage_deterministic deterministic_validation scoped
-      [[ "$runtime" -eq 1 && "$tier" == "CRITICAL" ]] && stage_agent raphael acceptance default
     fi
     emit "$tier" "$thorough" "$escalated_from" "$hotfix"
     return 0
@@ -236,7 +238,10 @@ plan() {
   # the one stage that is never conditional.
   stage_deterministic deterministic_validation scoped
 
-  if [[ "$runtime" -eq 1 && "$tier" == "CRITICAL" ]]; then
+  # The acceptance pass is not gated on the tier: a change a user can observe is
+  # checked in the running application at every level of risk. The re-entry plan
+  # above never adds it, because the lower tier's plan already carried it.
+  if [[ "$runtime" -eq 1 ]]; then
     stage_agent raphael acceptance default
   fi
 
@@ -359,6 +364,12 @@ self_test() {
     "donatello:implementation:escalated -> $RECLASS -> deterministic_validation:pre_review -> leonardo:review:escalated -> $VALIDATE -> raphael:acceptance:default -> $REPORT" \
     --tier CRITICAL --runtime-acceptance
 
+  # A user-visible change is checked in the UI at every tier, not only CRITICAL.
+  expect_sequence 'runtime acceptance adds raphael on FAST' \
+    "$IMPL -> $RECLASS -> $VALIDATE -> raphael:acceptance:default -> $REPORT" --tier FAST --runtime-acceptance
+  expect_sequence 'runtime acceptance adds raphael on STANDARD' \
+    "$IMPL -> $RECLASS -> leonardo:review:default -> $VALIDATE -> raphael:acceptance:default -> $REPORT" --tier STANDARD --runtime-acceptance
+
   expect_sequence '--thorough runs the full pipeline over a FAST verdict' \
     "donatello:implementation:escalated -> $RECLASS -> deterministic_validation:pre_review -> leonardo:review:escalated -> $VALIDATE -> $REPORT" \
     --tier FAST --thorough
@@ -377,6 +388,9 @@ self_test() {
     --tier CRITICAL --escalated-from FAST
   expect_sequence 'an unchanged tier owes nothing' '' --tier STANDARD --escalated-from STANDARD
   expect_sequence 'a tier cannot be lowered by re-classification' '' --tier FAST --escalated-from CRITICAL
+  expect_sequence 'an escalation never replays the acceptance pass' \
+    "deterministic_validation:pre_review -> leonardo:review:escalated -> $VALIDATE" \
+    --tier CRITICAL --escalated-from FAST --runtime-acceptance
 
   # --- Redesign --------------------------------------------------------------
   #

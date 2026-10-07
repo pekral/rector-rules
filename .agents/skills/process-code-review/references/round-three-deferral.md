@@ -13,7 +13,6 @@ Round 3 is the loop's last review. It is a **deferral boundary**, not a failure 
 | **Moderate, non-security, passing the filing bar** | **Deferred** — filed as a sub-issue of the source tracker item and recorded in the published report. | Does not block. The finding is resolved for this PR by being scheduled, not by being forgotten. |
 | **Moderate, non-security, already recorded in an open tracker issue** | **Deferred by linking** that existing issue instead of creating a duplicate, per *Deduplicate before filing* in the filing-bar rule. | Does not block. |
 | **Moderate, non-security, failing the filing bar** | **Blocking.** | Blocks. See *A Moderate that satisfies neither criterion* below. |
-| **Minor** | Not detected and not reported at all (`@rules/code-review/general.md` *Minor findings are not detected*). | Never reaches this table. |
 
 ## The filing bar is cross-referenced, never restated
 

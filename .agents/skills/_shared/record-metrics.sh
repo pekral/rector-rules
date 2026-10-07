@@ -25,11 +25,16 @@
 #                     [--agent-dispatches <n>] [--escalated-dispatches <n>]
 #                     [--review-rounds <n>] [--critical <n>] [--moderate <n>]
 #                     [--input-tokens <n>] [--output-tokens <n>] [--cache-read-tokens <n>]
-#                     [--store <path>]
+#                     [--gate-record <path>]... [--store <path>]
 #   record-metrics.sh --self-test
 #
 #   Token counts are optional by design: no runtime here reports them reliably,
 #   and a fabricated number is worse than an absent one.
+#
+#   --gate-record names a gate record that `run-gate.sh` wrote; repeat it once
+#   per record. Only its `duration_seconds` is read, and the entry stores the
+#   number of records and the sum of their durations — never a path or a field
+#   of the record itself.
 #
 #   The default store is `${AI_OLYMPUS_HOME:-$HOME/.ai-olympus}/metrics.jsonl`,
 #   outside any repository, so a project can never commit it by accident.
@@ -73,6 +78,7 @@ record() {
   local initial="" final="" status=""
   local dispatches=0 escalated=0 rounds=0 critical=0 moderate=0
   local input_tokens="" output_tokens="" cache_tokens=""
+  local gate_runs=0 gate_seconds=0 gate_duration
   local store="${AI_OLYMPUS_HOME:-$HOME/.ai-olympus}/metrics.jsonl"
 
   while [[ $# -gt 0 ]]; do
@@ -86,6 +92,16 @@ record() {
       --status) status="$value" ;;
       --store) store="$value" ;;
       esac
+      shift 2
+      ;;
+    --gate-record)
+      [[ $# -ge 2 ]] || { usage; return 1; }
+      if ! gate_duration="$(jq -e '.duration_seconds | select(type == "number" and . >= 0 and . == floor)' "$value" 2>/dev/null)"; then
+        echo "$PROG: --gate-record must name a gate record with a whole duration_seconds" >&2
+        return 1
+      fi
+      gate_runs=$((gate_runs + 1))
+      gate_seconds=$((gate_seconds + gate_duration))
       shift 2
       ;;
     --agent-dispatches | --escalated-dispatches | --review-rounds | --critical | --moderate | --input-tokens | --output-tokens | --cache-read-tokens)
@@ -136,6 +152,7 @@ record() {
     [[ -n "$input_tokens" ]] && printf ',"input_tokens":%s' "$input_tokens"
     [[ -n "$output_tokens" ]] && printf ',"output_tokens":%s' "$output_tokens"
     [[ -n "$cache_tokens" ]] && printf ',"cache_read_tokens":%s' "$cache_tokens"
+    [[ "$gate_runs" -gt 0 ]] && printf ',"gate_runs":%s,"gate_seconds":%s' "$gate_runs" "$gate_seconds"
     printf '}\n'
   } >>"$store"
 
@@ -173,6 +190,15 @@ self_test() {
     --initial-tier FAST --final-tier CRITICAL --status success \
     --agent-dispatches 3 --escalated-dispatches 2 --review-rounds 1 --critical 1 --moderate 2
 
+  printf '{"tier":"full","duration_seconds":120}\n' >"$tmp/gate-full.json"
+  printf '{"tier":"pr","duration_seconds":30}\n' >"$tmp/gate-pr.json"
+  printf '{"tier":"pr"}\n' >"$tmp/gate-broken.json"
+  expect_exit 'gate run durations are read from each record' 0 \
+    --initial-tier STANDARD --final-tier STANDARD --status success \
+    --gate-record "$tmp/gate-full.json" --gate-record "$tmp/gate-pr.json"
+  expect_exit 'a gate record without a duration is refused' 1 \
+    --initial-tier STANDARD --final-tier STANDARD --status success --gate-record "$tmp/gate-broken.json"
+
   expect_exit 'an unknown tier is refused' 1 --initial-tier HOT --final-tier FAST --status success
   expect_exit 'an unknown status is refused' 1 --initial-tier FAST --final-tier FAST --status vibes
   expect_exit 'a non-numeric counter is refused' 1 \
@@ -180,13 +206,13 @@ self_test() {
   expect_exit 'an unknown flag is refused' 1 \
     --initial-tier FAST --final-tier FAST --status success --branch feature/secret
 
-  # Every line must parse, and the store must hold exactly the two valid entries.
+  # Every line must parse, and the store must hold exactly the three valid entries.
   local lines
   lines="$(wc -l <"$store" | tr -d ' ')"
-  if [[ "$lines" == "2" ]]; then
+  if [[ "$lines" == "3" ]]; then
     printf 'ok    %-54s %s entries\n' 'only valid entries reach the store' "$lines"
   else
-    printf 'FAIL  %-54s expected 2 entries, got %s\n' 'only valid entries reach the store' "$lines" >&2
+    printf 'FAIL  %-54s expected 3 entries, got %s\n' 'only valid entries reach the store' "$lines" >&2
     failures=$((failures + 1))
   fi
 
@@ -204,6 +230,13 @@ self_test() {
     failures=$((failures + 1))
   else
     printf 'ok    %-54s\n' 'no task content is persisted'
+  fi
+
+  if jq -e 'select(.gate_runs == 2 and .gate_seconds == 150)' <(tail -1 "$store") >/dev/null 2>&1; then
+    printf 'ok    %-54s\n' 'gate durations are summed, never copied'
+  else
+    printf 'FAIL  %-54s\n' 'gate durations are summed, never copied' >&2
+    failures=$((failures + 1))
   fi
 
   # Token fields are optional: the first entry carries none and still parses.

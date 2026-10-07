@@ -17,7 +17,7 @@ metadata:
 This skill runs in one of two modes, selected by the caller via `MODE` (default `build`):
 
 - **`build` (default)** — full accessibility work: write and correct Blade markup, add ARIA attributes and focus management, and adjust Alpine keyboard handlers. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view or a component, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view or a component, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
 Every instruction below that would touch a file — add, connect, replace, trap, announce, or any other such verb — is emitted as a written proposal carrying a concrete Blade / Alpine snippet, never applied to the project. The Checklist at the end of this file is the walk-through: run it against the changed markup and raise one finding per unmet item.
 
 > **What this lens owns in a CR:** every accessibility finding on the diff — semantic markup, label / error association, keyboard operability, focus management, live-region announcement of Livewire updates, and contrast of the token pairs the markup uses. It is the **sole** owner of that surface: `@skills/frontend-patterns/SKILL.md` and `@skills/design-system/SKILL.md` defer here rather than raising an accessibility finding of their own.
@@ -75,27 +75,6 @@ Missing `for`/`id` pairing and disconnected error messages are the most commonly
 `@error` controls both the `aria-invalid`/`aria-describedby` wiring and the message, so the link is always consistent with the validation state. Use `fieldset`/`legend` to group related controls (radio sets, address blocks).
 
 **Filament forms** already emit connected labels, `aria-describedby` error wiring, and required markers. Reuse Filament form components instead of hand-rolling markup; do not strip their generated attributes.
-
----
-
-## Semantic HTML
-
-Use the element that matches intent. Screen readers and keyboard users depend on native semantics.
-
-```blade
-{{-- BAD: div has no role, no keyboard support --}}
-<div wire:click="save">Submit</div>
-
-{{-- GOOD: button is focusable, fires on Enter/Space, announced as "button" --}}
-<button type="button" wire:click="save">Submit</button>
-
-{{-- BAD: fake navigation --}}
-<div wire:click="goHome">Home</div>
-{{-- GOOD: real anchor — supports middle-click, right-click, keyboard --}}
-<a href="{{ route('home') }}">Home</a>
-```
-
-Keep heading levels sequential (`h1 → h2 → h3`); never skip a level for styling.
 
 ---
 
@@ -217,7 +196,7 @@ For Alpine transitions, branch on the media query:
 
 ## WCAG 2.2 success criteria
 
-WCAG 2.2 added criteria that templated Blade/Livewire UI frequently misses. These complement the patterns above.
+These criteria are the ones templated Blade/Livewire UI most often misses. They complement the patterns above.
 
 ### Target size — SC 2.5.8 (AA)
 
@@ -235,7 +214,7 @@ Interactive targets must be at least **24×24 CSS px** (or have 24px spacing aro
 </button>
 ```
 
-### Focus appearance — SC 2.4.11 (AA)
+### Focus visible — SC 2.4.7 (AA)
 
 Every focusable element needs a clearly visible focus indicator. Never strip the outline without replacing it; prefer `focus-visible:` so the ring shows for keyboard users without firing on mouse click.
 
@@ -307,7 +286,7 @@ When validation fails and a fix is known, the message must suggest the correctio
 - [ ] Token color pairs meet AA contrast in light and dark; state is not color-only.
 - [ ] Animations respect `motion-reduce:` / `prefers-reduced-motion`.
 - [ ] Interactive targets are at least 24×24 CSS px (SC 2.5.8).
-- [ ] Focus indicators are visible via `focus-visible:` and never stripped without replacement (SC 2.4.11).
+- [ ] Focus indicators are visible via `focus-visible:` and never stripped without replacement (SC 2.4.7).
 - [ ] Multi-step flows never re-ask data already entered (SC 3.3.7).
 - [ ] Drag-to-reorder interactions have a single-pointer alternative (SC 2.5.7).
 - [ ] Validation messages suggest the correction without leaking sensitive data (SC 3.3.3).

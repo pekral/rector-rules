@@ -165,7 +165,7 @@ export default async () => {
 }
 ```
 
-Wire it via `globalSetup` and `use: { storageState: 'tests/e2e/.auth/user.json' }`. Keep `.auth/` out of version control. You can also stub backend responses with `page.route(...)` to isolate the frontend from flaky external services.
+Wire it via `globalSetup` and `use: { storageState: 'tests/e2e/.auth/user.json' }`. Keep `.auth/` out of version control. Seed the `E2E_EMAIL` account in the E2E database, or use a test account the project documents; never use a real user's credentials. For a manual walkthrough, `@skills/interactive-testing/SKILL.md` *Sign-in and test accounts* owns the sign-in order. You can also stub backend responses with `page.route(...)` to isolate the frontend from flaky external services.
 
 ## CI wiring
 ```yaml
@@ -177,7 +177,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3' }
+        with: { php-version: '8.4' }   # match composer.json require.php
       - run: composer install --no-interaction --prefer-dist
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
@@ -199,7 +199,7 @@ Per `@rules/code-testing/general.md`, tests must be deterministic.
 - Use auto-waiting locators (`locator.click()`), never `page.click(selector)` on a maybe-not-ready node.
 - Replace `await page.waitForTimeout(...)` with `waitForResponse`, `waitForURL`, or `expect(locator).toBeVisible()`.
 - Wait for the element state before acting on animated UI: `await locator.waitFor({ state: 'visible' })`.
-- Quarantine genuinely flaky tests with `test.fixme(true, 'flaky — issue #NNN')` and link an issue rather than leaving them red.
+- Never quarantine a flaky test with `test.fixme` or a skip: `@rules/git/general.md` forbids a skipped test left to be enabled later. Fix its cause — a missing wait, shared state — and keep the test. When the cause cannot be established, report it instead of parking the test. A flaky test outside the diff and unrelated to the assignment is left unchanged, per `@skills/resolve-issue/references/quality-gates.md` *A flaky test outside the diff and the assignment is left alone*.
 - Reproduce flakiness with `npx playwright test path.spec.ts --repeat-each=10`.
 
 ## Done when

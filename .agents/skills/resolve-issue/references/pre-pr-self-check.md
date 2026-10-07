@@ -2,11 +2,9 @@
 
 Referenced from `skills/resolve-issue/SKILL.md` *Pre-PR self-check*. Extracted to keep the skill body under the skill-check token limit; the items themselves are stated inline there, and this file carries the procedure and the boundary.
 
-## What this pass replaced, and why
+## Why a self-check and not a review
 
-It used to run `@skills/code-review/SKILL.md` and `@skills/security-review/SKILL.md` inline over the implementer's own diff, gate PR creation on 0 Critical / 0 Moderate, and hand off to `leonardo`, who then ran the same two lenses over the same diff again. The second pass is the authoritative one, so the first bought a marginally cleaner starting point at the price of a complete duplicate LLM review on every run — the single largest avoidable cost in the pipeline. `@rules/compound-engineering/orchestration.md` *Adaptive routing* → *One authoritative LLM review, not two* removed it.
-
-**What is lost, stated rather than hidden:** `leonardo` now reads a less pre-polished diff, so a finding the implementer would have caught and quietly fixed can instead cost one review round. That is the intended trade — one round is cheaper than one duplicated review on every run — and on a `FAST`-tier run, where no `leonardo` pass is dispatched at all, the deterministic gates below plus the classifier's sensitive-area force are what stand in its place.
+`leonardo`'s review is the one authoritative LLM review (`@rules/compound-engineering/orchestration.md` *Adaptive routing* → *One authoritative LLM review, not two*), so this pass runs no review lens over its own diff. On a `FAST`-tier run, where no `leonardo` pass is dispatched, the deterministic gates below plus the classifier's sensitive-area force stand in its place.
 
 ## Procedure
 

@@ -11,7 +11,7 @@ Apply these Codex compatibility mappings everywhere in that definition:
 - `@skills/<path>` means the matching file below `.agents/skills/<path>`; invoke a skill as `$skill-name` when appropriate.
 - `@rules/<path>` means the matching file below `.codex/rules/<path>`.
 - A bare `skills/<path>` reference to a shipped script (for example `skills/_shared/classify-risk.sh`) means the matching file below `.agents/skills/<path>`; run it with the session's shell.
-- The deterministic orchestration helpers (`classify-risk.sh`, `plan-route.sh`, `run-validation.sh`, `check-handoff.sh`, `render-report.sh`, `record-metrics.sh`) live below `.agents/skills/_shared/`; run them with the session's shell. They are platform-neutral by construction — a Codex run routes, validates, reports, and measures exactly as a Claude run does.
+- The deterministic orchestration helpers (`classify-risk.sh`, `plan-route.sh`, `run-validation.sh`, `run-gate.sh`, `verify-gate.sh`, `check-handoff.sh`, `render-report.sh`, `record-metrics.sh`) live below `.agents/skills/_shared/`; run them with the session's shell. They are platform-neutral by construction — a Codex run routes, validates, reports, and measures exactly as a Claude run does.
 - `agents/<name>.md` means `.codex/agent-instructions/<name>.md`.
 - Claude's Read, Glob, Grep, Bash, WebSearch, and WebFetch names mean the equivalent Codex filesystem, shell, and web tools available in this session.
 

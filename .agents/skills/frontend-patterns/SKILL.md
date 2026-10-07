@@ -18,10 +18,10 @@ metadata:
 This skill runs in one of two modes, selected by the caller via `MODE` (default `build`):
 
 - **`build` (default)** — full UI work: create and edit Blade views and Livewire components, move state between layers, add `wire:key` and `wire:model` modifiers, and wire up loading / empty / error states. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view or a component, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a frontend surface)** — **never modify a view or a component, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
 Every instruction below that would touch a file — compose, extract, move, add, replace, split, or any other such verb — is emitted as a written proposal carrying a concrete Blade / Livewire snippet, never applied to the project.
 
-> **What this lens owns in a CR:** component composition, where state lives (Livewire vs Alpine), render and network cost, form mechanics, and whether the loading / empty / error / offline states exist and behave. It **defers** accessibility semantics to `@skills/frontend-a11y/SKILL.md` and token / theme consistency to `@skills/design-system/SKILL.md`, and never raises a finding those two own. It **defers the decision that a block should become its own component** — an oversized view, an oversized `@foreach` body, a nameable UI concern still inline — to the walk *Livewire / Blade layout splitting* (`@rules/laravel/livewire.md` *Triggers*): this lens judges composition inside a component that already exists, and never raises a finding whose fix is *extract this*.
+> **What this lens owns in a CR:** component composition, where state lives (Livewire vs Alpine), render and network cost, form mechanics, and whether the loading / empty / error / offline states exist and behave. It **defers** accessibility semantics to `@skills/frontend-a11y/SKILL.md` and token / theme consistency to `@skills/design-system/SKILL.md`, and never raises a finding those two own. It judges composition inside a component that already exists, and never raises a finding whose fix is *extract this*.
 > It **defers which bundle the view loads** — the entrypoint, the `@vite` directive that pulls it in, the manifest behind it, and how it splits — to `@skills/vite-patterns/SKILL.md` with `MODE=cr`: this lens's render and network cost is what the rendered component costs, never how the bundle behind it is built.
 > It **defers what the changed `<head>` promises a crawler** — the canonical, the robots directive, the on-page tags, the JSON-LD payload, and what that head asks the browser to fetch first for LCP — to `@skills/seo/SKILL.md` with `MODE=cr`, and never raises a finding that lens owns.
 
@@ -142,10 +142,17 @@ class MarketForm extends Form
 // component
 public MarketForm $form;
 
-public function save(CreateMarket $action): void   // Action injected via boot() or method DI
+private CreateMarketAction $createMarket;
+
+public function boot(CreateMarketAction $createMarket): void
+{
+    $this->createMarket = $createMarket;
+}
+
+public function save(): void
 {
     $this->validate();
-    $action->handle($this->form->toArray());
+    ($this->createMarket)($this->form->toArray());
     $this->reset('form');
 }
 ```
