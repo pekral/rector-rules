@@ -18,7 +18,7 @@ other rule Rector offers listed as skipped, so a new Rector release cannot add a
 | | Version |
 | --- | --- |
 | PHP | `^8.4` |
-| `rector/rector` | `^2.6.6` |
+| `rector/rector` | `^2.7.0` |
 
 Contributing to this repository needs **PHP 8.5+**, because the development dependencies require it. Using
 the package only needs 8.4.
