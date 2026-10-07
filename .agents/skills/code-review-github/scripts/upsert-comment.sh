@@ -11,37 +11,56 @@
 # as history.
 #
 # Usage:
-#   upsert-comment.sh <NUMBER|URL> <BODY_FILE> [<MARKER_KEY>]
-#   <body-producer> | upsert-comment.sh <NUMBER|URL> - [<MARKER_KEY>]
+#   upsert-comment.sh [--create] <NUMBER|URL> <BODY_FILE> [<MARKER_KEY>]
+#   <body-producer> | upsert-comment.sh [--create] <NUMBER|URL> - [<MARKER_KEY>]
 #
 # Inputs:
+#   --create    Optional. Always POST a new comment in the given namespace and
+#               never look up or PATCH an existing one. A review-only run
+#               (`/report-code-review`) passes it, so every invocation leaves
+#               its own comment. Unlike `agent-note`, the marker namespace stays
+#               unchanged, so a later run without the flag updates the newest
+#               comment as usual.
 #   NUMBER|URL  Bare GitHub issue / PR number (resolved against the current
 #               git remote) or a full github.com URL containing /issues/<N> or
 #               /pull/<N>. The optional `www.` host prefix is tolerated.
 #   BODY_FILE   Path to a file holding the comment body, or `-` to read from
 #               stdin. The body must already be in the target tracker markup
 #               (GitHub Markdown).
-#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`, which is
-#               the only namespace this package publishes into: a review run
-#               posts exactly one comment per destination. Every caller
-#               (`code-review-github`, `code-review-jira`, `pr-summary`,
-#               `process-code-review`) leaves it at the default.
+#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`. Three other
+#               namespaces this package writes: `merge-readiness` and
+#               `test-report` (upserted, same as `cr-comment`) and `agent-note` — the one namespace that
+#               is create-only (see step 3 below). A new namespace is an agent
+#               marker only once it is added to the family `@rules/code-review/general.md`
+#               *Authorship trust* defines.
 #
 # Behavior:
 #   1. Detect the actor login via `gh api user --jq .login`.
 #   2. Append a hidden marker `<!-- <MARKER_KEY>:actor=<login> -->` to the body
 #      (only when the body does not already carry the marker).
-#   3. List the target's comments and pick the newest one this actor authored
-#      whose body carries that marker. The author filter is load-bearing: a
-#      marker is visible text anyone can copy into their own comment, so a
-#      lookup matching on the marker alone could PATCH a stranger's comment.
-#   4. When a match exists, PATCH it via
+#   3. `agent-note` skips this step entirely and always POSTs (see below). Every
+#      other namespace lists the target's comments and picks the newest one
+#      this actor authored whose body carries that marker. The author filter is
+#      load-bearing: a marker is visible text anyone can copy into their own
+#      comment, so a lookup matching on the marker alone could PATCH a
+#      stranger's comment.
+#   4. Carry every line the operator added to the matched comment into the new
+#      body verbatim (`skills/_shared/carry-operator-lines.php`). The operator
+#      posts under the same account, so a line counts as the operator's when the
+#      previous version's hidden `<!-- <MARKER_KEY>:lines=... -->` fingerprint of
+#      agent-written lines does not know it. Every published body records that
+#      fingerprint. `agent-note` is never rewritten, so it skips this step.
+#   5. When a match exists, PATCH it via
 #      `gh api repos/<nwo>/issues/comments/<id>`; otherwise POST a new comment
 #      via `gh api repos/<nwo>/issues/<N>/comments`.
 #
-# One result is one comment. A failing lookup publishes nothing and exits 3:
-# without it, a POST could duplicate the comment this actor already owns, and a
-# rerun once the API answers again updates that comment in place.
+# One result is one comment, for every namespace except `agent-note`. A failing
+# lookup publishes nothing and exits 3: without it, a POST could duplicate the
+# comment this actor already owns, and a rerun once the API answers again
+# updates that comment in place. `agent-note` is the deliberate exception:
+# every call POSTs a fresh comment, by design — never a lookup, never a PATCH.
+# It is for a separate agent comment (a runbook, a note) that must never be
+# picked up and overwritten by a later `cr-comment` / `merge-readiness` publish.
 #
 # The marker stays at the bottom of the comment so it survives manual edits
 # at the top. It is rendered by GitHub as an invisible HTML comment, and it is
@@ -50,7 +69,9 @@
 # Output:
 #   The published comment URL on stdout. `action=updated id=<id>` (an existing
 #   comment was PATCHed) or `action=created id=<id>` (a new one was POSTed) on
-#   stderr, for the calling skill to log in its summary line.
+#   stderr, for the calling skill to log in its summary line. On an update,
+#   stderr also carries `carried_lines=<n>` and one `carried: <line>` per carried
+#   operator line; the calling skill states every carried line in its report.
 #
 # Exit codes:
 #   1  usage / argument error
@@ -60,8 +81,9 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: upsert-comment.sh <NUMBER|URL> <BODY_FILE|-> [<MARKER_KEY>]
+Usage: upsert-comment.sh [--create] <NUMBER|URL> <BODY_FILE|-> [<MARKER_KEY>]
 
+  --create    always POST a new comment; never look up or PATCH an existing one
   NUMBER      bare GitHub issue or PR number (resolved against current git remote)
   URL         any github.com URL containing /issues/<N> or /pull/<N>
   BODY_FILE   path to a file containing the comment body, or `-` for stdin
@@ -70,6 +92,12 @@ Usage: upsert-comment.sh <NUMBER|URL> <BODY_FILE|-> [<MARKER_KEY>]
               review run, per destination).
 EOF
 }
+
+CREATE_ONLY=0
+if [[ "${1:-}" == "--create" ]]; then
+  CREATE_ONLY=1
+  shift
+fi
 
 if [[ $# -lt 2 || $# -gt 3 || -z "${1:-}" || -z "${2:-}" ]]; then
   usage
@@ -85,7 +113,7 @@ if [[ ! "$MARKER_KEY" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-for bin in gh jq; do
+for bin in gh jq php; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "upsert-comment.sh: required tool not found: $bin" >&2
     exit 2
@@ -155,7 +183,9 @@ fi
 # the whole CR comment publish — see issue #519.
 ACTOR_STDERR="$(mktemp)"
 LOOKUP_STDERR="$(mktemp)"
-trap 'rm -f "$ACTOR_STDERR" "$LOOKUP_STDERR"' EXIT
+NEW_BODY_FILE="$(mktemp)"
+PREVIOUS_BODY_FILE="$(mktemp)"
+trap 'rm -f "$ACTOR_STDERR" "$LOOKUP_STDERR" "$NEW_BODY_FILE" "$PREVIOUS_BODY_FILE"' EXIT
 ACTOR=""
 ACTOR_ERR=""
 for attempt in 1 2 3; do
@@ -179,31 +209,51 @@ fi
 
 MARKER="<!-- ${MARKER_KEY}:actor=${ACTOR} -->"
 
-if ! grep -Fq "$MARKER" <<<"$BODY"; then
-  BODY="${BODY}
-
-${MARKER}"
-fi
-
 # Look for a comment this actor already published under the same marker. A
 # failed lookup publishes nothing: a POST without it could duplicate the
 # comment this actor already owns. `--paginate` emits one JSON array per page,
 # so `jq -s 'add // []'` flattens them into a single array before the marker
-# match runs.
-ALL_COMMENTS=""
-if ! ALL_COMMENTS="$(gh api "repos/${NWO}/issues/${NUMBER}/comments" --paginate 2>"$LOOKUP_STDERR")"; then
-  echo "upsert-comment.sh: comment lookup failed on ${NWO}#${NUMBER}, nothing was published: $(cat "$LOOKUP_STDERR")" >&2
-  echo "upsert-comment.sh: a POST without the lookup could duplicate a comment this actor already owns; rerun once the API answers" >&2
-  exit 3
+# match runs. `agent-note` is the one namespace this skips entirely — it is
+# create-only, so an existing agent-note comment (a runbook, a note the
+# operator asked an agent to leave as its own comment) is never picked up or
+# overwritten. `--create` skips it for the same reason, in any namespace.
+EXISTING_ID=""
+if [[ "$MARKER_KEY" != "agent-note" && "$CREATE_ONLY" -eq 0 ]]; then
+  ALL_COMMENTS=""
+  if ! ALL_COMMENTS="$(gh api "repos/${NWO}/issues/${NUMBER}/comments" --paginate 2>"$LOOKUP_STDERR")"; then
+    echo "upsert-comment.sh: comment lookup failed on ${NWO}#${NUMBER}, nothing was published: $(cat "$LOOKUP_STDERR")" >&2
+    echo "upsert-comment.sh: a POST without the lookup could duplicate a comment this actor already owns; rerun once the API answers" >&2
+    exit 3
+  fi
+
+  if [[ -n "$ALL_COMMENTS" ]]; then
+    EXISTING_ID="$(printf '%s' "$ALL_COMMENTS" \
+      | jq -s 'add // []' \
+      | jq -r --arg marker "$MARKER" --arg actor "$ACTOR" \
+          '[.[] | select((.user.login // "") == $actor) | select(.body // "" | contains($marker))] | sort_by(.created_at) | last | .id // empty' \
+          2>/dev/null || true)"
+  fi
 fi
 
-EXISTING_ID=""
-if [[ -n "$ALL_COMMENTS" ]]; then
-  EXISTING_ID="$(printf '%s' "$ALL_COMMENTS" \
-    | jq -s 'add // []' \
-    | jq -r --arg marker "$MARKER" --arg actor "$ACTOR" \
-        '[.[] | select((.user.login // "") == $actor) | select(.body // "" | contains($marker))] | sort_by(.created_at) | last | .id // empty' \
-        2>/dev/null || true)"
+if [[ "$MARKER_KEY" != "agent-note" ]]; then
+  CARRY_ARGS=(markdown "$MARKER_KEY" "$NEW_BODY_FILE")
+  if [[ "$EXISTING_ID" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$ALL_COMMENTS" \
+      | jq -s 'add // []' \
+      | jq -r --argjson id "$EXISTING_ID" '.[] | select(.id == $id) | .body // ""' > "$PREVIOUS_BODY_FILE"
+    CARRY_ARGS+=("$PREVIOUS_BODY_FILE")
+  fi
+  printf '%s' "$BODY" > "$NEW_BODY_FILE"
+  if ! BODY="$(php "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../_shared/carry-operator-lines.php" "${CARRY_ARGS[@]}")"; then
+    echo "upsert-comment.sh: carrying the operator lines failed on ${NWO}#${NUMBER}, nothing was published" >&2
+    exit 3
+  fi
+fi
+
+if ! grep -Fq "$MARKER" <<<"$BODY"; then
+  BODY="${BODY}
+
+${MARKER}"
 fi
 
 # `gh api` body payloads are built via jq and fed through `--input -` so the

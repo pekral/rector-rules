@@ -63,13 +63,15 @@ if [[ "$ACTUAL_NAME" != "$EXPECTED_NAME" ]]; then
 fi
 
 ACTOR="$(gh api user --jq .login)"
-EXPECTED_REPOSITORY_URL="https://api.github.com/repos/$OWNER/$REPOSITORY"
+# The comment endpoint carries no repository_url; issue_url names the repository
+# and the issue or pull request the comment sits on.
+EXPECTED_ISSUE_URL_PREFIX="$(printf '%s' "https://api.github.com/repos/$OWNER/$REPOSITORY/issues/" | tr '[:upper:]' '[:lower:]')"
 
 for index in "${!PROTECTED_IDS[@]}"; do
   protected_id="${PROTECTED_IDS[$index]}"
   protected_json="$(gh api "repos/$OWNER/$REPOSITORY/issues/comments/$protected_id")"
   protected_actor="$(printf '%s' "$protected_json" | jq -r '.user.login // empty')"
-  protected_repository_url="$(printf '%s' "$protected_json" | jq -r '.repository_url // empty')"
+  protected_issue_url="$(printf '%s' "$protected_json" | jq -r '.issue_url // empty' | tr '[:upper:]' '[:lower:]')"
   protected_body="$(printf '%s' "$protected_json" | jq -r '.body // empty')"
   expected_marker="<!-- ${PROTECTED_MARKERS[$index]}:actor=$ACTOR -->"
 
@@ -78,7 +80,7 @@ for index in "${!PROTECTED_IDS[@]}"; do
     exit 4
   fi
 
-  if [[ "$(printf '%s' "$protected_repository_url" | tr '[:upper:]' '[:lower:]')" != "$(printf '%s' "$EXPECTED_REPOSITORY_URL" | tr '[:upper:]' '[:lower:]')" ]]; then
+  if [[ "$protected_issue_url" != "$EXPECTED_ISSUE_URL_PREFIX"* || ! "${protected_issue_url#"$EXPECTED_ISSUE_URL_PREFIX"}" =~ ^[1-9][0-9]*$ ]]; then
     printf '%s\n' "$PROG: protected comment $protected_id belongs to a different repository" >&2
     exit 4
   fi

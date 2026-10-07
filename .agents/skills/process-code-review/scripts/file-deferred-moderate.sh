@@ -38,6 +38,9 @@
 #           (`--parent  Parent work item ID`, confirmed against acli's own
 #           --help). The subtask type name is project-configurable, so it is
 #           resolved from $JIRA_SUBTASK_TYPE and defaults to "Subtask".
+#           The body is JIRA Wiki Markup, converted to ADF through the same
+#           wiki-markup-to-adf.php the comment helper uses, so the description
+#           renders instead of showing `h2.` and `{{code}}` as literal text.
 #   Bugsnag Has no sub-issue concept at all. Refused with exit 1 and a pointer
 #           at the error's linked GitHub issue, which is the parent to pass
 #           instead — the same precedent *File deferred points as follow-up
@@ -49,7 +52,7 @@
 #
 # Exit codes:
 #   1  usage / argument error, or an unsupported tracker (Bugsnag)
-#   2  missing required tool (gh / acli / jq)
+#   2  missing required tool (gh / acli / jq / php)
 #   3  tracker API call failed
 #   4  the sub-issue was created but the parent relation could not be verified
 set -euo pipefail
@@ -220,13 +223,14 @@ fi
 # JIRA
 need acli
 need jq
+need php
 
 PROJECT="${KEY%%-*}"
 SUBTASK_TYPE="${JIRA_SUBTASK_TYPE:-Subtask}"
 
 if [[ "$DRY_RUN" == "1" ]]; then
   {
-    echo "would run: acli jira workitem create --project $PROJECT --parent $KEY --type \"$SUBTASK_TYPE\" --summary <TITLE> --description-file <BODY> ${LABEL:+--label \"$LABEL\"} --json"
+    echo "would run: acli jira workitem create --project $PROJECT --parent $KEY --type \"$SUBTASK_TYPE\" --summary <TITLE> --description-file <BODY-AS-ADF> ${LABEL:+--label \"$LABEL\"} --json"
     echo "would run: skills/code-review-jira/scripts/load-issue.sh <CREATED-KEY>   # verify the subtask landed"
     echo "action=dry-run parent=$KEY project=$PROJECT type=$SUBTASK_TYPE title=$TITLE label=${LABEL:-<none>}"
   } >&2
@@ -234,9 +238,21 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# JIRA Cloud stores a description as ADF and shows Wiki Markup sent as plain
+# text verbatim, so the body is converted before the write, exactly as
+# code-review-jira/scripts/upsert-comment.sh converts a comment.
 BODY_FILE="$(mktemp)"
 trap 'rm -f "$BODY_FILE"' EXIT
-printf '%s' "$BODY" >"$BODY_FILE"
+if ! printf '%s' "$BODY" | php "$SCRIPT_DIR/../../code-review-jira/scripts/wiki-markup-to-adf.php" >"$BODY_FILE"; then
+  echo "file-deferred-moderate.sh: failed to convert the sub-issue body to ADF; nothing was created" >&2
+  exit 3
+fi
+if ! jq -e '.version == 1 and .type == "doc" and (.content | type == "array")' "$BODY_FILE" >/dev/null 2>&1; then
+  echo "file-deferred-moderate.sh: converter produced invalid ADF; nothing was created" >&2
+  exit 3
+fi
 
 CREATE_ARGS=(jira workitem create --project "$PROJECT" --parent "$KEY" --type "$SUBTASK_TYPE"
   --summary "$TITLE" --description-file "$BODY_FILE" --json)
@@ -257,7 +273,6 @@ if [[ -z "$CHILD_KEY" ]]; then
   exit 4
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOADER="$SCRIPT_DIR/../../code-review-jira/scripts/load-issue.sh"
 if [[ -x "$LOADER" ]] && ! "$LOADER" "$CHILD_KEY" >/dev/null 2>&1; then
   echo "file-deferred-moderate.sh: created $CHILD_KEY but it could not be read back through the deterministic loader" >&2

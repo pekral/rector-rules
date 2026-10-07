@@ -10,14 +10,14 @@ paths:
 - Every Livewire component must be split into:
   - a PHP class in `app/Livewire`
   - a Blade view in `resources/views/livewire`
-- Component classes must extend `Livewire\\Component`.
+- Component classes must extend `Livewire\Component`.
 
 ## Responsibilities
 - Livewire components are entry points.
 - Keep component classes slim: accept input, validate, delegate work, update UI state.
 - Do not place business logic directly in Livewire components.
 - Delegate business logic to Actions or Services according to project architecture.
-- Do not execute direct Eloquent queries or `DB::` calls in components unless the repository already uses that pattern consistently.
+- Do not execute direct Eloquent queries or `DB::` calls in components. Reads go through a Repository (`@rules/laravel/architecture.md` *Repositories and ModelManagers*).
 
 ## Dependency Injection
 - Livewire does not support constructor injection — it creates components without DI.
@@ -26,7 +26,7 @@ paths:
 
 ## Validation and UI
 - Use Livewire's built-in validation where appropriate.
-- Reuse validation traits from `App\\Concerns` when available.
+- Reuse validation traits from `App\Concerns` when available.
 - Keep lifecycle hooks (`mount`, `updated*`, `dehydrate`) slim.
 - Keep Blade templates presentation-only.
 - Prefer Livewire events/listeners over tight component coupling.
@@ -46,7 +46,7 @@ Before extracting anything, pick the right component type. Picking wrong is a co
 ### Triggers — when an HTML block must be extracted
 Extract a piece of HTML as its own component (Livewire or Blade per the decision above) the moment **any** of these triggers fires on the view being read or modified:
 1. **Repeated markup block** — the same structural HTML pattern (same wrapper element + same inner skeleton, ignoring text content and per-item data) appears 2+ times in the same view, or once in 2+ different views. Copy-paste of a card / row / chip / modal is the canonical trigger.
-2. **View exceeds 150 lines of Blade** — a single Blade file over 150 lines of actual markup (comments and blank lines excluded) is presumed to mix concerns. Split until each child component fits comfortably under the threshold, or document in the file header why the view legitimately cannot be split (rare — e.g. a hand-rolled SVG).
+2. **View exceeds 150 lines of Blade** — a single Blade file over 150 lines of actual markup (comments and blank lines excluded) is presumed to mix concerns. Split until each child component fits comfortably under the threshold, or state in the PR description why the view legitimately cannot be split (rare — e.g. a hand-rolled SVG).
 3. **Self-contained interaction group** — a related cluster of `wire:model` / `wire:click` / `wire:submit` / `wire:loading` directives drives one UI concern (filter panel, search box, item form, modal dialog, inline editor). The cluster's state belongs to a dedicated Livewire child, not to the parent component.
 4. **Self-contained UI state / data shape** — markup is driven by its own data object (an item, a row, a card, a tab, a field). Whenever the parent loops `@foreach ($items as $item) ... @endforeach` over more than ~10 lines of markup per iteration, the iterated body is a child component receiving `$item` as a typed parameter.
 5. **Cross-page reuse** — the same UI element appears on 2+ parent views or routes. Extract on first duplication; do not wait for the third occurrence.
@@ -78,16 +78,14 @@ PHP `--coverage-clover` does not measure `.blade.php` files line-by-line, so the
 - A Livewire child whose only job is to render static markup with no `wire:*` — should have been a Blade component.
 - A child that takes the parent component instance, a route-bound global helper, or session state as a property to read foreign state — replace with explicit typed input or Livewire events.
 - Extraction that produces a child used in exactly one place **and matches none of Triggers 3–7 above** — collapse it back; reusability is the goal, not file count. The "two consumers" threshold from `@rules/laravel/architecture.md` *Shared Concerns (Traits)* applies in spirit (single-use abstraction with no UI-concern justification = inline). Trigger-driven single-site extractions (self-contained interaction cluster, iterated body, cross-page reuse, independent loading / empty / error state, distinct named UI concern) are exempt — their value is readability and single-responsibility, not literal reuse on day one.
-- Naming a component after the page it lives on (`Dashboard\\DashboardFilterBar`) instead of after the concern (`Campaign\\FilterBar`). Concern-based naming is what makes the component reusable on the next page.
+- Naming a component after the page it lives on (`Dashboard\DashboardFilterBar`) instead of after the concern (`Campaign\FilterBar`). Concern-based naming is what makes the component reusable on the next page.
 
 ### Code Review Severity Rules (HTML Layout Splitting)
 - **Critical:**
   - A Livewire wrapper introduced around a stateless presentational block (no `wire:*`, no server interaction, no lifecycle) — must collapse to a Blade component.
   - A child component that reads parent state via a passed parent reference, a route-bound global helper, or session state instead of typed input + Livewire events.
 - **Moderate:**
-  - A view file over 150 lines of Blade with no splitting attempt and no documented exemption.
+  - A view file over 150 lines of Blade with no splitting attempt and no exemption stated in the PR description.
   - A repeated HTML block (2+ identical structural copies in the same view, or once in 2+ views) left inline instead of extracted.
   - A self-contained interaction cluster (filter panel, modal, item form) left inline in the parent Livewire component.
   - Extracted component placed outside the correct tree (`app/Livewire` vs `resources/views/components`) or named after the page rather than the concern.
-- **Minor:**
-  - Single-use child component **that matches none of Triggers 3–7** (extraction driven purely by syntactic length, no UI-concern justification, no second consumer planned in the same PR) — collapse back per the YAGNI bullet above. Trigger-driven single-site extractions are exempt.

@@ -14,7 +14,7 @@
 #
 #   {
 #     "key", "url", "summary", "status", "issueType", "priority",
-#     "assignee", "reporter", "creator", "created", "updated",
+#     "assignee", "assigneeAccountId", "reporter", "creator", "created", "updated",
 #     "resolution", "resolutionDate", "dueDate", "environment",
 #     "labels", "components", "fixVersions",
 #     "parent":  { "key", "summary", "status" } | null,
@@ -27,9 +27,9 @@
 #     "issueLinks":  [ { "id", "type", "direction", "verb", "linkedKey", "linkedSummary", "linkedStatus", "linkedType" } ],
 #     "subtasks":    [ { "key", "summary", "status", "type",
 #                        "descriptionText", "descriptionAdf",
-#                        "comments":    [ { "id", "author", "body", "created", "visibility" } ],
+#                        "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "created", "visibility" } ],
 #                        "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ] } ],
-#     "comments":    [ { "id", "author", "body", "created", "visibility" } ],
+#     "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "created", "visibility" } ],
 #     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],
 #     "customFields":  { "customfield_XXXXX": <parsed value>, … },
 #     "devSummary":    { "pullRequestCount", "branchCount", "commitCount", "state", "isStale", "byInstance" } | null,
@@ -50,6 +50,12 @@
 #     its value, a list item as `- ` / `1. ` indented two spaces per nesting level, a task as
 #     `- [ ]` / `- [x]`, a rule as `---`, a table as `| cell | cell |` rows, and an expand as its
 #     title followed by its content. The same renderer produces `descriptionText`.
+#   - `authorAccountId` and `mentionAccountIds` carry the JIRA account IDs a rule can compare against
+#     `jira_actor_account_id` without a display-name match: `authorAccountId` is the comment
+#     author's account ID (comment-list `author.accountId`, or the view-embedded one as a
+#     fallback); `mentionAccountIds` is every `mention` node's `attrs.id` found in the comment's ADF
+#     body (deduplicated). A comment carries neither field when acli exposes no `accountId` for it —
+#     a display name or `@Name` text is never a substitute for either.
 #   - `customFields` runs every customfield_* value through a universal Java/Groovy
 #     toString unwrap: any string that starts with `{` and contains `json={…}` is
 #     parsed back into JSON. The leading-`{` anchor keeps the unwrap from firing
@@ -87,9 +93,12 @@
 #   3  JIRA fetch failed
 set -euo pipefail
 
+PROG="${0##*/}"
+
 usage() {
   cat >&2 <<'EOF'
 Usage: load-issue.sh <KEY|URL>
+       load-issue.sh --self-test
 
   KEY    bare JIRA work-item key (e.g. ACME-1234)
   URL    /browse/<KEY> URL or any URL with ?selectedIssue=<KEY>
@@ -99,6 +108,149 @@ Env:
   JIRA_DEV_SUMMARY_FIELD     customfield id feeding devSummary (default: customfield_10000)
 EOF
 }
+
+# --- self-test ----------------------------------------------------------
+# Exercises authorAccountId / mentionAccountIds end to end through a stubbed
+# acli (no network access): a comment whose comment-list author carries an
+# accountId, a mention node in its ADF body, and a second comment that falls
+# back to the view-embedded author when the comment-list one carries none.
+SELF_TEST_TMP=""
+cleanup_self_test() {
+  if [[ -n "$SELF_TEST_TMP" ]]; then
+    rm -rf "$SELF_TEST_TMP"
+  fi
+}
+
+self_test() {
+  local tmp stubbin script out err_file rc failures=0
+
+  tmp="$(mktemp -d)"
+  SELF_TEST_TMP="$tmp"
+  trap cleanup_self_test EXIT
+  stubbin="$tmp/bin"
+  mkdir -p "$stubbin"
+  err_file="$tmp/err"
+  script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$PROG"
+
+  cat >"$stubbin/acli" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == "jira" && "$2" == "workitem" && "$3" == "view" ]]; then
+  cat <<'JSON'
+{
+  "fields": {
+    "summary": "Fixture issue",
+    "status": { "name": "In Progress" },
+    "subtasks": [],
+    "comment": {
+      "total": 2,
+      "comments": [
+        {
+          "id": "10001",
+          "author": { "accountId": "acc-view-author-1", "displayName": "Petr Kral" },
+          "body": {
+            "version": 1, "type": "doc",
+            "content": [ { "type": "paragraph", "content": [
+              { "type": "mention", "attrs": { "id": "acc-mentioned", "text": "@Jan Novak" } },
+              { "type": "text", "text": " please review this." }
+            ] } ]
+          },
+          "created": "2026-01-01T00:00:00.000+0000",
+          "visibility": null
+        },
+        {
+          "id": "10002",
+          "author": { "accountId": "acc-view-fallback", "displayName": "External Reporter" },
+          "body": {
+            "version": 1, "type": "doc",
+            "content": [ { "type": "paragraph", "content": [
+              { "type": "text", "text": "No mention here." }
+            ] } ]
+          },
+          "created": "2026-01-02T00:00:00.000+0000",
+          "visibility": null
+        }
+      ]
+    }
+  }
+}
+JSON
+  exit 0
+fi
+if [[ "$1" == "jira" && "$2" == "workitem" && "$3" == "comment" && "$4" == "list" ]]; then
+  cat <<'JSON'
+{
+  "comments": [
+    {
+      "id": "10001",
+      "author": { "accountId": "acc-operator", "displayName": "Petr Kral" },
+      "body": "flattened text mentioning Jan Novak",
+      "created": "2026-01-01T00:00:00.000+0000",
+      "visibility": null
+    },
+    {
+      "id": "10002",
+      "author": { "displayName": "External Reporter" },
+      "body": "No mention here (flattened).",
+      "created": "2026-01-02T00:00:00.000+0000",
+      "visibility": null
+    }
+  ]
+}
+JSON
+  exit 0
+fi
+exit 1
+STUB
+  chmod +x "$stubbin/acli"
+
+  cat >"$stubbin/gh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' '[]'
+STUB
+  chmod +x "$stubbin/gh"
+
+  set +e
+  out="$(PATH="$stubbin:$PATH" "$script" TEST-1 2>"$err_file")"
+  rc=$?
+  set -e
+
+  if [[ "$rc" -ne 0 ]]; then
+    printf 'FAIL  %-60s exit %s (stderr: %s)\n' 'load succeeds against the stubbed acli' "$rc" "$(cat "$err_file")" >&2
+    failures=$((failures + 1))
+  else
+    printf 'ok    %-60s exit 0\n' 'load succeeds against the stubbed acli'
+  fi
+
+  check() {
+    local label="$1" filter="$2" expected="$3" actual
+    actual="$(printf '%s' "$out" | jq -r "$filter" 2>/dev/null || echo '<jq error>')"
+    if [[ "$actual" != "$expected" ]]; then
+      printf 'FAIL  %-60s got %s, expected %s\n' "$label" "$actual" "$expected" >&2
+      failures=$((failures + 1))
+      return
+    fi
+    printf 'ok    %-60s %s\n' "$label" "$actual"
+  }
+
+  check 'comment count' '.comments | length' '2'
+  check 'authorAccountId taken from the comment-list author' '.comments[0].authorAccountId' 'acc-operator'
+  check 'mentionAccountIds extracted from the ADF body' '.comments[0].mentionAccountIds | join(",")' 'acc-mentioned'
+  check 'authorAccountId falls back to the view-embedded author' '.comments[1].authorAccountId' 'acc-view-fallback'
+  check 'mentionAccountIds is empty with no mention node' '.comments[1].mentionAccountIds | length' '0'
+
+  if [[ "$failures" -gt 0 ]]; then
+    echo "load-issue.sh self-test: $failures failure(s)" >&2
+    return 4
+  fi
+  echo 'load-issue.sh self-test: PASS'
+  return 0
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  self_test
+  exit $?
+fi
 
 if [[ $# -ne 1 || -z "${1:-}" ]]; then
   usage
@@ -330,15 +482,17 @@ def commentOut($viewIdx):
   | {
       id: (if $id == "" then null else $id end),
       author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
+      authorAccountId: ($c.author.accountId? // $v.author.accountId? // null),
       body: (if ($v.body | type) == "object" then ($v.body | adfPlain)
              elif ($c.body | type) == "object" then ($c.body | adfPlain)
              else $c.body end),
+      mentionAccountIds: ([($v.body // $c.body) | .. | objects | select(.type == "mention") | .attrs.id? // empty] | unique),
       created: ($c.created // $v.created // null),
       visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $v.visibility // null) end)
     };
 
 def viewCommentIdx:
-  ((.comment.comments // []) | map({ key: ((.id // "") | tostring), value: { body: .body, created: .created, visibility: (.visibility.value // null) } }) | from_entries);
+  ((.comment.comments // []) | map({ key: ((.id // "") | tostring), value: { body: .body, created: .created, visibility: (.visibility.value // null), author: .author } }) | from_entries);
 
 def adfMedia:
   if type != "object" then []
@@ -374,6 +528,7 @@ def adfMedia:
     issueType: ($f.issuetype.name // null),
     priority: ($f.priority.name // null),
     assignee: ($f.assignee.displayName // null),
+    assigneeAccountId: ($f.assignee.accountId // null),
     reporter: ($f.reporter.displayName // null),
     creator: ($f.creator.displayName // null),
     created: ($f.created // null),

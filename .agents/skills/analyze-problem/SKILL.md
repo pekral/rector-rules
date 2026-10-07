@@ -71,7 +71,6 @@ Run this workflow after the issue-tracker pre-flight. Complete these four phases
 Execute the detailed procedures below inside those phases, not after them: Analysis Framework steps 1–3 complete phase 1; phase 2 then gathers project history; steps 4–6 complete phase 3; and steps 7–10 plus the plan artifact complete phase 4.
 
 - Analyze the problem and all available context.
-- Walk through the Analysis Framework below in order — do not skip steps.
 - Separate facts from assumptions and from hypotheses.
 - Identify the most probable root cause and how to validate it.
 - Recommend the smallest safe solution and explain rejected alternatives.
@@ -82,7 +81,7 @@ Execute the detailed procedures below inside those phases, not after them: Analy
 
 Apply these 10 steps in order. Each step feeds the next — never jump ahead to a solution before evidence and root cause are settled.
 
-1. **Context extraction** — what we actually know from the assignment, comments, linked / sub-issues, attachments, and surrounding code (all loaded via the *Issue-tracker context* mandatory pre-flight above). First **consult the per-project compound memory** (`docs/memory/PROJECT_MEMORY.md` per `@rules/compound-engineering/general.md` *Compound Memory (per project)*): read it when present and reuse any entry whose `Trigger:` matches this problem instead of re-deriving a lesson the project already recorded. Apply the per-role read filter from `@rules/compound-engineering/general.md` *Read protocol* — load only entries where `Role:` matches the calling agent's own role or `Role: shared`; skip entries tagged for other roles.
+1. **Context extraction** — what we actually know from the assignment, comments, linked / sub-issues, attachments, and surrounding code (all loaded via the *Issue-tracker context* mandatory pre-flight above). First **consult the per-project compound memory** (`docs/memory/PROJECT_MEMORY.md` per `@rules/compound-engineering/memory.md` *Compound Memory (per project)*): read it when present and reuse any entry whose `Trigger:` matches this problem instead of re-deriving a lesson the project already recorded. Apply the per-role read filter from `@rules/compound-engineering/memory.md` *Read protocol* — load only entries where `Role:` matches the calling agent's own role or `Role: shared`; skip entries tagged for other roles.
 2. **Task-type classification & problem statement** — first classify the task from the context (feature, bug, regression, performance, data issue, security, UX, refactor, tooling, unclear requirement, or other) and state that type explicitly at the top of the Summary so a reader sees it immediately; then write one precise sentence describing the real problem — for a feature, the target behavior to build rather than a malfunction.
 3. **Expected vs actual behavior** — what should happen, and what is happening instead.
 4. **Evidence** — logs, screenshots, issue comments, files, reproduction steps. Verified facts only.
@@ -176,12 +175,7 @@ Record the design verdict in the **Recommended Solution** section using these ex
 
 ## References
 
-- references/debugging-strategies.md
-- references/hypothesis-generation.md
 - references/root-cause-analysis.md
-- references/analysis-good.md
-- references/analysis-missing-context.md
-- references/analysis-multiple-hypotheses.md
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

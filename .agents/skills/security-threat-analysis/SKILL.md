@@ -12,10 +12,10 @@ metadata:
 - Apply `@rules/security/backend.md`
 - Apply `@rules/security/frontend.md`
 - Apply `@rules/security/mobile.md`
-- Apply `@rules/reports/general.md`. When the remediation report is published as a **GitHub PR comment** (technical channel — the PR is the codebase tracker), it stays in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*. When it is published as a comment on the originating tracker issue / JIRA ticket (non-technical channel), it follows the language of the source assignment. CVE / GHSA identifiers, CWE / OWASP labels, package names, and code identifiers stay verbatim regardless of the surrounding prose language.
+- Apply `@rules/reports/general.md`. When the remediation report is published as a **GitHub PR comment** (technical channel — the PR is the codebase tracker), it stays in canonical English per the rule's *Exception — technical CR findings on the GitHub PR* — or in the language the project manifest sets in `language.github` (*Project override — `language.github` in the manifest*). When it is published as a comment on the originating tracker issue / JIRA ticket (non-technical channel), it follows the language of the source assignment. CVE / GHSA identifiers, CWE / OWASP labels, package names, and code identifiers stay verbatim regardless of the surrounding prose language.
 - Never include exploit payloads in a form ready for live attack; always redact secrets, PII, and identifying tokens
 - Do not modify code in this skill — it produces a report only
-- Do not duplicate `@skills/security-review/SKILL.md`; that skill audits the whole project, this skill analyzes one referenced external threat
+- Do not duplicate `@skills/security-review/SKILL.md`; that skill reviews a change set for exploitable issues, this skill analyzes one referenced external threat
 
 ## Use when
 - The user provides a URL or identifier (CVE-…, GHSA-…, advisory link, blog post, write-up) describing a specific security threat
@@ -29,7 +29,7 @@ Before generating the report, capture:
 - **Project context** — language/framework of the current repository (read from `composer.json`, `package.json`, lockfiles)
 - **Scope** — whether the user wants threat analysis only, or analysis plus a fix plan tailored to the current project
 
-If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `resolve-issue`), infer them from the triggering issue and state the assumptions at the top of the report.
+If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `leonardo` in security analysis mode), infer them from the triggering issue and state the assumptions at the top of the report.
 
 ## Execution
 

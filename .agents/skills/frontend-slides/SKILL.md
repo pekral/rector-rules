@@ -9,7 +9,6 @@ metadata:
 ## Constraints
 - Self-contained: one HTML file with inline CSS and JS. No build step, no framework, no external tooling.
 - Vanilla HTML/CSS/JS only — no React, no bundler, no Node scripts, no Python.
-- Body limits: this skill stays well under 500 lines and 5000 tokens; the deck you produce has no hard size limit but every slide must fit one viewport.
 - Viewport fit is a hard gate: every slide fits one viewport with no internal scrolling.
 - Accessibility is required: semantic headings, readable contrast, `prefers-reduced-motion` support.
 
@@ -119,7 +118,7 @@ Validate at: 1920x1080, 1280x720, 768x1024, 375x667, 667x375.
 ## Typography and spacing
 - Strong hierarchy: one dominant heading per slide, supporting text clearly smaller.
 - Generous whitespace via `clamp()`-based padding and gaps.
-- A clear visual direction (atmospheric background, accent color) beats a generic template look.
+- Choose a palette and type pairing for the talk. Avoid the default deck look: a purple-to-blue gradient, a centered title over a blurred atmospheric image, emoji bullets, and the template's slate-and-sky colors left unchanged.
 
 ## Accessibility
 - Semantic structure: `main`, `section`, real `h1`/`h2`, `ul`/`li`.

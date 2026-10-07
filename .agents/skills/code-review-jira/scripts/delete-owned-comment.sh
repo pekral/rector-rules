@@ -25,11 +25,13 @@
 #   3. Both protected comments exist on this issue. The author `accountId` of
 #      FINAL_TLDR_ID anchors the actor's account: this run published that comment
 #      itself and read it back, while acli exposes no account ID for the current
-#      user. CURRENT_CR_ID must share that `accountId`. A protected comment needs
-#      no marker, so a TL;DR published through the sanctioned JIRA MCP fallback
-#      after `upsert-comment.sh` failed still anchors the cleanup of the
-#      duplicates that failed run left behind. Pass only a comment ID this run
-#      published as FINAL_TLDR_ID.
+#      user. CURRENT_CR_ID must share that `accountId`. A protected comment's own
+#      anchor never depends on a marker being present on it — it comes from the
+#      accountId this run read back. So a TL;DR published through the sanctioned
+#      JIRA MCP fallback after `upsert-comment.sh` failed still anchors the
+#      cleanup of the duplicates that failed run left behind: that fallback TL;DR carries the `cr-comment:actor=` marker too, per `@rules/code-review/general.md`
+#      *Authorship trust*, but this step does not depend on it. Pass only a
+#      comment ID this run published as FINAL_TLDR_ID.
 #   4. The target exists on this issue, carries the marker, and its author
 #      `accountId` equals the anchor. The marker alone is visible text anyone
 #      can copy, and a display name is not an identity, so neither proves

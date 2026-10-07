@@ -12,13 +12,19 @@ function jiraWikiInlineNodes(string $text): array
 {
     $nodes = [];
     $offset = 0;
-    $pattern = '/\{\{(?<codeText>.+?)\}\}|\[(?<linkText>[^|\]]+)\|(?<href>[^\]]+)\]|\*(?<strongText>[^*]+)\*|_(?<emText>[^_]+)_/u';
+    // Strong and emphasis never open or close inside a word, the same as in JIRA, so an identifier
+    // like `campaign_report_stats` or `2*3*4` stays literal text. A code span inside them may carry
+    // the delimiter, e.g. `_metric {{total_user_open}}_`.
+    $pattern = '/\[~accountid:(?<mentionId>[A-Za-z0-9:_-]+)\]|\{\{(?<codeText>.+?)\}\}|\[(?<linkText>[^|\]]+)\|(?<href>[^\]]+)\]|(?<![\p{L}\p{N}])\*(?<strongText>(?:\{\{.+?\}\}|[^*])+)\*(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])_(?<emText>(?:\{\{.+?\}\}|[^_])+)_(?![\p{L}\p{N}])/u';
 
     while (preg_match($pattern, $text, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
         $position = $match[0][1];
         jiraWikiAppendTextNode($nodes, substr($text, $offset, $position - $offset));
 
-        if ($match['codeText'][1] >= 0) {
+        if ($match['mentionId'][1] >= 0) {
+            // A mention notifies the account, so it becomes an ADF mention node, never plain text.
+            $nodes[] = ['type' => 'mention', 'attrs' => ['id' => $match['mentionId'][0]]];
+        } elseif ($match['codeText'][1] >= 0) {
             // Code spans are literal in JIRA, so their content is never re-parsed.
             jiraWikiAppendTextNode($nodes, $match['codeText'][0], [['type' => 'code']]);
         } elseif ($match['linkText'][1] >= 0) {
@@ -52,7 +58,13 @@ function jiraWikiAppendMarkedNodes(array &$nodes, string $text, array $mark): vo
     foreach (jiraWikiInlineNodes($text) as $node) {
         /** @var list<array<string, mixed>> $marks */
         $marks = $node['marks'] ?? [];
-        $marks[] = $mark;
+
+        // ADF allows the code mark beside a link only: JIRA rejects a code + strong or code + em span,
+        // so inline code inside bold or italic text keeps its code mark alone.
+        if ($mark['type'] === 'link' || !in_array(['type' => 'code'], $marks, true)) {
+            $marks[] = $mark;
+        }
+
         $node['marks'] = $marks;
         $nodes[] = $node;
     }
@@ -146,7 +158,8 @@ function jiraWikiMarkupToAdf(string $wikiMarkup): array
             continue;
         }
 
-        if (preg_match('/^([*#])\s+(.+)$/u', $line, $listItem) === 1) {
+        // `*` and `-` both open a bullet list in JIRA Wiki Markup; `#` opens a numbered one.
+        if (preg_match('/^([*#-])\s+(.+)$/u', $line, $listItem) === 1) {
             $marker = $listItem[1];
             $items = [];
 
@@ -171,7 +184,7 @@ function jiraWikiMarkupToAdf(string $wikiMarkup): array
             } while (true);
 
             $content[] = [
-                'type' => $marker === '*' ? 'bulletList' : 'orderedList',
+                'type' => $marker === '#' ? 'orderedList' : 'bulletList',
                 'content' => $items,
             ];
 

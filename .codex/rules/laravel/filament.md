@@ -24,7 +24,7 @@ paths:
 - Use `->mutateDataUsing()` instead of deprecated `->mutateFormDataUsing()`.
 
 ## UI
-- Use `Filament\\Support\\Icons\\Heroicon` for icons instead of raw strings.
+- Use `Filament\Support\Icons\Heroicon` for icons instead of raw strings.
 - For custom Blade files with Tailwind, create and register a custom theme.
 
 ## Testing

@@ -24,7 +24,7 @@ paths:
 
 - **Prove behavior end to end first.** For a user-visible or cross-boundary change, use the project's existing browser, HTTP, queue, or CLI E2E path as the primary test. Do not install a test runtime merely to satisfy this rule. An E2E run ends with a repeatable artifact that identifies the scenario and records the outcome, such as a Playwright trace, screenshot/video, JUnit result, request/response capture, or generated report.
 - **Write the test before production code.** Never add an isolated unit or feature test after writing the production behavior it is meant to justify. When isolation is genuinely necessary because an E2E path cannot exercise a narrow failure mode economically, first write a failure inventory: the concrete ways the behavior can fail, the observable outcome for each, and the one scenario the test will prove. Then write and observe the failing test before the production change.
-- **Test a real behavior gap, not the implementation's reflection.** Do not add tautological assertions, change-detector tests, or a regression test for a bug unless an observable behavior gap exists. A valid regression test fails against the buggy behavior and passes only when the user-visible or contract-visible outcome is corrected.
+- **Test a real behavior gap, not the implementation's reflection.** `@skills/test-audit/SKILL.md` *Regression tests* and *Junk patterns* decide what a regression test must prove and which assertions carry no value.
 
 ## Flaky Test Prevention
 A flaky test fails inconsistently, is hard to reproduce, and is often "fixed" by simply re-running the pipeline. Flaky tests destroy trust in CI — once a team learns to re-run instead of investigate, it starts ignoring real failures too. Every new or modified test must be deterministic: it must pass repeatedly, in isolation, and in any order. Apply the following:
@@ -36,6 +36,7 @@ A flaky test fails inconsistently, is hard to reproduce, and is often "fixed" by
 - **Keep shared resources parallel-safe.** Parallel runs do not create flakiness — they expose existing shared state: Redis keys, files, temp directories, config cache, static properties, and singletons. Isolate per test with `Storage::fake()`, unique keys / file names, and by avoiding mutable static or singleton state.
 - **Never call external services directly.** Real HTTP requests fail on network issues, rate limits, latency, or sandbox outages — fake every outbound call with `Http::fake()` (and the relevant SDK fakes). See the *External Calls* section below for the full no-network / no-DNS contract.
 - **Guarantee order independence.** A test must pass on its own, repeatedly, and in any order. If a test passes only because another test ran before it, fix the hidden dependency — do not rely on suite ordering.
+- **A flaky test outside the diff and the assignment is not yours to fix.** Leave it unchanged and report it, per `@skills/resolve-issue/references/quality-gates.md` *A flaky test outside the diff and the assignment is left alone*. The rules above apply to the tests the task writes or changes.
 
 ## Data Handling
 - For Laravel:
@@ -82,7 +83,13 @@ A dispatch test owns exactly one fact: **the caller dispatched the job**. What t
 - Tests must not call external services.
 - Mock all HTTP requests.
 - Use local or in-memory database connections for tests.
-- Avoid DNS lookups in tests.
+- **A test never reaches the real network below HTTP.** This covers DNS resolution and raw connections: `dns_get_record()`, `checkdnsrr()`, `dns_check_record()`, `getmxrr()`, `dns_get_mx()`, `gethostbyname()`, `gethostbynamel()`, `gethostbyaddr()`, `fsockopen()`, `pfsockopen()`, `stream_socket_client()`, `socket_connect()`, `ftp_connect()`, `ftp_ssl_connect()`, and `ldap_connect()`. The list names the common cases and is not exhaustive: every function that queries a resolver or opens a connection to another host is covered.
+- **The rule covers the code under test, not only the test file.** A test that drives production code into `dns_get_record()` performs a real lookup, even when the test file never names the function. A lookup that returns an empty result is still a real query: it depends on the machine's resolver, it stalls the suite when the resolver times out, and it sends the queried host names to the network.
+- **Production code calls such a function through an injectable seam class dedicated to that capability.** Wrap the function in a small class that the container resolves, for example `DnsResolver::records(string $hostname, int $type)` for DNS resolution and a separate `SocketConnector::connect(string $host, int $port)` for raw sockets. One seam per capability: every other class depends on the seam for that capability and never on the global function, and a project may hold several such seams without either one becoming the finding.
+- **The seam's own delegation line is exempt from Coverage.** The seam class's body is one call to the native function with no branching and no other logic, so covering that single line means a real lookup — exactly what the seam exists to prevent. Exclude that one line from the default coverage run with a documented marker (e.g. `@codeCoverageIgnore`), or cover it only inside the project's explicitly isolated integration test group. Every other line the seam class or its caller adds still needs 100% coverage under `Coverage` below.
+- **The base test case replaces the seam by default.** Bind a fake that performs no I/O in the shared test setup. A test that configures nothing then still cannot reach the network. A test that needs records configures them on that fake.
+- **A namespace function override is not a replacement.** Declaring `namespace App\Foo; function dns_get_record() {…}` catches only an unqualified call from that exact namespace, and only after a test loads the file. A fully qualified `\dns_get_record()`, a `use function dns_get_record;` import, or a call from another namespace reaches the real resolver again, and nothing reports it.
+- CR severity: **Critical**. The review applies the gate **Real DNS lookup or network socket** in `@rules/code-review/review-process.md` *Test isolation — no real HTTP, no real system processes*.
 
 ## Consistency
 - Ensure new or modified tests follow existing project conventions.
@@ -107,37 +114,37 @@ A dispatch test owns exactly one fact: **the caller dispatched the job**. What t
 - Prefer simple, readable tests over complex setups.
 - Use data providers (datasets) where they improve readability and reduce duplication across similar test cases.
 - Tests must not contain conditions (e.g., `if`, `switch`); split conditional logic into separate test cases or data providers instead.
-- Structure every test body arrange-act-assert per @rules/php/core-standards.md Testing (phases in order, comments optional — see the canonical rule for the exception list).
+- Structure every test body arrange-act-assert per @rules/php/core-standards.md Testing (phases in order, separated by blank lines, never by `// Arrange` / `// Act` / `// Assert` comments — see the canonical rule for the exception list).
 
-## No Tautological Assertions
-A tautology — an assertion that holds no matter what the code under test does — states nothing about that code, yet it counts toward coverage and reads as verified behaviour. That makes it worse than a missing test: a gap is visible, a tautology is camouflage. **No tautological assertion belongs in the codebase.** Delete it, or rewrite it into a claim the production code is able to break.
+## Test Value
+Every new or changed test passes the authoring gate of `@skills/test-audit/SKILL.md`: it protects a named behaviour, risk, or contract; a real regression makes it fail; no stronger test already guards it; and it needs no test-only production seam. That skill is the single authority on test value — the owner-boundary principle, the regression-test rules, the junk patterns (tautological assertions among them), the falsifiability test, the retention bar, and the evidence a test removal needs. Coverage verifies those tests; it never justifies one.
 
-Each of the following is a violation on a line the change adds or modifies:
+## Acceptance-Criteria Test Contract
 
-- **A literal asserted against itself** — `expect(true)->toBeTrue()`, `expect(1)->toBe(1)`, `assertSame('a', 'a')`. No project code is exercised at all.
-- **A value the test itself just assigned**, with no call to the system under test in between — `$data = new OrderData(total: 500); expect($data->total)->toBe(500);` asserts PHP's property assignment, not the project's behaviour. It stops being a tautology when a named constructor, cast, mutator, or normaliser transformed the input: then assert the transformation, never the echo.
-- **A configured test double re-asserted** — asserting the value a mock was just told to return verifies the mocking library. Assert the effect the system under test produced from that value instead.
-- **A language or framework guarantee** — that `collect([])` is a `Collection`, or that a getter with a declared return type returns that type. The type system already enforces it; the assertion cannot fail.
-- **An expected value computed by the code under test** — `expect($sut->total())->toBe($sut->total())`, or the system's own formula recomputed inline in the test so both sides move together when the formula changes. Pin the expected value literally.
-- **No assertion at all**, where the test passes merely because nothing threw. When *does not throw* genuinely is the contract, assert it explicitly (`expect(fn () => $sut->run())->not->toThrow(RuntimeException::class)`).
+A change is delivered only when three things hold together: every acceptance criterion of the assignment is met, the code is the simplest design that meets them, and the tests prove exactly those criteria with 100% coverage of the changed lines. Each part is weak alone. Coverage without criteria rewards tests that execute lines and prove nothing. Criteria without coverage leave code that no test reaches. Tests beyond the criteria cost maintenance and hide which test guards which promise.
 
-**The falsifiability test — apply it to every assertion you write.** Break the production code the test claims to cover: invert a condition, return a wrong value, delete the branch. If the test still passes, the assertion is a tautology. A test must be able to fail for the reason it exists — that is the whole of its value.
-
-CR severity: **Moderate**. Escalate to **Critical** when the tautology is the only assertion covering a line the change adds or modifies, because the change then ships untested while reporting as covered.
+- **Every criterion has a test.** Each acceptance criterion has at least one named test that proves it, with the data the assignment states. The test name says which criterion the test proves. The review-side check is `@rules/code-review/review-process.md` *Acceptance-criteria use-case coverage*; this section is its implementation-side counterpart.
+- **Every test proves a criterion.** Each test that the change adds or modifies proves one criterion, or one failure mode that the criteria or the change imply: an error path, a boundary, an authorization check, a fallback. A test that proves neither is removed. A second test that proves the same criterion with the same data is merged into the first one.
+- **Coverage comes from those tests.** *Coverage* below requires 100% of the changed lines. Reach it with the tests above, never with a test written only to execute a line. A changed line that no criterion-driven test reaches is one of two things:
+  1. a failure mode without its test — add the test;
+  2. code that the criteria do not need — delete the code.
+- **The code is the simplest design that meets every criterion.** No speculative abstraction, no configuration for a fixed value, no defensive branch for an impossible case (*Simplicity First*, `@rules/code-review/core-analysis.md`). Deleting code is preferred over testing it.
+- **The handoff proves the mapping.** The implementer reports a criterion → test table (criterion, test file and test name, result) and the measured coverage of the changed lines. A criterion with no test, a test with no criterion, or coverage below 100% is not delivered: fix it, or stop as `Blocked`.
+- **A declared HOTFIX is the only waiver.** It follows `@rules/compound-engineering/orchestration.md` *HOTFIX — the declared emergency path* and the review-side waiver in `@rules/code-review/review-process.md`. No other caller instruction lifts this section.
 
 ## Coverage
 - Every test change must be verified to be functional — run affected tests after each modification.
 - Require 100% code coverage for every changed or added code path — applies equally to code modifications and code review.
-- Before running coverage, discover the project's coverage command (prefer Phing target from `build.xml`/`phing.xml`; fall back to a Composer script in `composer.json` such as `test:coverage` or `coverage`). Do not assume a default command.
-- **Coverage reporting is short by default (issue #528 follow-up).** Run the coverage check on every change, but report the result on the published CR / tracker comment **only** when there is something the reader must act on:
+- Before running coverage, discover the project's coverage command per `@skills/resolve-issue/references/quality-gates.md`. Do not assume a default command.
+- **Coverage reporting is short by default.** Run the coverage check on every change, but report the result on the published CR / tracker comment **only** when there is something the reader must act on:
     - **uncovered changed lines** — list every uncovered line as a Critical finding and render the `## Coverage` section with the tool, exact command, and the uncovered-line list;
-    - **coverage tooling unavailable** — raise the missing-tool case as a Critical finding and render the `## Coverage` section with the reason in place of a result. **Sanctioned exception:** a pass running in the optional isolated read-only worktree with no `vendor/` under `## Savings mode: on` reports `deferred to donatello` here instead of a Critical finding, per `@rules/code-review/review-process.md` *Validation & Coverage Gate*.
+    - **coverage tooling unavailable** — raise the missing-tool case as a Critical finding and render the `## Coverage` section with the reason in place of a result. **Sanctioned exception:** a pass running in the optional isolated read-only worktree with no `vendor/` reports `deferred to donatello` here instead of a Critical finding, per `@rules/code-review/review-process.md` *Validation & Coverage Gate*.
   When every changed line is at 100% coverage and the tool ran successfully, **omit the `## Coverage` section entirely, omit the `Coverage:` header line, and omit the `coverage …` slot from the final summary line.** The CR is "clean" on the Counts line and the omission is the signal that coverage is satisfied — never emit `100%` / `clean` / `n/a` placeholders for the section, the header line, or the summary slot. The coverage check itself still runs unconditionally on every CR; only the user-visible reporting is short-circuited.
 
 ## Code Style and Quality Gates
-- **Do not run fixers or checkers on test changes as you author them.** The project's gate runs once, immediately before the merge (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*), executed by `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate*, which commits the fixes it produces as their own commit.
+- **Do not run fixers or checkers on test changes as you author them.** The project's gate runs once, immediately before the merge (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*), run by `@skills/process-code-review/SKILL.md` *Finalization* after the review converges, or by `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* when no recorded run covers the head commit. That run commits the fixes it produces as their own commit.
 - Do run the **tests** you are writing or changing — that is correctness feedback on the change itself, not a style gate, and it costs no build.
-- The gate discovers its own tooling: prefer Phing targets (`build.xml`/`phing.xml`) over Composer scripts (`composer.json`).
+- The gate discovers its own tooling: the project's gate / coverage command, discovered per `@skills/resolve-issue/references/quality-gates.md`.
 
 ## Test Review
-- After completing test changes, run a quick code review focused on test quality against these rules.
+- After completing test changes, check every changed test against these rules and the *Junk patterns* of `@skills/test-audit/SKILL.md`.

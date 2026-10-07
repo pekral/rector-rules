@@ -18,7 +18,7 @@ metadata:
 This skill runs in one of two modes, selected by the caller via `MODE` (default `build`):
 
 - **`build` (default)** — full container work: write and edit `Dockerfile`s and compose files, add services, healthchecks, and volumes, and change how a secret reaches the build. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
-- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a container build or runtime surface)** — **never modify a `Dockerfile`, a compose file, or any other project file, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate / Minor buckets.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a container build or runtime surface)** — **never modify a `Dockerfile`, a compose file, or any other project file, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
 Every instruction below that would touch a file or an image — add, pin, split, drop, mount, configure, or any other such verb — is emitted as a written proposal carrying a concrete Dockerfile or compose snippet, never applied to the project.
 
 > **What this lens owns in a CR:** the shape of the image and its services — stage layout and layer caching, pinned base image tags, the non-root user and dropped capabilities, healthchecks, one process per container, and how a secret is delivered to the build — a runtime injection or a BuildKit `--mount=type=secret` against an `ENV` / `COPY` that persists in a layer. It **defers the fetch, the transport trust, and the concealment on a line** — a silent remote fetch, disabled TLS validation, suppressed error output, and the hidden-file-plus-detached-process pattern — to the walk *Malicious Code & Supply-Chain Indicators* (`@rules/security/backend.md`), and never raises a finding that walk owns.
@@ -54,7 +54,7 @@ COPY resources ./resources
 RUN npm run build              # emits public/build via laravel-vite-plugin
 
 # --- Stage: runtime (php-fpm, non-root, opcache) ---
-FROM php:8.3-fpm-alpine AS runtime
+FROM php:8.4-fpm-alpine AS runtime   # match composer.json require.php
 RUN apk add --no-cache fcgi \
     && docker-php-ext-install pdo_mysql opcache bcmath pcntl \
     && addgroup -g 1000 -S app && adduser -S app -u 1000 -G app

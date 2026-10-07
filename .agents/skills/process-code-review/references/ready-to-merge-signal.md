@@ -23,7 +23,7 @@ The write is unconditional, idempotent, and verified — the same apply-then-ver
 - A branch that resolves no tracker issue (a task the user described directly) has nothing to write a status on. Skip the issue-side write, state the skip in the completion report, and promote the PR exactly as above. This is not a failure and not a partial success; the PR's own half of the signal is unaffected.
 
 ### Revert when the review re-opens
-A commit landing after the promotion can re-open the review (*Finalization* — **A behaviour-changing gate fix re-opens the review**). Phase 3 then states something untrue, so withdraw it symmetrically with how it was written, and only for the halves that were actually written:
+A commit landing after the promotion can re-open the review (*Finalization* — **Only a gate fix that changes business logic re-opens the review**). Phase 3 then states something untrue, so withdraw it symmetrically with how it was written, and only for the halves that were actually written:
 
 1. `gh pr ready --undo <PR-NUMBER|URL>` returns the PR to Draft when it had already been promoted.
 2. `gh issue edit <N> --remove-label "ready to merge"` removes the GitHub signal. The still-present `ready for review` label is again the active phase-2 signal, which is what is true — the work waits on a reviewer.

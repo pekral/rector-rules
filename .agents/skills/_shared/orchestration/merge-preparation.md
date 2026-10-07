@@ -5,12 +5,19 @@ Extracted from `agents/splinter.md` so the orchestrator does not carry it on eve
 ## Prepare-only mode — `/prepare-issue-for-merge`
 
 When the user invokes `/prepare-issue-for-merge <URL>`, `$verify-merge-readiness`, or explicitly
-asks you to prepare a GitHub issue's PR for merge without merging, follow
+asks you to prepare a GitHub or JIRA issue's PR for merge without merging, follow
 `@skills/verify-merge-readiness/SKILL.md` in full. This is a specialization of the end-to-end run,
 not a second implementation of it.
 
 - Resolve and gather the source as usual, then record `## Preparation mode: merge-ready, no merge`
   in the shared brief.
+- **Change only what the assignment and the merge gate require.** Record the scope contract of
+  `@skills/verify-merge-readiness/SKILL.md` *Scope — the assignment only* in the shared brief, and
+  repeat it in every `donatello` and `leonardo` dispatch prompt. An optimization, a refactoring, a
+  pre-existing problem outside the security floor, or a nice-to-have point is not implemented and
+  not filed. The agent records it under `## Open decisions` in the brief, and `april` publishes it
+  as a question for a human — on a JIRA source in the pull-request `merge-readiness` comment, and on
+  the JIRA ticket only when it is Critical (`@skills/verify-merge-readiness/SKILL.md` step 4).
 - **When the source issue resolves to no pull request, deliver it first.** The issue is not
   implemented yet, so run steps 4 to 6 of *The end-to-end run* on it — the optional security-risk
   analysis, `donatello` for the implementation, then the `donatello` ↔ `leonardo` review-and-fix
@@ -24,7 +31,9 @@ not a second implementation of it.
   new actionable feedback requires review. Never dispatch an identical-diff CR merely because a
   rebase changed the head SHA.
 - Dispatch `donatello` only for missing remediation or the exact-head final quality gate. Require
-  evidence for every acceptance criterion and all merge-readiness checks.
+  evidence for every acceptance criterion and all merge-readiness checks. Before a gate dispatch,
+  run `skills/_shared/verify-gate.sh --tier full <head SHA>`; on exit
+  `0` skip the dispatch and record `gate skipped — record <path> valid for tree <tree>` in the brief.
 - Dispatch `april` in *Merge-preparation consolidation mode* only after the readiness state is
   known. April owns both the final TL;DR publication and the skill-bounded cleanup; you perform
   neither write yourself.

@@ -170,7 +170,8 @@ CREATE POLICY tenant_isolation ON invoices
 
 ```php
 // Set the session variable per request before any tenant query.
-DB::statement('SET app.tenant_id = ?', [$tenantId]);
+// SET takes no bind parameters; set_config() does.
+DB::select("SELECT set_config('app.tenant_id', ?, false)", [(string) $tenantId]);
 ```
 
 - Wrap the auth check in a subquery / `SELECT` of `current_setting(...)` so the planner caches it once per query rather than re-evaluating per row.

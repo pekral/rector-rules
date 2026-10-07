@@ -11,7 +11,7 @@ metadata:
 - Apply `@rules/php/core-standards.md`
 - Apply `@rules/security/backend.md` — for the error-text and authorization-leak surface of API responses (401/403/404 wording, no internal-detail leak).
 - If the current project uses Laravel, also apply `@rules/laravel/architecture.md` and `@rules/laravel/laravel.md` — validation belongs in FormRequest / Data Validator, controllers stay slim.
-- Apply `@rules/reports/general.md` — when the findings are folded into the **GitHub PR comment** by a CR wrapper they stay in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*; a non-technical mirror on a linked issue / JIRA ticket follows the language of the source assignment. HTTP verbs, status codes, header names, and code identifiers stay verbatim regardless of the surrounding prose language.
+- Apply `@rules/reports/general.md` — when the findings are folded into the **GitHub PR comment** by a CR wrapper they stay in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*; a non-technical mirror on a linked issue / JIRA ticket follows the language of the source assignment. A manifest `language.github` overrides both on GitHub (the rule's *Project override — `language.github` in the manifest*). HTTP verbs, status codes, header names, and code identifiers stay verbatim regardless of the surrounding prose language.
 - Output findings only — no praise, no summary of what was checked.
 - **Read-only skill** — never modify code, never stage / commit / push, and never run any git write operation. Switching to the relevant branch and `git pull` to read the latest diff are allowed; mutating the working tree or pushing is not.
 
@@ -35,7 +35,6 @@ Walk the diff against each pillar of `@rules/api/general.md` and raise one findi
 
 ### 2. Resource-oriented REST
 - Action/verb in the endpoint path (`/getUser`, `/createUser`, `/users/{id}/delete`, `/doPayment`) instead of a resource noun + HTTP method.
-- Singular collection nouns or flat URIs where a sub-resource nesting (`/users/{id}/orders`) reads clearer.
 
 ### 3. HTTP methods & idempotence
 - Method whose side effects violate its contract — `GET` that mutates state, `PUT`/`DELETE` not idempotent on repetition.
@@ -45,7 +44,7 @@ Walk the diff against each pillar of `@rules/api/general.md` and raise one findi
 - Critical, retry-prone, state-changing operation (payment, transfer, order placement) with no `Idempotency-Key` handling, so a client retry can double-execute.
 
 ### 5. Status codes
-- Imprecise success code — `200` for a creation (`201`), for an async hand-off (`202`), or where `204` (no body) is correct; a body returned alongside `204`; a missing `Location` header on `201`.
+- Imprecise success code — `200` for a creation (`201`), for an async hand-off (`202`), or where `204` (no body) is correct; a body returned alongside `204`.
 - Error code collapsed into a generic one where a narrower code applies (`400`/`401`/`403`/`404`/`409`/`422`/`429`).
 - 401-vs-403 inversion — `401` for an authorization failure or `403` for a missing/invalid credential.
 
@@ -57,19 +56,19 @@ Walk the diff against each pillar of `@rules/api/general.md` and raise one findi
 
 ## Prioritization
 - Focus on contract defects a consumer would feel: double-charges, wrong status branching, breaking payload shapes, bypassed validation.
-- Deprioritize purely cosmetic naming nits — keep them as **Minor**.
+- Do not report purely cosmetic naming nits. The review has no tier below Moderate (`@rules/code-review/general.md` *Minor findings are not detected*).
 - Do not propose API features the current scope does not require (YAGNI per `@rules/php/core-standards.md`).
 
 ## Report
 
 ### Real-Code Grounding for Every Finding (issue #97)
-Apply the contract in `@rules/code-review/general.md` *Real-Code Grounding for Every Finding (issue #97)* to every finding — **Critical, Moderate, and Minor alike; no severity is exempt**. On this skill's surface the context to re-read is the enclosing route / controller / FormRequest / API Resource, plus any Service or DTO the Suggested Fix depends on — a contract claim is grounded only when the real route definition and the real response shape were both read. The requirement holds equally for a standalone run (e.g. a pre-release API design check).
+Apply the contract in `@rules/code-review/general.md` *Real-Code Grounding for Every Finding (issue #97)* to every finding — **Critical and Moderate alike; no severity is exempt**. On this skill's surface the context to re-read is the enclosing route / controller / FormRequest / API Resource, plus any Service or DTO the Suggested Fix depends on — a contract claim is grounded only when the real route definition and the real response shape were both read. The requirement holds equally for a standalone run (e.g. a pre-release API design check).
 
 Findings from this skill fold into the core CR's severity buckets; the Assignment-Declared Test-Only Conditions — Exclusion Gate (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*) is applied by `@skills/code-review/SKILL.md`, not here — trust-boundary / authorization findings from Core Check 6 fall under the gate's security carve-out and are never excludable.
 
 Use the severity scale of `@skills/code-review/SKILL.md` so findings fold cleanly into the code review:
 
-- **Critical** / **Moderate** / **Minor** — apply the severity declared in `@rules/api/general.md` *CR Severity Rules*.
+- **Critical** / **Moderate** — apply the severity declared in `@rules/api/general.md` *CR Severity Rules*. An entry that rule grades below Moderate is not reported.
 
 Each finding includes:
 - location (`file:line`)
@@ -82,8 +81,6 @@ Each **Critical** and **Moderate** finding additionally includes:
 - **Expected Behavior** — single assertable statement (status code, response shape, idempotent outcome, rejection before side effect)
 - **Test Hint** — one sentence pointing at the test layer (feature/HTTP, integration) and the entry point
 - **Suggested Fix** — minimal corrected snippet that complies with `@rules/api/general.md`, `@rules/php/core-standards.md`, and on Laravel projects `@rules/laravel/architecture.md`. Use `n/a — <reason>` only when a snippet adds nothing over the one-line fix.
-
-Minor findings may omit these fields when no behavior change is implied.
 
 These fields exist so `@skills/process-code-review/SKILL.md` can turn each finding into a reproducer test and apply the fix without re-deriving context.
 

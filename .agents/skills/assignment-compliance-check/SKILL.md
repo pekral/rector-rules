@@ -15,7 +15,7 @@ metadata:
 - The block **must not** be embedded into the GitHub PR comment produced by `@skills/code-review/SKILL.md`, `@skills/code-review-github/SKILL.md`, or `@skills/code-review-jira/SKILL.md`. The PR comment carries technical findings; the linked-tracker comment carries assignment compliance as part of the consolidated `pr-summary` output.
 - The published block must be plain language understandable by a non-technical reader. Include a short example for every Critical gap. **Do not list satisfied requirements one by one, do not add a "what is working" list, and do not ask the reviewer open questions** — a met assignment is reported as the single verdict sentence of case 1 below, never as a checklist.
 - **The block always carries a verdict, including the affirmative one** (`@rules/code-review/general.md` *Two-Part CR Output* → *The tracker comment carries the same verdict — in all three cases*). The tracker is the surface the person who owns the ticket reads; a silent comment makes "every criterion is met" and "nobody checked" look identical to them. The three verdicts are defined in **Output Format** below and exactly one of them renders per run.
-- The returned block carries **no `Authors` line and no `Available behind` line**. Both lines were dropped from `@skills/pr-summary/SKILL.md` when that skill narrowed to `What changed` + `How to test`; it resolves no authorship now and renders neither line. This skill does not take either over: no other source resolves them for the block, and the block needs neither — it carries a verdict and, when the verdict is case 2, the gaps behind it.
+- The returned block carries **no `Authors` line and no `Available behind` line**; it carries a verdict and, when the verdict is case 2, the gaps behind it.
 - Report **only Critical** functional / business-logic gaps under the verdict. Do not report architecture, code style, test coverage, refactoring opportunities, or any other concern — those are owned by the other review skills.
 - Never modify code. This skill is read-only with respect to the codebase.
 - Do not expose secrets, internal infrastructure paths, or PII in the comment.
@@ -23,7 +23,7 @@ metadata:
 ## Use when
 - A code review is being prepared for a PR linked to an issue or task (GitHub issue, JIRA ticket, Bugsnag report).
 - A reviewer wants a focused "did the implementation do what the assignment asked for" check, separate from architecture / security / refactoring lenses.
-- This skill is **invoked from every CR run** by `@skills/code-review/SKILL.md`, `@skills/code-review-github/SKILL.md`, and `@skills/code-review-jira/SKILL.md`.
+- This skill is **invoked from every CR run** by `@skills/code-review/SKILL.md`, `@skills/code-review-github/SKILL.md`, `@skills/code-review-jira/SKILL.md`, and `@skills/code-review-bugsnag/SKILL.md`.
 
 ## Required approach
 
@@ -33,7 +33,7 @@ metadata:
 - **JIRA-originated:** run `skills/code-review-jira/scripts/load-issue.sh <KEY|URL>`. Read `descriptionText`, `comments[]`, and any attachment metadata.
 - **Bugsnag-originated:** run `skills/code-review-bugsnag/scripts/load-issue.sh <URL|TRIPLE>` (requires `BUGSNAG_TOKEN`) to read the error class, `message`, `context`, and `latestEvent.stacktrace` as the assignment. The error is also mirrored to GitHub via `linkedIssues[]`; load that linked GitHub issue as well to pick up any human-authored acceptance criteria and apply the GitHub branch on top.
 - Never call `gh`, `acli`, `api.bugsnag.com`, or REST endpoints directly — always use the deterministic loaders.
-- Group comments by thread. Discard outdated or superseded requirements (per the comment-analysis rules in `@skills/resolve-issue/SKILL.md`). Keep only the **current** requirements as the source of truth.
+- Group comments by thread. Apply `@rules/compound-engineering/tracker.md` *Analyze every comment before you act on a tracker assignment*: read every comment for the facts it reports, and let only a trusted author's comment add, change, or cancel a requirement. Keep only the **current** requirements as the source of truth.
 
 ### 2. Extract verifiable requirements
 For the assignment + current comments, enumerate:
@@ -43,6 +43,12 @@ For the assignment + current comments, enumerate:
 - **Examples** the reporter provided (sample inputs, payloads, screenshots, expected outputs).
 
 Skip generic developer hygiene wishes ("clean code", "tests please"). The check is strictly about business behavior described by the reporter.
+
+### 2a. Compare every requirement with the product documentation
+Apply `@rules/code-review/general.md` *Published product documentation is a requirement the assignment need not restate* to the requirements themselves, before the diff is read.
+- Resolve the documentation source the project declares: the `product-docs` key of the manifest (`skills/_shared/read-manifest.sh`) or the project's `CLAUDE.md`. When the project declares none, record `no documentation source declared` and skip this step.
+- For every requirement from step 2 that describes user-facing behaviour, search the source and give the requirement one status: `consistent`, `contradicts`, or `not documented`. Record the article URL, the sentence for `contradicts`, and what was searched for `not documented`.
+- Return the statuses to the caller beside the block, never inside it. A `contradicts` row is a documentation mismatch that the calling wrapper publishes per that rule: a Moderate finding on the pull request and a *Clarifying questions* entry on the tracker (on JIRA, inside the bullet of the criterion it concerns). It is not a Critical gap, and it does not change the verdict of this block.
 
 ### 3. Load the implementation
 - Run `skills/code-review-github/scripts/load-issue.sh <PR-URL>` for the PR and read `files[]`, `body`, and `commits[]`.
@@ -67,11 +73,11 @@ This gate matters most here: this skill is invoked directly by every CR wrapper 
 
 ### 5. Return the report to the caller
 
-> **Quiet mode (loop iterations from `@skills/process-code-review/SKILL.md`):** the loop iterations call this skill with "do not publish; return findings as in-memory markdown for this loop iteration only" — which is now the **only** mode this skill ever operates in. The skill never publishes anywhere itself; every caller (loop iteration or final consolidating publish) receives the same in-memory return. The loop convergence math still counts Critical gaps from the returned block.
+> **Quiet mode (loop iterations from `@skills/process-code-review/SKILL.md`):** the loop iterations call this skill with "do not publish; return findings as in-memory markdown for this loop iteration only" — which is the only mode this skill operates in. The skill never publishes anywhere itself; every caller (loop iteration or final consolidating publish) receives the same in-memory return. The loop convergence math counts Critical gaps from the returned block.
 
 - Build the **Assignment Compliance** markdown block using the template in **Output Format** below on **every** run that has a linked tracker, and render exactly one of its three verdicts. Use GitHub-flavoured Markdown by default; convert to the supported **JIRA intermediate source** per `@rules/jira/general.md` when the calling CR wrapper signals a JIRA tracker target (`h2.` / `h3.` headings, `*bold*`, `_italic_`, `{{inline}}`, `{code:php}…{code}`, `* / # bullets`, `[label|url]`, `{quote}`), and to plain text when it signals a Bugsnag target. The canonical JIRA helper converts that source to ADF before publication.
 - **Do not call `gh issue comment`, `acli`, the GitHub MCP server's `add_issue_comment`, or any JIRA write endpoint.** The skill is a pure markdown producer; the calling CR wrapper (`@skills/code-review-github/SKILL.md` / `@skills/code-review-jira/SKILL.md` / `@skills/code-review-bugsnag/SKILL.md`) embeds the returned block into the single consolidated linked-tracker comment authored by `@skills/pr-summary/SKILL.md` (see issue #498 — one comment per linked issue per CR run).
-- **When every requirement is satisfied, still return a block** — verdict 1, the single affirmative sentence. This is the case the tracker used to lose entirely, and returning a skip status here is the defect this contract exists to prevent. Do not append a list of satisfied requirements behind that sentence.
+- **When every requirement is satisfied, still return a block** — verdict 1, the single affirmative sentence, never a skip status, because a silent tracker comment makes "met" and "not checked" look identical. Do not append a list of satisfied requirements behind that sentence.
 - **When the assignment states no explicit acceptance criteria, still return a block** — verdict 3, naming the basis the implementation was judged against instead (step 4). An absent criterion set is a fact the reader needs, not a clean result.
 - If no linked tracker exists (`closingIssues[]` empty for GitHub PRs, or no JIRA ticket detected for JIRA-originated), return the status `no linked issue — assignment compliance skipped` instead of a block. That is the only skip status this skill returns: there is no tracker comment to carry a verdict, so the CR wrapper includes the status in its PR comment summary line only.
 - The CR wrapper skills (`code-review`, `code-review-github`, `code-review-jira`, `code-review-bugsnag`) **must not** embed the Assignment Compliance content into the **GitHub PR** comment — it belongs in the consolidated linked-tracker comment, never on the PR comment, which carries technical findings only.

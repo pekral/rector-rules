@@ -1,6 +1,6 @@
 # MPP Protocol Sourcing Table
 
-Full verification record backing `SKILL.md`'s Spec / Package / Illustrative labels. Every URL below was fetched and every quoted phrase confirmed on **2026-08-03**. Re-verify before treating a **Spec** row as durable — `draft-ryan-httpauth-payment-01` is an individual IETF Internet-Draft, not a ratified standard, and expires 2026-09-19.
+Full verification record backing `SKILL.md`'s Spec / Package / Illustrative labels. Every URL below was fetched and every quoted phrase confirmed on **2026-08-03**. Re-verify before treating a **Spec** row as durable — `draft-ryan-httpauth-payment-01` is an individual IETF Internet-Draft, not a ratified standard, and its stated expiry of 2026-09-19 has passed; check the datatracker for a newer revision.
 
 ## Primary sources
 
@@ -20,7 +20,7 @@ Full verification record backing `SKILL.md`'s Spec / Package / Illustrative labe
 
 - **Spec** — confirmed against the IETF draft and/or `mpp.dev`, cited with URL + retrieval date.
 - **Package** — a real behavior of `square1/laravel-mpp`, not a protocol requirement.
-- **Illustrative** — the issue's own or this skill's own example naming; appears in no spec, docs page, or package.
+- **Illustrative** — this skill's own example naming; appears in no spec, docs page, or package.
 - **Out of scope / unverified** — not confirmed by any source fetched for this skill; deliberately not shipped as fact.
 - **Not shipped (contradicts primary spec)** — appears in a secondary source but conflicts with the IETF draft; excluded from `SKILL.md` entirely.
 
@@ -35,12 +35,12 @@ Full verification record backing `SKILL.md`'s Spec / Package / Illustrative labe
 | Receipt on success (`Payment-Receipt` header) | Spec | Draft members: `status`, `method`, `timestamp`, `reference`; docs additionally show `challengeId`, `settlement`. |
 | Error body (RFC 9457 Problem Details) | Spec | `application/problem+json`; `type`, `title`, `status`, `detail`; problem-type base `https://paymentauth.org/problems/`. |
 | Endpoint paths defined by the protocol | Out of scope / unverified | The spec defines none; any resource is gatable. |
-| Invalid credential → 401 vs 403 "depending on protocol state" | Out of scope / unverified | The draft names error *conditions*, not a normative condition→status-code table. Ship as the issue's own hedge only. |
+| Invalid credential → 401 vs 403 "depending on protocol state" | Out of scope / unverified | The draft names error *conditions*, not a normative condition→status-code table. Ship as an illustrative hedge only. |
 | `MachinePaymentProvider` as the provider-abstraction name | Illustrative | Not found in any spec, docs page, or package. |
 | `PaymentVerifier`, `PaymentCredential`, `PaymentProvider`, `PricingResolver` | Illustrative | Package uses different names — see SKILL.md Service layer & contracts. |
 | "Stripe MPP" as a product name | Illustrative (imprecise) | Stripe documents "MPP payments" / "machine payments"; `stripe` is a real Production payment-method identifier, but "Stripe MPP" is third-party shorthand, not Stripe's own product name. |
 | "Tempo" as a payment provider | Spec | Real, mainnet live 2026-03-18, MPP co-author, Production payment-method identifier. |
-| MPP ↔ MCP integration | Spec (stronger than the issue's claim) | Dedicated transport binding `draft-payment-transport-mcp-00`; JSON-RPC error `-32042`, `error.data.challenges[]`, credential in `params._meta["org.paymentauth/credential"]`. |
+| MPP ↔ MCP integration | Spec | Dedicated transport binding `draft-payment-transport-mcp-00`; JSON-RPC error `-32042`, `error.data.challenges[]`, credential in `params._meta["org.paymentauth/credential"]`. |
 | Pricing models: per-token, per-MB, per-request, dynamic | Out of scope / unverified as MPP-specific | No such format in the spec; generic API-billing patterns. Prefer the real registered `intent` values (`charge`, `session`, `subscription`) instead. |
 | `Route::middleware(['mpp:0.05,USD'])` | Package | `square1/laravel-mpp` registers this exact alias shape (`mpp:0.50,USD[,grants=…,scope=…,method=…]`), plus `#[RequiresPayment(...)]`. |
 | `config/mpp.php` | Package | Exact published config path of the package. |

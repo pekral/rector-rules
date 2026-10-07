@@ -31,7 +31,7 @@ paths:
 ## Recommended Process
 1. **Stabilize** — add at least smoke tests, fix critical bugs first.
 2. **Identify entry points** — start at controllers, jobs, commands, listeners, Livewire components.
-3. **Introduce the Action pattern** — keep entry points thin; delegate orchestration to Actions.
+3. **Introduce the Action pattern** — keep entry points thin; delegate orchestration to Actions. Simple logic that does not repeat stays in the entry point (`@rules/php/core-standards.md` Design Principles → *Do not create a class for simple logic that does not repeat*).
 4. **Split responsibilities** — Action (orchestration), Service (business logic), Repository (read), ModelManager (write).
 5. **Modernize code**:
     - raw arrays → DTOs (e.g. Spatie Laravel Data)
@@ -60,18 +60,18 @@ paths:
     - error rate increases.
 - Refactoring is an investment in future delivery speed and system stability.
 
-## Test Coverage Contract (mandatory — issue #493)
+## Test Coverage Contract (mandatory)
 
-Refactoring is behavior-preserving by definition, so behavior preservation must be **proven** by a test suite that exists **before** the structural change lands. Every refactor must respect the following three-step contract:
+Refactoring is behavior-preserving by definition, so behavior preservation must be **proven** by a test suite that exists **before** the structural change lands. Every refactor must respect the following four-step contract:
 
 1. **Before the refactor commit — verify 100% coverage of the target lines.** Verify coverage of the *current* code that is about to be refactored, using the project's available coverage tooling scoped to those files (see `@rules/php/core-standards.md` Testing section). Every line, branch, and condition the refactor will touch must already be exercised by tests. If coverage is below 100% on those lines, **stop and write the missing tests first**.
-2. **Add missing tests in a dedicated commit before the refactor commit.** The new tests live in their own commit using the `test(scope): cover <area> before refactor` form per `@rules/git/general.md` Allowed Types. Never mix new test code with the refactor change in the same commit — the separation is what makes the safety net auditable. **Authoring guidance only; no longer verified by review** — see *What the review no longer verifies* below.
+2. **Add missing tests in a dedicated commit before the refactor commit.** This contract recommends this commit split and the post-refactor test commit in step 3; `@rules/git/general.md` *Commit granularity* otherwise leaves commit division to the author. The new tests live in their own commit using the `test(scope): cover <area> before refactor` form per `@rules/git/general.md` Allowed Types. Keep new test code out of the refactor commit — the separation is what makes the safety net auditable. **Authoring guidance only; not verified by review** — see *What the review no longer verifies* below.
 3. **The refactor commit must not modify pre-existing tests.** Once the safety net is in place, the refactor commit changes structure only. Renaming, restructuring, or rewriting tests that existed before the refactor invalidates the proof that behavior was preserved. The only test changes allowed in the refactor commit are those forced by mechanical renames the refactor itself introduces (e.g. moving a class to a new namespace), and even those must be flagged in the commit body. New tests that *cover newly introduced code paths in the refactor* belong in yet another commit after the refactor — not in the refactor commit and not in the pre-refactor coverage commit. **Authoring guidance only; no longer verified by review** — see *What the review no longer verifies* below.
 4. **After the refactor commit — re-verify coverage of the changed lines is still 100%.** Run the project's coverage tooling again, scoped to the refactored files, and confirm every line, branch, and condition the refactor touched is still exercised. The pre-existing assertions must pass unchanged *and* coverage must not have regressed. If a refactored line is no longer covered, the refactor introduced an untested path (typically dead code or a new branch) — fix it before finishing, do not paper over it by editing the pre-refactor tests. This proactive re-verification is part of the apply step, not only a code-review check.
 
 ### What the review no longer verifies — and what that costs
 
-The code review stopped walking commit history (`@rules/git/general.md` *The three bullets below are authoring guidance, not review criteria*). Steps 2 and 3 above are commit-history claims — a dedicated test commit exists **before** the refactor commit, and the refactor commit touches **no** pre-existing test file — so nothing verifies them any more. They stay in this contract because they are still how a refactor should be authored; they are no longer a gate.
+The code review does not walk commit history (`@rules/code-review/core-analysis.md` *Refactoring test-coverage contract*). Steps 2 and 3 above are commit-history claims — a dedicated test commit exists **before** the refactor commit, and the refactor commit touches **no** pre-existing test file — so nothing verifies them. They stay in this contract because they are how a refactor should be authored; they are not a gate.
 
 **What is lost, stated rather than hidden: the proof that behaviour was preserved across the refactor.** That proof was never the coverage number. It was the ordering — tests written against the *old* structure, passing unchanged after the new one, with no opportunity to quietly adjust an assertion that the refactor broke. A refactor that rewrites a test in the same commit and reports 100% coverage now passes review, and the review cannot tell it apart from one that preserved behaviour. Only the author's own discipline stands between the two.
 
@@ -84,5 +84,5 @@ Code review must reject any refactor PR that violates the coverage half of this 
 - Flag big-bang rewrites and mixed-responsibility entry points as findings.
 - Prefer incremental migration over wholesale rewrites in suggested fixes.
 - **Enforce the coverage half of the Test Coverage Contract above on every refactor PR.** Verify with the project's available coverage tooling, scoped to the changed files, that every refactored line, branch, and condition reports 100% coverage. Sub-100% coverage on the changed lines is a **Critical** finding.
-- **Do not check (a) that a dedicated test commit precedes the refactor commit or (b) that the refactor commit modifies no pre-existing test file.** Both read the PR's commit history, which the review no longer walks. They were **Critical** findings and now raise nothing; *What the review no longer verifies* above states what that costs.
+- **Do not check (a) that a dedicated test commit precedes the refactor commit or (b) that the refactor commit modifies no pre-existing test file.** Both read the PR's commit history, which the review does not walk; *What the review no longer verifies* above states what that costs.
 - For Laravel projects, combine this rule with `@rules/laravel/architecture.md` (Action pattern, Repositories, ModelManagers, Data Validators, DTOs).

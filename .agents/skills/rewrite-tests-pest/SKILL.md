@@ -21,7 +21,7 @@ metadata:
 - Keep tests deterministic and non-flaky
 - Prefer simple, readable Pest syntax
 - Use helper methods or datasets when they clearly reduce duplication
-- Avoid reflection; prefer mocks or partial mocks when readable and effective
+- Avoid reflection; test through the public boundary, and mock only what `@rules/code-testing/general.md` *Mocking* allows
 - Avoid branching in tests; prefer separate test cases or datasets instead
 
 ## Read, Map & Verify before rewriting (mandatory pre-flight)
@@ -50,19 +50,15 @@ Only after Read, Map, and Verify are complete may the rewrite begin.
 
 ## Post-rewrite validation
 1. Run all rewritten tests and confirm they pass.
-2. Verify 100% code coverage for all rewritten test paths — if coverage tooling exists, run it.
-3. Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
-4. Run available fixers on changed test files and fix any violations.
-5. Run available checkers/analyzers on changed test files and resolve all reported errors.
-6. Run a quick code review of rewritten tests against `@rules/code-testing/general.md` and fix any findings.
+2. Verify 100% code coverage for all rewritten test paths — if coverage tooling exists (discovered per `@skills/resolve-issue/references/quality-gates.md`), run it. Do not run fixers or checkers here; the project's gate runs once at the merge boundary.
+3. Check the rewritten tests against the *Junk patterns* of `@skills/test-audit/SKILL.md` and `@rules/code-testing/general.md`, and fix any findings. A rewrite preserves every test; removing a low-value test is an explicit `audit` of that skill, never part of a rewrite.
 
 ## Done when
 - Target tests are rewritten to Pest syntax
 - Rewritten tests preserve original intent and behavior
 - Tests are deterministic and pass reliably
 - 100% code coverage is verified for rewritten code paths
-- Code style and quality checks pass (fixers and checkers ran clean)
-- Test review passed with no findings
+- The rewritten tests carry no *Junk patterns* finding from `@skills/test-audit/SKILL.md`
 - Duplication is reduced where it meaningfully improves readability
 - Shared lightweight helpers are extracted appropriately
 - The rewritten tests follow project testing conventions

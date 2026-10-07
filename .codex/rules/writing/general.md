@@ -28,4 +28,6 @@ Two parts of the published standard are explicitly **not** imported: its **appro
 
 Code identifiers, file paths, command names, and label strings stay **verbatim** in every language — they are names, not prose, and translating or inflecting them breaks the reader's ability to grep for them.
 
+**A run that publishes a report to a tracker — a GitHub issue or pull-request comment, a JIRA comment, or a Bugsnag comment — reads and applies `@rules/reports/general.md` first.** That rule loads on demand, so it is not in context until the run reads it.
+
 > **Scope boundary — style, not language choice.** This rule owns **how** a sentence is written. `@rules/reports/general.md` owns **which language** a tracker-published report is written in (the assignment's language, never mixed) and the narrow English exception for technical CR findings on a GitHub PR. The two never overlap and never override each other: a report first takes its language from `@rules/reports/general.md`, then obeys this rule inside that language. Raise one finding per violation — a Czech report written in bloated prose is a violation of this rule only, and an English report dropped into a Czech tracker comment is a violation of `@rules/reports/general.md` only.

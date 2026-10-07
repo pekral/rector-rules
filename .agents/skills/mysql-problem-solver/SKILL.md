@@ -45,15 +45,7 @@ The same division holds against the CR's latency lens. When `@skills/latency-cri
     - DB tools when available
 
 ### 3. Run EXPLAIN
-- If MySQL access is available, run `EXPLAIN`
-- Review:
-    - table
-    - type
-    - possible_keys
-    - key
-    - rows
-    - filtered
-    - Extra
+- If MySQL access is available, run `EXPLAIN` on the query and read its plan.
 
 ### 4. Diagnose the Problem
 Look for:
