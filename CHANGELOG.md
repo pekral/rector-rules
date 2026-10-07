@@ -16,6 +16,11 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 - Issue forms for proposing that a rule be enabled or disabled, and a pull request template.
 - This changelog and `UPGRADING.md`.
 - A social preview image in `assets/`, for link previews on GitHub and social networks.
+- **Four rules from `rector/rector` 2.7.0.** The set now has 230 rules, and the package requires `rector/rector` `^2.7.0`.
+  - `ConstructorReadonlyAssignToDefaultRector` (`Php86`)
+  - `TernaryToNullsafeCoalesceRector` (`Php80`)
+  - `BoolReturnTypeFromBooleanConstAndStrictReturnsRector` (`TypeDeclaration`)
+  - `RemoveOverriddenAssignBeforeIfElseRector` (`DeadCode`)
 
 ### Changed
 
