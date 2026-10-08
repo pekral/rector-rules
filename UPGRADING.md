@@ -58,6 +58,18 @@ Two independent options, and they do not compete:
   before/after. A rule that produces broken code is a bug in
   [Rector itself](https://github.com/rectorphp/rector/issues) — this package only chooses which rules run.
 
+## 0.5 → 0.6
+
+- **No configuration change and no new PHP requirement.** The package still requires PHP `^8.4`.
+- `rector/rector` moved to `^2.7.0` from `^2.6.5`.
+- `RenameDeprecatedMethodCallRector` was removed, because Rector removed it. Rector's replacement is
+  `RenameMethodRector` with an explicit old → new mapping; configure it in your own `rector.php` when you need it.
+- `FluentSettersToStandaloneCallMethodRector` was removed, because Rector deprecated it without a replacement.
+  If your `rector.php` skips it, that entry is now redundant.
+- Four rules were added: `ConstructorReadonlyAssignToDefaultRector`, `TernaryToNullsafeCoalesceRector`,
+  `BoolReturnTypeFromBooleanConstAndStrictReturnsRector`, and `RemoveOverriddenAssignBeforeIfElseRector`.
+  Expect a small dry-run diff from them.
+
 ## 0.4.x → 0.5
 
 - **No configuration change and no new PHP requirement.** The package still requires PHP `^8.4`.

@@ -10,6 +10,8 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 
 ## [Unreleased]
 
+## [0.6] - 2026-10-08
+
 ### Added
 
 - `CONTRIBUTING.md`, `SECURITY.md`, and `CODE_OF_CONDUCT.md`.
@@ -135,7 +137,8 @@ Re-tag of 0.4.4. This tag is not valid Semantic Versioning and is kept only for 
 
 First release.
 
-[Unreleased]: https://github.com/pekral/rector-rules/compare/0.5...HEAD
+[Unreleased]: https://github.com/pekral/rector-rules/compare/0.6...HEAD
+[0.6]: https://github.com/pekral/rector-rules/compare/0.5...0.6
 [0.5]: https://github.com/pekral/rector-rules/compare/0.4.8...0.5
 [0.4.8]: https://github.com/pekral/rector-rules/compare/0.4.7...0.4.8
 [0.4.7]: https://github.com/pekral/rector-rules/compare/0.4.6...0.4.7
