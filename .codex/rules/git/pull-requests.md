@@ -64,6 +64,16 @@ A pull request is a **Draft** for as long as it is **not yet ready to merge and 
 - Two exemptions from the code-review gate exist, and no others: a **`FAST`-tier pull request** and a **dependency-only pull request** — see below. Every other gate applies to each of them unchanged.
 - **A HOTFIX is not a third exemption.** A declared HOTFIX still needs a converged code review on its final diff; what changes is the review's own scope and the coverage threshold — see *HOTFIX pull requests* below.
 
+### Waiting for CI — read the checks every 3 minutes
+
+A check that is still running is waited for, never reported as a blocker. When the run's next step depends on CI — a merge, or a fix of a failing check — and a check of the pull request is still pending, the run waits for the result itself.
+
+- **Read the checks every 3 minutes until none is pending.** Run the wait as a background loop, never as a foreground sleep: `gh pr checks <PR-URL> --json name,bucket`, then `sleep 180`. While a check is still pending, read again after the next interval; there is no time limit. The loop ends when no entry has `bucket == "pending"`. This read-only call is the one exception to loading the pull request through `skills/code-review-github/scripts/load-issue.sh`.
+- **Three failed reads in a row end the wait.** A single failed read is retried after the next interval. `gh pr checks` exits non-zero only on an error — for example when no check is reported on the branch, the login expired, or the pull request is gone — so after the third failure load the pull request again and run every check of the next step again.
+- **After the wait, load the pull request again and run every check of the next step again.** A check that finished red blocks as before, and the *GitHub Actions billing exception* in `@skills/merge-github-pr/SKILL.md` applies unchanged.
+- **The wait is for a result the run needs.** A run with no step after CI does not watch CI.
+- **A step with a local substitute does not wait.** A code review reuses a finished CI result or runs the checker locally (`@rules/code-review/review-process.md` *Reuse CI results when available*), and a rebase that only moved the base runs the gate itself when CI has not run on the new head (`@skills/resolve-issue/references/quality-gates.md` *Rebase that moves the head — analyse the incoming changes first*, step 6).
+
 ### HOTFIX pull requests (coverage threshold lifted, review still required)
 
 A pull request produced by a declared HOTFIX run (`@rules/compound-engineering/orchestration.md` *HOTFIX — the declared emergency path*) merges under one changed condition and no others:
