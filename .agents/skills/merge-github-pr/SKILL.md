@@ -23,7 +23,7 @@ metadata:
 - Identify candidate PRs ready for merge
 - **Repository ownership (hard gate, runs first)** — for each candidate, confirm the PR belongs to the current checkout by running `skills/_shared/assert-current-repo.sh <URL>` before loading it. Exit code `4` means the PR lives in a different repository: **stop**, report the mismatch, and never merge it — a foreign PR merged from the wrong checkout lands in the wrong project's history. Exit code `5` means ownership could not be proven (not a git checkout, or no github.com remote on any of them): stop and tell the caller to run from inside the target checkout.
 Only a zero exit permits the flow to continue — every non-zero exit is a hard stop, and the deterministic loader's "exit 2/3 → fall back to the MCP server" convention never applies to this guard: there is no fallback for an ownership verdict.
-- For each candidate, load PR context by running `skills/code-review-github/scripts/load-issue.sh <URL>` — the single deterministic entry point; always pass the full GitHub PR URL, never a bare number (the loader rejects it). Never call `gh pr view`, `gh pr checks`, or `gh api /repos/.../pulls/...` directly. Read `isDraft`, `mergeable`, `mergeStateStatus`, `reviewDecision`, `statusCheckRollup[]`, and `files[]` off the resulting JSON document.
+- For each candidate, load PR context by running `skills/code-review-github/scripts/load-issue.sh <URL>` — the single deterministic entry point; always pass the full GitHub PR URL, never a bare number (the loader rejects it). Never call `gh pr view`, `gh pr checks`, or `gh api /repos/.../pulls/...` directly; the one exception is the wait read in `@rules/git/pull-requests.md` *Waiting for CI — read the checks every 3 minutes*. Read `isDraft`, `mergeable`, `mergeStateStatus`, `reviewDecision`, `statusCheckRollup[]`, and `files[]` off the resulting JSON document.
 - If the script is unavailable (missing tool, exit code 2/3) fall back to the GitHub MCP server.
 
 ### 2. Pre-checks (must all pass)
@@ -42,7 +42,7 @@ If no trusted code-review comment exists, the latest one still carries a Critica
 This is not hypothetical — a security pass that dies mid-run (API error, session limit, cancelled agent) leaves exactly this state: the code review published its delegation token and nothing ever arrived to honour it. Report the gap and require the security review to be re-run. The gate reads the code-review comment, so it is vacuous on a PR merged under the *`FAST`-tier PR exemption* or the *Dependency-only PR exemption* below (no review ran, therefore no delegation was ever claimed) — but on **every** PR that does carry a code-review comment it applies without exception.
 - **Not a Draft** — `isDraft == false`. A Draft PR signals the review/fix loop has not converged (`@rules/git/pull-requests.md` *Draft pull requests*): the Draft state mirrors the unmet code-review gate, so **do not merge** a Draft and report it as skipped. If the PR's code review has in fact converged (0 Critical, no undeferred Moderate), it must first be promoted out of Draft by `@skills/process-code-review/SKILL.md` (`gh pr ready`) before this skill will merge it — never flip a Draft to ready here just to merge it. The billing exception below never relaxes this.
 - No merge conflicts — `mergeable == "MERGEABLE"` and `mergeStateStatus` is not `DIRTY` or `BEHIND`
-- CI is passing — every entry in `statusCheckRollup[]` has a passing `state` (`SUCCESS` / `NEUTRAL` / `SKIPPED`), **with the single billing exception below**, which rests on the mandatory *Pre-merge quality gate* run in its place
+- CI is passing — every entry in `statusCheckRollup[]` has a passing `state` (`SUCCESS` / `NEUTRAL` / `SKIPPED`), **with the single billing exception below**, which rests on the mandatory *Pre-merge quality gate* run in its place. An entry whose `state` is `PENDING`, `EXPECTED`, `QUEUED`, `IN_PROGRESS`, `WAITING`, or `REQUESTED` is still pending: wait for it per `@rules/git/pull-requests.md` *Waiting for CI — read the checks every 3 minutes*, then run every pre-check again
 - Required approvals are present — `reviewDecision == "APPROVED"`
 - Branch is up to date with base branch — `mergeStateStatus != "BEHIND"`
 - **Every open merge decision is answered** — see *Open merge decisions* below.
@@ -164,6 +164,7 @@ The project's fixers and checkers do not run during the branch's working life �
   2. `git worktree remove <path>` — removes the worktree directory and its metadata.
   3. `git worktree prune` — cleans up any remaining stale worktree metadata.
   If no worktree was explicitly created for this work unit (the default: agent worked in the shared tree), skip this step entirely.
+- **Interactive-testing follow-up issue — only for a front-end UI change.** When the project asks for an `interactive-testing` issue after a merge, create it only when the merged diff changes the front-end UI (`@skills/merge-github-pr/references/interactive-testing-follow-up.md`).
 - Confirm merge success
 
 ---
@@ -172,6 +173,7 @@ The project's fixers and checkers do not run during the branch's working life �
 
 - List merged PRs
 - List skipped PRs with reasons
+- For each merged PR in a project that asks for one, the interactive-testing follow-up issue it got, or `skipped, no front-end UI change`
 - List the open merge decisions: the answered ones with their answers, and the unanswered ones in the separate `## Decisions required before merge` section
 
 ---

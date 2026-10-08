@@ -71,7 +71,7 @@ A JIRA ticket is read by the person who asked for the work, so that comment answ
 6. **No `Clarifying questions` section on JIRA.** Each open question is the closing sentence of the bullet it belongs to. A question about an acceptance criterion closes that criterion's bullet in `Acceptance criteria`, and the criterion is then reported as unmet, partially met, or awaiting a human's confirmation. A question that concerns no criterion — a documentation mismatch, a blocking documentation request, a Critical decision outside the assignment — closes its `Review findings` bullet. A question may carry one recommendation sentence after it.
 7. **No `How to test` on JIRA.** The steps a tester follows live on the GitHub pull request, whose description carries them (`@rules/git/pull-requests.md` *Testing*). The footer under the closing links line states that the comment is generated automatically and is written for the ticket owner.
 
-`@rules/reports/general.md` *A JIRA comment is written for a non-technical reader* is binding on this comment. It lists the content that never appears in it, its two exceptions, and the 3 000-character cap. Do not restate that list here — apply it.
+`@rules/reports/general.md` *A JIRA comment is written for a non-technical reader* is binding on this comment. It lists the content that never appears in it, its exceptions, and the 3 000-character cap. Do not restate that list here — apply it.
 
 ### The section names are translated, the concepts are not
 

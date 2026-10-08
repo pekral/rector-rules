@@ -86,10 +86,11 @@ The section is binding on **every** comment a skill or an agent publishes to a J
 
 An item on this list is **removed, never annotated**. A comment that says *"the head SHA is omitted here"* has still spent the reader's attention on the head SHA.
 
-### Two exceptions, and there is no third
+### Three exceptions, and there is no fourth
 
 1. **A string the end user sees is quoted verbatim.** A button label, a menu item, an error message the tester has to match, a toggle name, a value typed into a field. The tester matches it character by character in the application, so a translation or a paraphrase destroys its purpose. Quoting it is not a technical note; it is the input the step needs.
 2. **One pull-request link at the end.** That is navigation, not a technical note, and the tracker must point at the work it describes.
+3. **Links to related tracker items and to the product documentation.** A link to a tracker item the reader acts on — the known issue, the duplicate, the follow-up — and a link to an article of the project's customer-facing product documentation (the help centre; the manifest key `product-docs` names it when set). They are navigation, like the pull-request link: the reader opens them to act, never to read code. A link to code, a commit, a CI run, or a log stays banned.
 
 ### The technical evidence moves to the pull request; it does not disappear
 

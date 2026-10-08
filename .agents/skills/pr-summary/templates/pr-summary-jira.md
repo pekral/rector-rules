@@ -44,7 +44,7 @@ file: a single unpaired opening token would swallow everything after it.
 Who reads this comment
   A product manager, not a developer. @rules/reports/general.md ("A JIRA comment
   is written for a non-technical reader") is binding on every line above the
-  marker: it lists the content that never appears here, its two exceptions, and
+  marker: it lists the content that never appears here, its exceptions, and
   the 3 000-character cap. Read it before filling this template in. The
   technical evidence a reviewer or a merge gate needs is not lost — it lives on
   the GitHub pull-request comment, which is where @skills/merge-github-pr reads

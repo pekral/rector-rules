@@ -11,7 +11,7 @@ metadata:
 - Apply the shared CR tracker-wrapper contract in `@skills/code-review-github/references/cr-wrapper-contract.md` — Constraints, Load Context gates, Run Reviews, Publish Results, and Output Rules all live there and are not restated here. This file carries only what a JIRA-sourced review decides for itself.
 - Apply @rules/jira/general.md
 - Publishing is limited to PR / linked-issue comments via `gh` and to JIRA ticket comments via `acli`.
-- Apply @rules/reports/general.md *A JIRA comment is written for a non-technical reader* — the banned-content list, its two exceptions, and the 3 000-character cap bind every comment this skill puts on a JIRA ticket, the embedded blocks included. The publisher converts the constrained template source to ADF and applies it through `--body-adf`.
+- Apply @rules/reports/general.md *A JIRA comment is written for a non-technical reader* — the banned-content list, its exceptions, and the 3 000-character cap bind every comment this skill puts on a JIRA ticket, the embedded blocks included. The publisher converts the constrained template source to ADF and applies it through `--body-adf`.
 - **The split is the point of this wrapper: technical findings go to the GitHub pull request, and the JIRA ticket receives the non-technical summary alone.** Never publish severity labels, finding counts, code references, a head SHA, a diff fingerprint, a gate result, a CI status, or a coverage figure to JIRA. None of it is lost — the GitHub PR comment carries it, and that is the comment `@skills/merge-github-pr/SKILL.md` reads.
 
 ---

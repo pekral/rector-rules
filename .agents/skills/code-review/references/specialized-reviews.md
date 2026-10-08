@@ -173,6 +173,7 @@ Criterion: the skill's unit of work is the whole repository, a document, a track
 
 - `simplification-audit` — audits the whole codebase rather than a diff, so it would report on code the pull request never touched.
 - `tester-cookbook` — writes a QA report for a human tester and posts it as a tracker comment.
+- `analyze-support-issue` — analyses a support issue and publishes a tracker comment. It may reproduce a case locally, but its evidence never depends on a running application, so question 3 passes it on to question 4.
 - `smartest-project-addition` — proposes the next addition to this package.
 - `github-issue-triage`, `github-release-roadmap`, `create-issue`, `create-issues-from-text` — produce tracker artifacts. The review still calls `create-issue` after it publishes, to file an out-of-scope item (`agents/leonardo.md`). That call creates a different artifact and reads no diff, so it is not a lens and produces no finding.
 - `cleanup-local-branches` — deletes local branch refs. It writes no file, which is what keeps it here while `git-workflow` sits in group 1.
@@ -188,6 +189,7 @@ Criterion: the skill produces or advances the very artifact under review, rather
 - `test-assignment` — tests one task's pull request against its assignment and publishes the test report, or in `fix` mode continues through `verify-merge-readiness`. It also writes tests through `donatello` and needs a running application through `raphael`, but question 1 is asked before questions 2 and 3, so it lands here.
 - `pr-summary` — publishes the run's non-technical tracker summary.
 - `merge-github-pr` — merges the pull request after the review converges.
+- `auto-interactive-testing` — works through the open `interactive-testing` issues: it merges the fix for every defect it meets through `splinter` and `merge-github-pr`, then publishes each issue's verdicts and closes the issue. It also writes code through `splinter` and needs a running application through `interactive-testing`, but question 1 is asked before questions 2 and 3, so it lands here.
 
 ### Adding a `MODE=cr` lens — what moves a skill out of groups 1–3
 

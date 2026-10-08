@@ -260,7 +260,7 @@ def map_reviews:
 def map_status_checks:
   [ (. // [])[] | {
       context: (.context // .name // null),
-      state: (.state // .conclusion // .status // null),
+      state: (.state // (if (.conclusion // "") == "" then .status else .conclusion end) // null),
       description: (.description // null),
       targetUrl: (.targetUrl // .detailsUrl // null)
   } ];

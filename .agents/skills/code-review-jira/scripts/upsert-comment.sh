@@ -3,7 +3,7 @@
 # CR-track skills. Each invocation looks for a comment already carrying this
 # actor's marker on the target issue and updates the newest match; only when no
 # match exists does it create a new comment. One issue therefore keeps one
-# permanent CR comment per actor instead of a growing chain.
+# permanent comment per actor and marker namespace instead of a growing chain.
 #
 # This reverses the always-new behaviour a previous explicit request
 # introduced (see CHANGELOG). The lookup-and-update branch is added on a newer
@@ -37,16 +37,18 @@
 #               or any URL containing ?selectedIssue=<KEY>.
 #   BODY_FILE   Path to a file holding the JIRA Wiki Markup source, or `-` to
 #               read from stdin. The helper converts it to ADF before publish.
-#   MARKER_KEY  Optional. Only the literal value `agent-note` changes anything:
-#               it switches the marker namespace to `agent-note:actor=` and
-#               skips the lookup-and-update behaviour below entirely — every
-#               call in this mode CREATEs a fresh comment, never looks up or
-#               updates an existing one, so a runbook or a note the operator
-#               asked an agent to leave as its own comment is never picked up
-#               and overwritten by a later CR publish. Any other value,
-#               including no value, keeps today's behaviour exactly: the
-#               marker namespace is `cr-comment`, and the run looks up and
-#               updates this actor's existing marked comment.
+#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`; it must
+#               match [a-z][a-z0-9-]*. `agent-note` switches the marker to
+#               `agent-note:actor=` and skips the lookup-and-update behaviour
+#               below entirely — every call in this mode CREATEs a fresh
+#               comment, never looks up or updates an existing one, so a
+#               runbook or a note the operator asked an agent to leave as its
+#               own comment is never picked up and overwritten by a later CR
+#               publish. Every other namespace behaves like `cr-comment`: the
+#               run looks up and updates this actor's newest comment in that
+#               namespace, and never touches a comment of another namespace. A
+#               project skill passes its own namespace so its comment neither
+#               overwrites the CR comment nor duplicates itself on a rerun.
 #
 # Behavior:
 #   1. Detect the site and the account e-mail from `acli jira auth status`.
@@ -54,7 +56,7 @@
 #      returns one for the current user, so the account ID is resolved through
 #      JQL `currentUser()` (`jira_actor_account_id` in jira-actor.sh).
 #   2. Derive the actor digest from that e-mail and append the marker line
-#      `_cr-comment:actor=<actor-digest>_` to the Wiki Markup source (only when
+#      `_<namespace>:actor=<actor-digest>_` to the Wiki Markup source (only when
 #      the source does not already carry it). The raw address never leaves this
 #      process: it is used only for the local author comparison in step 4.
 #   3. Convert the Wiki Markup source to Atlassian Document Format (ADF).
@@ -133,9 +135,9 @@ Usage: upsert-comment.sh [--create] <KEY|URL> <BODY_FILE|-> [<MARKER_KEY>]
   KEY         JIRA issue key (e.g. ACME-1234)
   URL         /browse/<KEY> URL or any URL containing ?selectedIssue=<KEY>
   BODY_FILE   path to a file containing the comment body, or `-` for stdin
-  MARKER_KEY  optional; only `agent-note` changes anything (create-only,
-              agent-note:actor= marker); any other value keeps today's
-              cr-comment lookup-and-update behaviour
+  MARKER_KEY  optional marker namespace matching [a-z][a-z0-9-]* (default:
+              cr-comment); `agent-note` is create-only, every other namespace
+              is looked up and updated in place
 EOF
 }
 
@@ -152,9 +154,14 @@ fi
 
 INPUT="$1"
 BODY_SRC="$2"
-# $3 (MARKER_KEY): only the literal "agent-note" changes behaviour (see below).
-# Any other value, including none, keeps today's cr-comment behaviour exactly.
+# $3 (MARKER_KEY): the marker namespace. "agent-note" is create-only (see
+# below); every other namespace is looked up and updated in place.
 MODE="${3:-cr-comment}"
+
+if [[ ! "$MODE" =~ ^[a-z][a-z0-9-]*$ ]]; then
+  echo "upsert-comment.sh: MARKER_KEY must match [a-z][a-z0-9-]* — got: $MODE" >&2
+  exit 1
+fi
 
 for bin in acli jq php; do
   if ! command -v "$bin" >/dev/null 2>&1; then
@@ -219,10 +226,7 @@ ACTOR_ID="$(jira_actor_digest "$EMAIL")"
 
 # An unresolvable identity is fatal: no marker can be built, and a comment
 # published without one is indistinguishable from the operator's own.
-MARKER_NAMESPACE="cr-comment"
-if [[ "$MODE" == "agent-note" ]]; then
-  MARKER_NAMESPACE="agent-note"
-fi
+MARKER_NAMESPACE="$MODE"
 
 if [[ -z "$ACTOR_ID" ]]; then
   echo "upsert-comment.sh: cannot derive the agent marker (no account e-mail in acli auth status); nothing was published" >&2
@@ -285,7 +289,9 @@ ACCOUNT_ID="$(jira_actor_account_id)"
 # was resolved, and no visible e-mail that differs. `decidable`: the response
 # carries enough of the author to confirm or rule out ownership. The e-mail is
 # compared raw; the marker carries only its digest, so it never identifies the
-# account to a reader.
+# account to a reader. `marked`: the body carries the marker with no namespace
+# character right before it, so the namespace `comment` never matches a
+# `cr-comment:actor=` line.
 AUTHOR_JQ="$(cat <<'JQ'
   def author_of: .author | if type == "object" then . else {} end;
   def owned: author_of as $a
@@ -294,7 +300,7 @@ AUTHOR_JQ="$(cat <<'JQ'
            or ($email != "" and ($a.emailAddress // "") == $email));
   def decidable: author_of as $a
     | ($a.emailAddress // "") != "" or ($account != "" and ($a.accountId // "") != "");
-  def marked: (.body | tojson) | contains($marker);
+  def marked: (.body | tojson) | test("(^|[^a-z0-9-])" + $marker);
 JQ
 )"
 

@@ -30,9 +30,9 @@
 #   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`. Three other
 #               namespaces this package writes: `merge-readiness` and
 #               `test-report` (upserted, same as `cr-comment`) and `agent-note` — the one namespace that
-#               is create-only (see step 3 below). A new namespace is an agent
-#               marker only once it is added to the family `@rules/code-review/general.md`
-#               *Authorship trust* defines.
+#               is create-only (see step 3 below). A project skill may pass its own
+#               namespace; `@rules/code-review/general.md` *Authorship trust*
+#               reads every `<namespace>:actor=` marker as agent output.
 #
 # Behavior:
 #   1. Detect the actor login via `gh api user --jq .login`.
