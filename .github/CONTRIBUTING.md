@@ -13,7 +13,8 @@ contribution is therefore a decision about a single rule — enable it, or leave
 
 `composer check:missing-rules` walks `vendor/rector/rector/rules`, collects every class whose path contains
 `/Rector/`, ends in `Rector`, and does not contain `Abstract`, then fails if a rule appears in **neither**
-file. It does not reject a rule listed in both — the ignore list's own docblock names *"duplicate in
+file. It skips every rule Rector marks deprecated (`DeprecatedInterface`), and it fails when a deprecated rule
+is listed in either file — deprecated rules are always deleted, never ignored. It does not reject a rule listed in both — the ignore list's own docblock names *"duplicate in
 rules.php"* as one of its cases.
 
 That guard is the point of the whole setup: when Rector releases new rules, `composer check` fails until
@@ -21,14 +22,12 @@ someone decides about each one. Nothing is silently skipped.
 
 ## Why a rule ends up in the ignore list
 
-The file holds 305 rules under four headings:
+The file holds 221 rules under two headings:
 
 | Rules | Heading | Meaning |
 | ---: | --- | --- |
-| 284 | `// Ignored rules` | The decision is recorded; the reason is not |
-| 12 | `// Deprecated in rector/rector` | Rector deprecated the rule |
-| 5 | `// Deprecated by Rector and scheduled for removal` | Registering it warns on every run, and some fail outright |
-| 4 | `// Enable after PHP 8.5 support enabled` | Pipe-operator and JMS Serializer property rules |
+| 219 | `// Ignored rules` | The decision is recorded; the reason is not |
+| 2 | `// Enable after PHP 8.5 support enabled` | JMS Serializer property rules |
 
 The file's own docblock adds the cases it was originally written for: a rule duplicated in `rules.php`, one
 that is experimental, one that is not available in the current Rector version, and one that does not suit the

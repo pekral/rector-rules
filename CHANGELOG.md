@@ -10,6 +10,33 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 
 ## [Unreleased]
 
+## [0.7] - 2026-10-27
+
+### Added
+
+- **Four rules from `rector/rector` 2.8.1.** The package now requires `rector/rector` `^2.8.1`.
+  - `ExplicitNullableObjectInstanceRector` (`CodeQuality`) — Rector's replacement for `ObjectExplicitBoolCompareRector`
+  - `ReturnTypeFromMockObjectRector` (`TypeDeclaration`)
+  - `ChangeMethodVisibilityRector` (`Visibility`) — a configurable rule; without a configuration it changes nothing
+  - `AddVoidReturnTypeWhereNoReturnRector` moved in Rector from `ClassMethod` to `ClassLike`; the set follows it
+- `composer check:missing-rules` fails when a rule deprecated in Rector is listed in `rules/rules.php` or
+  `build/ignored-rules.php`.
+
+### Removed
+
+- **17 rules that Rector 2.8.1 deprecated.** The set now has 216 rules, and Rector no longer prints a deprecation
+  warning on every run. `ObjectExplicitBoolCompareRector` is replaced by `ExplicitNullableObjectInstanceRector`.
+  Rector names `RemoveAlwaysTrueIfConditionRector` as the replacement for `RemoveDeadReturnRector`; that rule
+  stays off in this set. The other 15 have no replacement:
+  `CompleteDynamicPropertiesRector`, `InnerFunctionToPrivateMethodRector`, `TernaryFalseExpressionToIfRector`,
+  `ForeachItemsAssignToEmptyArrayToAssignRector`, `MoveInnerFunctionToTopLevelRector`, `SwitchTrueToMatchRector`,
+  `RemoveDuplicatedReturnSelfDocblockRector`, `RemoveParentDelegatingConstructorRector`,
+  `ReturnEarlyIfVariableRector`, `AddParamStringTypeFromSprintfUseRector`, `ArrayParamTypeByMethodCallTypeRector`,
+  `ObjectParamTypeByMethodCallTypeRector`, `ParamTypeByMethodCallTypeRector`, `ParamTypeByParentCallTypeRector`,
+  `ScalarParamTypeByMethodCallTypeRector`.
+- 104 deprecated rules from `build/ignored-rules.php`. The ignore list does not ship, so this changes nothing
+  for users.
+
 ## [0.6] - 2026-10-08
 
 ### Added
@@ -137,7 +164,8 @@ Re-tag of 0.4.4. This tag is not valid Semantic Versioning and is kept only for 
 
 First release.
 
-[Unreleased]: https://github.com/pekral/rector-rules/compare/0.6...HEAD
+[Unreleased]: https://github.com/pekral/rector-rules/compare/0.7...HEAD
+[0.7]: https://github.com/pekral/rector-rules/compare/0.6...0.7
 [0.6]: https://github.com/pekral/rector-rules/compare/0.5...0.6
 [0.5]: https://github.com/pekral/rector-rules/compare/0.4.8...0.5
 [0.4.8]: https://github.com/pekral/rector-rules/compare/0.4.7...0.4.8

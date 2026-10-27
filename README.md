@@ -8,7 +8,7 @@
 A curated, ready-to-use [Rector](https://github.com/rectorphp/rector) rule set for PHP 8.4+ projects.
 
 Rector ships over 500 rules. Picking the useful ones — and re-checking them on every Rector release — is a
-recurring chore. This package does that curation for you: **one import, 230 hand-picked rules**, with every
+recurring chore. This package does that curation for you: **one import, 216 hand-picked rules**, with every
 other rule Rector offers listed as skipped, so a new Rector release cannot add a rule nobody looked at.
 
 ---
@@ -18,7 +18,7 @@ other rule Rector offers listed as skipped, so a new Rector release cannot add a
 | | Version |
 | --- | --- |
 | PHP | `^8.4` |
-| `rector/rector` | `^2.7.0` |
+| `rector/rector` | `^2.8.1` |
 
 Contributing to this repository needs **PHP 8.5+**, because the development dependencies require it. Using
 the package only needs 8.4.
@@ -99,17 +99,17 @@ return RectorConfig::configure()
 
 ## What is in the set
 
-230 rules, grouped by what they do:
+216 rules, grouped by what they do:
 
 | Area | Rules | What it covers |
 | --- | ---: | --- |
-| `TypeDeclaration` | 55 | Infer and add native parameter, property, and return types |
-| `CodeQuality` | 50 | Simplify conditions, loops, and expressions |
-| `DeadCode` | 45 | Remove unreachable code, unused variables, and redundant docblocks |
+| `TypeDeclaration` | 50 | Infer and add native parameter, property, and return types |
+| `CodeQuality` | 44 | Simplify conditions, loops, and expressions |
+| `DeadCode` | 42 | Remove unreachable code, unused variables, and redundant docblocks |
 | `PHPUnit` | 19 | Modernise test syntax, attributes, and assertions |
 | `TypeDeclarationDocblocks` | 14 | Narrow `array` docblocks that no native type can express |
 | `Php53` – `Php86` | 36 | Upgrade syntax to newer PHP versions |
-| Other | 11 | `Privatization`, `CodingStyle`, `EarlyReturn` |
+| Other | 11 | `Privatization`, `CodingStyle`, `EarlyReturn`, `Visibility` |
 
 The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array of rule class names.
 
@@ -118,9 +118,9 @@ The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array
 | File | Role |
 | --- | --- |
 | [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` |
-| [`rules/rules.php`](rules/rules.php) | The 230 enabled rules (shipped) |
-| `build/ignored-rules.php` | The 306 rules that do not ship (development only). 22 sit under a stated reason — deprecated in Rector, or waiting on PHP 8.5; the other 284 are grouped under a plain `// Ignored rules` heading |
-| `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored (development only) |
+| [`rules/rules.php`](rules/rules.php) | The 216 enabled rules (shipped) |
+| `build/ignored-rules.php` | The 221 rules that do not ship (development only). 2 JMS Serializer rules sit under a PHP 8.5 heading; the other 219 are grouped under a plain `// Ignored rules` heading. Rules deprecated in Rector are listed nowhere — they are deleted |
+| `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored, or if a deprecated rule is listed in either file (development only) |
 
 Because of that guard, every rule Rector adds in a new release shows up as a build failure until someone
 decides about it. Nothing is silently ignored.
@@ -178,9 +178,10 @@ Yes. Add `->withPhpSets()` or any other set alongside `withSets()`. A rule that 
 not an error.
 
 **Why is rule X not included?**
-Check `build/ignored-rules.php` in the repository — every rule that does not ship is listed there. Rules
-deprecated in Rector, and those waiting on PHP 8.5, sit under a heading that says so; the rest are grouped
-under a plain `// Ignored rules` heading, which records the decision without a reason.
+Check `build/ignored-rules.php` in the repository — every rule that does not ship is listed there, except
+rules deprecated in Rector. Those are never shipped and never listed. Rules waiting on PHP 8.5 sit under a
+heading that says so; the rest are grouped under a plain `// Ignored rules` heading, which records the
+decision without a reason.
 
 **What happens when I upgrade?**
 Most releases so far have changed the set, patch releases included, so Rector may rewrite more of your code

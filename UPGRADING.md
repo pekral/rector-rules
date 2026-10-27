@@ -58,6 +58,17 @@ Two independent options, and they do not compete:
   before/after. A rule that produces broken code is a bug in
   [Rector itself](https://github.com/rectorphp/rector/issues) — this package only chooses which rules run.
 
+## 0.6 → 0.7
+
+- **No configuration change and no new PHP requirement.** The package still requires PHP `^8.4`.
+- `rector/rector` moved to `^2.8.1` from `^2.7.0`.
+- 17 rules were removed, because Rector 2.8.1 deprecated them. They printed a deprecation warning on every
+  run. If your `rector.php` skips any of them, those entries are now redundant. The full list is in
+  [CHANGELOG.md](CHANGELOG.md).
+- `ExplicitNullableObjectInstanceRector` and `ReturnTypeFromMockObjectRector` were added. Expect a small
+  dry-run diff from them.
+- `ChangeMethodVisibilityRector` was added. It is configurable and changes nothing until you configure it.
+
 ## 0.5 → 0.6
 
 - **No configuration change and no new PHP requirement.** The package still requires PHP `^8.4`.
