@@ -5,6 +5,8 @@ declare(strict_types = 1);
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/ignored-rules.php';
 
+use Rector\Configuration\Deprecation\Contract\DeprecatedInterface;
+
 /**
  * Check if file is a Rector class
  */
@@ -90,6 +92,18 @@ function main(): void
     $allRules = loadAndDisplayAllRules();
     $definedRules = loadAndDisplayDefinedRules();
     
+    $deprecatedRules = findListedDeprecatedRules($definedRules);
+
+    if ($deprecatedRules !== []) {
+        echo "❌ Found " . count($deprecatedRules) . " deprecated Rector rules - delete them from rules/rules.php and build/ignored-rules.php:\n\n";
+
+        foreach ($deprecatedRules as $ruleClass) {
+            echo "  - {$ruleClass}\n";
+        }
+
+        exit(1);
+    }
+
     $missingRules = findMissingRules($allRules, $definedRules);
     
     if ($missingRules === []) {
@@ -127,6 +141,20 @@ function loadAndDisplayDefinedRules(): array
 }
 
 /**
+ * Find deprecated rules listed in rules.php or ignored-rules.php
+ *
+ * @param array<string> $definedRules
+ * @return array<string>
+ */
+function findListedDeprecatedRules(array $definedRules): array
+{
+    return array_values(array_unique(array_filter(
+        [...$definedRules, ...IGNORED_RULES],
+        static fn (string $ruleClass): bool => is_subclass_of($ruleClass, DeprecatedInterface::class),
+    )));
+}
+
+/**
  * Find missing rules
  */
 function findMissingRules(array $allRules, array $definedRules): array
@@ -141,6 +169,11 @@ function findMissingRules(array $allRules, array $definedRules): array
         
         // Check if rule is ignored (compare with full class name)
         if (in_array($ruleClass, IGNORED_RULES, strict: true)) {
+            continue;
+        }
+
+        // Deprecated rules are never shipped, so they need no entry in either list
+        if (is_subclass_of($ruleClass, DeprecatedInterface::class)) {
             continue;
         }
         

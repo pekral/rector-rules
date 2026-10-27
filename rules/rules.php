@@ -12,10 +12,8 @@ use Rector\CodeQuality\Rector\BooleanOr\RepeatedOrEqualToInArrayRector;
 use Rector\CodeQuality\Rector\CallLike\AddNameToBooleanArgumentRector;
 use Rector\CodeQuality\Rector\CallLike\AddNameToNullArgumentRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
-use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
-use Rector\CodeQuality\Rector\Class_\InnerFunctionToPrivateMethodRector;
 use Rector\CodeQuality\Rector\Class_\ReturnIteratorInDataProviderRector;
 use Rector\CodeQuality\Rector\ClassConstFetch\VariableConstFetchToClassConstFetchRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
@@ -23,8 +21,6 @@ use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRe
 use Rector\CodeQuality\Rector\Concat\DirnameDirConcatStringToDirectStringPathRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
 use Rector\CodeQuality\Rector\Expression\InlineIfToExplicitIfRector;
-use Rector\CodeQuality\Rector\Expression\TernaryFalseExpressionToIfRector;
-use Rector\CodeQuality\Rector\Foreach_\ForeachItemsAssignToEmptyArrayToAssignRector;
 use Rector\CodeQuality\Rector\Foreach_\ForeachToInArrayRector;
 use Rector\CodeQuality\Rector\Foreach_\SimplifyForeachToCoalescingRector;
 use Rector\CodeQuality\Rector\FuncCall\ArrayMergeOfNonArraysToSimpleArrayRector;
@@ -37,7 +33,7 @@ use Rector\CodeQuality\Rector\FuncCall\UnwrapSprintfOneArgumentRector;
 use Rector\CodeQuality\Rector\FunctionLike\SimplifyUselessVariableRector;
 use Rector\CodeQuality\Rector\If_\ArrayExplicitBoolCompareRector;
 use Rector\CodeQuality\Rector\If_\ConsecutiveNullCompareReturnsToNullCoalesceQueueRector;
-use Rector\CodeQuality\Rector\If_\ObjectExplicitBoolCompareRector;
+use Rector\CodeQuality\Rector\If_\ExplicitNullableObjectInstanceRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNotNullReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfNullableReturnRector;
 use Rector\CodeQuality\Rector\If_\SimplifyIfReturnBoolRector;
@@ -46,8 +42,6 @@ use Rector\CodeQuality\Rector\LogicalAnd\LogicalToBooleanRector;
 use Rector\CodeQuality\Rector\NotEqual\CommonNotEqualRector;
 use Rector\CodeQuality\Rector\NullsafeMethodCall\CleanupUnneededNullsafeOperatorRector;
 use Rector\CodeQuality\Rector\Property\FixClassCaseSensitivityVarDocblockRector;
-use Rector\CodeQuality\Rector\StmtsAwareInterface\MoveInnerFunctionToTopLevelRector;
-use Rector\CodeQuality\Rector\Switch_\SwitchTrueToMatchRector;
 use Rector\CodeQuality\Rector\Ternary\ArrayKeyExistsTernaryThenValueToCoalescingRector;
 use Rector\CodeQuality\Rector\Ternary\SimplifyTautologyTernaryRector;
 use Rector\CodeQuality\Rector\Ternary\TernaryEmptyArrayArrayDimFetchToCoalesceRector;
@@ -63,11 +57,9 @@ use Rector\DeadCode\Rector\BinaryOp\RemoveRedundantTypeCheckRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 use Rector\DeadCode\Rector\Class_\RemoveRefactorDuplicatedNodeInstanceCheckRector;
 use Rector\DeadCode\Rector\ClassConst\RemoveUnusedPrivateClassConstantRector;
-use Rector\DeadCode\Rector\ClassMethod\RemoveDuplicatedReturnSelfDocblockRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveEmptyClassMethodRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingClassMethodRector;
-use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingConstructorRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveReturnTagIncompatibleWithNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveTestsOverriddenPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
@@ -81,7 +73,6 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveVoidDocblockFromMagicMethodRector;
 use Rector\DeadCode\Rector\Closure\RemoveUnusedClosureVariableUseRector;
 use Rector\DeadCode\Rector\For_\RemoveDeadIfForeachForRector;
 use Rector\DeadCode\Rector\FunctionLike\NarrowWideUnionReturnTypeRector;
-use Rector\DeadCode\Rector\FunctionLike\RemoveDeadReturnRector;
 use Rector\DeadCode\Rector\If_\ReduceAlwaysFalseIfOrRector;
 use Rector\DeadCode\Rector\If_\RemoveDeadIfBlockRector;
 use Rector\DeadCode\Rector\If_\RemoveOverriddenAssignBeforeIfElseRector;
@@ -103,7 +94,6 @@ use Rector\DeadCode\Rector\TryCatch\RemoveDeadCatchRector;
 use Rector\DeadCode\Rector\TryCatch\RemoveDeadTryCatchRector;
 use Rector\EarlyReturn\Rector\If_\ChangeIfElseValueAssignToEarlyReturnRector;
 use Rector\EarlyReturn\Rector\If_\RemoveAlwaysElseRector;
-use Rector\EarlyReturn\Rector\StmtsAwareInterface\ReturnEarlyIfVariableRector;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php54\Rector\Array_\LongArrayToShortArrayRector;
 use Rector\Php70\Rector\StmtsAwareInterface\IfIssetToCoalescingRector;
@@ -166,27 +156,23 @@ use Rector\Privatization\Rector\Property\PrivatizeFinalClassPropertyRector;
 use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Class_\AddTestsVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\Class_\PropertyTypeFromStrictSetterGetterRector;
+use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromMockObjectRector;
 use Rector\TypeDeclaration\Rector\Class_\ReturnTypeFromStrictTernaryRector;
 use Rector\TypeDeclaration\Rector\Class_\TypedStaticPropertyInBehatContextRector;
+use Rector\TypeDeclaration\Rector\ClassLike\AddVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddMethodCallBasedStrictParamTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamFromDimFetchKeyUseRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\AddParamStringTypeFromSprintfUseRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeBasedOnPHPUnitDataProviderRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddParamTypeFromPropertyTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnDocblockForScalarArrayFromAssignsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationBasedOnParentClassMethodRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\AddVoidReturnTypeWhereNoReturnRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ArrayParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\BoolReturnTypeFromBooleanConstAndStrictReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\KnownMagicClassMethodTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NarrowBoolDocblockReturnTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictReturnsRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NumericReturnTypeFromStrictScalarReturnsRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ObjectParamTypeByMethodCallTypeRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByParentCallTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\PrivateMethodReturnTypeFromStrictNewArrayRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnNeverTypeRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnNullableTypeRector;
@@ -201,7 +187,6 @@ use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictParamRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedCallRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnTypeFromStrictTypedPropertyRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\ReturnUnionTypeRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\ScalarParamTypeByMethodCallTypeRector;
 use Rector\TypeDeclaration\Rector\Closure\AddClosureNeverReturnTypeRector;
 use Rector\TypeDeclaration\Rector\Closure\AddClosureVoidReturnTypeWhereNoReturnRector;
 use Rector\TypeDeclaration\Rector\Closure\ClosureReturnTypeFromAssertInstanceOfRector;
@@ -232,11 +217,11 @@ use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForJsonA
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockGetterReturnArrayFromPropertyDocblockVarRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\DocblockReturnArrayFromDirectArrayInstanceRector;
 use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\NarrowArrayCollectionUnionReturnDocblockRector;
+use Rector\Visibility\Rector\Class_\ChangeMethodVisibilityRector;
 
 return [
     NullToStrictIntPregSlitFuncCallLimitArgRector::class,
     KnownMagicClassMethodTypeRector::class,
-    AddParamStringTypeFromSprintfUseRector::class,
     AddParamFromDimFetchKeyUseRector::class,
     ShellExecFunctionCallOverBackticksRector::class,
     RemoveUnusedClosureVariableUseRector::class,
@@ -258,9 +243,7 @@ return [
     CombinedAssignRector::class,
     CommonNotEqualRector::class,
     CompactToVariablesRector::class,
-    CompleteDynamicPropertiesRector::class,
     ConsecutiveNullCompareReturnsToNullCoalesceQueueRector::class,
-    ForeachItemsAssignToEmptyArrayToAssignRector::class,
     ForeachToInArrayRector::class,
     InlineArrayReturnAssignRector::class,
     LogicalToBooleanRector::class,
@@ -274,7 +257,6 @@ return [
     UnnecessaryTernaryExpressionRector::class,
     UnwrapSprintfOneArgumentRector::class,
     ReturnTypeFromStrictNewArrayRector::class,
-    ReturnEarlyIfVariableRector::class,
     TypedPropertyFromStrictSetUpRector::class,
     AddParamBasedOnParentClassMethodRector::class,
     ChangeSwitchToMatchRector::class,
@@ -293,8 +275,6 @@ return [
     AddArrowFunctionReturnTypeRector::class,
     AddMethodCallBasedStrictParamTypeRector::class,
     AddParamTypeFromPropertyTypeRector::class,
-    ParamTypeByMethodCallTypeRector::class,
-    ParamTypeByParentCallTypeRector::class,
     ReturnNeverTypeRector::class,
     ReturnTypeFromReturnNewRector::class,
     ReturnTypeFromStrictTypedCallRector::class,
@@ -314,11 +294,9 @@ return [
     InlineIfToExplicitIfRector::class,
     SimplifyForeachToCoalescingRector::class,
     TernaryEmptyArrayArrayDimFetchToCoalesceRector::class,
-    TernaryFalseExpressionToIfRector::class,
     MakeInheritedMethodVisibilitySameAsParentRector::class,
     RemoveRedundantTypeCheckRector::class,
     RecastingRemovalRector::class,
-    RemoveDeadReturnRector::class,
     RemoveDeadTryCatchRector::class,
     RemoveDoubleAssignRector::class,
     RemoveEmptyClassMethodRector::class,
@@ -400,7 +378,6 @@ return [
     SortAttributeNamedArgsRector::class,
     SortCallLikeNamedArgsRector::class,
     AddNameToBooleanArgumentRector::class,
-    RemoveParentDelegatingConstructorRector::class,
     NarrowWideUnionReturnTypeRector::class,
     RemoveNextSameValueConditionRector::class,
     PrivatizeFinalClassConstantRector::class,
@@ -430,30 +407,22 @@ return [
     AddNameToNullArgumentRector::class,
     AddParamTypeToRefactorMethodRector::class,
     NarrowArrayCollectionUnionReturnDocblockRector::class,
-    InnerFunctionToPrivateMethodRector::class,
-    MoveInnerFunctionToTopLevelRector::class,
     NewArrayItemConcatAssignToAssignRector::class,
     ArrayExplicitBoolCompareRector::class,
-    ObjectExplicitBoolCompareRector::class,
     FixClassCaseSensitivityVarDocblockRector::class,
     NegatedAndsToPositiveOrsRector::class,
     ExplicitAttributeNamedArgsRector::class,
     RemoveRefactorDuplicatedNodeInstanceCheckRector::class,
     RemoveNullNamedArgOnNullDefaultParamRector::class,
-    RemoveDuplicatedReturnSelfDocblockRector::class,
     RemoveReturnTagIncompatibleWithNativeTypeRector::class,
     RemoveUselessUnionReturnDocblockRector::class,
     RemoveMixedDocblockOverruledByNativeTypeRector::class,
-    ObjectParamTypeByMethodCallTypeRector::class,
     PrivateMethodReturnTypeFromStrictNewArrayRector::class,
-    ScalarParamTypeByMethodCallTypeRector::class,
     NarrowBoolDocblockReturnTypeRector::class,
-    ArrayParamTypeByMethodCallTypeRector::class,
     AddClosureParamTypeFromVariableCallRector::class,
     NarrowArrayAnyAllNullableParamTypeRector::class,
     AddArrayAnyAllClosureParamTypeRector::class,
     ClosureReturnTypeFromAssertInstanceOfRector::class,
-    SwitchTrueToMatchRector::class,
     RemoveParentDelegatingClassMethodRector::class,
     RemoveDeadInstanceOfAssertRector::class,
     RemoveDefaultValueFromAssignedPropertyRector::class,
@@ -465,4 +434,7 @@ return [
     TernaryToNullsafeCoalesceRector::class,
     BoolReturnTypeFromBooleanConstAndStrictReturnsRector::class,
     RemoveOverriddenAssignBeforeIfElseRector::class,
+    ReturnTypeFromMockObjectRector::class,
+    ChangeMethodVisibilityRector::class,
+    ExplicitNullableObjectInstanceRector::class,
 ];
