@@ -117,7 +117,7 @@ The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array
 
 | File | Role |
 | --- | --- |
-| [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` |
+| [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` and sets parallel processing (6 processes, 180 s timeout, 60-file jobs) |
 | [`rules/rules.php`](rules/rules.php) | The 230 enabled rules (shipped) |
 | `build/ignored-rules.php` | The 306 rules that do not ship (development only). 22 sit under a stated reason — deprecated in Rector, or waiting on PHP 8.5; the other 284 are grouped under a plain `// Ignored rules` heading |
 | `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored (development only) |

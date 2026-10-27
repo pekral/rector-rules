@@ -10,6 +10,11 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 
 ## [Unreleased]
 
+### Changed
+
+- `rector.php` runs Rector in parallel with 6 processes, a 180-second process timeout, and 60-file jobs.
+  A project that imports it inherits these settings unless it configures parallel processing itself.
+
 ## [0.6] - 2026-10-08
 
 ### Added
