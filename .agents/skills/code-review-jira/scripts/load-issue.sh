@@ -23,17 +23,18 @@
 #     "timeTracking": { "originalEstimate", "remainingEstimate", "timeSpent", "ratio" },
 #     "descriptionAdf":  <raw ADF or null>,
 #     "descriptionText": "<flattened plain text>",
-#     "descriptionMediaRefs": [ { "adfId", "altText" } ],
+#     "descriptionMediaRefs": [ { "adfId", "altText", "attachmentId" } ],
 #     "issueLinks":  [ { "id", "type", "direction", "verb", "linkedKey", "linkedSummary", "linkedStatus", "linkedType" } ],
 #     "subtasks":    [ { "key", "summary", "status", "type",
-#                        "descriptionText", "descriptionAdf",
-#                        "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "created", "visibility" } ],
+#                        "descriptionText", "descriptionAdf", "descriptionMediaRefs",
+#                        "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "mediaRefs", "created", "visibility" } ],
 #                        "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ] } ],
-#     "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "created", "visibility" } ],
-#     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],
+#     "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "mediaRefs", "created", "visibility" } ],
+#     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],  # "id" is a string
 #     "customFields":  { "customfield_XXXXX": <parsed value>, … },
 #     "devSummary":    { "pullRequestCount", "branchCount", "commitCount", "state", "isStale", "byInstance" } | null,
-#     "pullRequests":  [ { "number", "title", "url", "state", "headRefName", "baseRefName", "isDraft", "mergedAt", "author" } ]
+#     "pullRequests":  [ { "number", "title", "url", "state", "headRefName", "baseRefName", "isDraft", "mergedAt", "author" } ],
+#     "attachmentSite": "<configured *.atlassian.net site>" | null
 #   }
 #
 # Notes:
@@ -62,10 +63,13 @@
 #     on free-text fields that happen to mention `json={…}` in prose. Primitives,
 #     arrays, and already-structured objects pass through unchanged. No
 #     site-specific field IDs are hardcoded.
-#   - `descriptionMediaRefs[]` carries only `adfId` + `altText`. Correlating ADF
-#     media nodes back to entries in `attachments[]` requires an additional
-#     Atlassian Cloud Media API call, which is out of scope for this script;
-#     consumers should join on `attachments[]` themselves when needed.
+#   - A file pasted into the description or a comment is stored as an issue attachment, so it is
+#     in `attachments[]` and `download-attachments.sh` downloads it. Its media node renders in the
+#     text as `[attachment: <filename>]` at the place it was pasted. `descriptionMediaRefs[]` and
+#     each comment's `mediaRefs[]` list those nodes; `attachmentId` joins a node to the
+#     `attachments[]` entry by filename, and is null when the filename is missing or not unique.
+#     `attachmentId` equals that entry's `id`: both are strings, whatever type acli returns.
+#     The ADF `adfId` is a Media API ID, not the attachment ID.
 #   - `devSummary` is a convenience projection derived from
 #     customFields[$JIRA_DEV_SUMMARY_FIELD] (default `customfield_10000`,
 #     overridable via the JIRA_DEV_SUMMARY_FIELD env var). The shape stays
@@ -303,11 +307,8 @@ else
   exit 1
 fi
 
-resolve_host() {
-  if [[ -n "$HOST_FROM_URL" ]]; then
-    printf '%s' "$HOST_FROM_URL"
-    return 0
-  fi
+# The configured site: JIRA_SITE, then the site of the current acli profile.
+resolve_configured_site() {
   if [[ -n "${JIRA_SITE:-}" ]]; then
     printf '%s' "$JIRA_SITE"
     return 0
@@ -318,7 +319,22 @@ resolve_host() {
   fi
 }
 
+resolve_host() {
+  if [[ -n "$HOST_FROM_URL" ]]; then
+    printf '%s' "$HOST_FROM_URL"
+    return 0
+  fi
+  resolve_configured_site
+}
+
 HOST="$(resolve_host || true)"
+# The attachment download host comes only from the configured site, never from the URL argument:
+# the URL can come from untrusted text, and download-attachments.sh sends the API token to this host.
+CONTENT_HOST="$(resolve_configured_site || true)"
+CONTENT_HOST="$(printf '%s' "$CONTENT_HOST" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+if [[ ! "$CONTENT_HOST" =~ ^[a-z0-9][a-z0-9-]*\.atlassian\.net$ ]]; then
+  CONTENT_HOST=""
+fi
 DEV_FIELD="${JIRA_DEV_SUMMARY_FIELD:-customfield_10000}"
 
 VIEW_JSON="$(acli jira workitem view "$KEY" --fields '*all' --json 2>/dev/null || true)"
@@ -382,6 +398,7 @@ fi
 jq -n \
   --arg key "$KEY" \
   --arg host "$HOST" \
+  --arg contentHost "$CONTENT_HOST" \
   --arg devField "$DEV_FIELD" \
   --argjson view "$VIEW_JSON" \
   --argjson commentsResp "$COMMENTS_JSON" \
@@ -416,6 +433,7 @@ def adfInline:
   elif .type == "emoji" then (.attrs.text // .attrs.shortName // "")
   elif (.type // "") | IN("inlineCard","blockCard","embedCard") then (.attrs.url // "")
   elif .type == "status" then (.attrs.text // "")
+  elif (.type // "") | IN("media","mediaInline") then "[attachment: " + (.attrs.alt // .attrs.url // "unnamed") + "]"
   elif .type == "date" then
     ((.attrs.timestamp // "") | tostring) as $raw
     | ($raw | tonumber? // null) as $ms
@@ -451,6 +469,7 @@ def adfBlock($indent):
   elif (.type // "") | IN("paragraph","heading","codeBlock") then $indent + adfInline + "\n"
   elif .type == "rule" then $indent + "---\n"
   elif (.type // "") | IN("blockCard","embedCard") then $indent + adfInline + "\n"
+  elif (.type // "") | IN("mediaSingle","mediaGroup") then $indent + ((.content // []) | map(adfInline) | join(" ")) + "\n"
   elif .type == "table" then
     (.content // [])
     | map($indent + "| "
@@ -463,7 +482,7 @@ def adfBlock($indent):
   elif (.type // "") | IN("expand","nestedExpand") then
     (if (.attrs.title // "") != "" then $indent + .attrs.title + "\n" else "" end)
     + ((.content // []) | map(adfBlock($indent)) | join(""))
-  elif (.type // "") | IN("text","hardBreak","mention","emoji","inlineCard","status","date") then adfInline
+  elif (.type // "") | IN("text","hardBreak","mention","emoji","inlineCard","status","date","media","mediaInline") then adfInline
   else ((.content // []) | map(adfBlock($indent)) | join(""))
   end;
 
@@ -475,7 +494,35 @@ def adfPlain: adfText | gsub("\n\n+"; "\n\n") | sub("\n+$"; "");
 # `comment list` body is the flattening acli does itself, which drops mentions, emoji, and every list item —
 # a decision written as a bullet disappears from it entirely. The flattened text stays the fallback
 # for a comment the view did not embed.
-def commentOut($viewIdx):
+
+# `attachmentId` is the id of an attachment as a string, or null when it has none. acli returns the id
+# as a number or as a string depending on the endpoint, so `attachments[].id` and the `attachmentId`
+# of a media reference both go through it and a consumer can join them with `==`.
+def attachmentId: if (.id // null) == null then null else (.id | tostring) end;
+
+# `attachmentContentUrl` serves the attachment content through the configured JIRA site. acli can
+# return the URL on an internal Atlassian host (`*.prod.atl-paas.net`) that a client outside Atlassian
+# cannot reach; the path is the same on the site. Only such an internal URL is rewritten, and only to
+# the configured `*.atlassian.net` site; every other URL stays as returned.
+def attachmentContentUrl:
+  (.content // null) as $u
+  | if $u == null or $contentHost == "" then $u
+    else ($u | capture("^https://[a-z0-9.-]+\\.prod\\.atl-paas\\.net(?<path>/rest/api/3/attachment/content/[0-9]+)$")? // null) as $m
+    | if $m == null then $u else "https://" + $contentHost + $m.path end
+    end;
+
+# `mediaRefs($atts)` lists every media node of an ADF document. `attachmentId` joins the node to the
+# issue attachment whose filename equals the `alt` of the node, and stays null when no attachment or more
+# than one attachment carries that filename.
+def mediaRefs($atts):
+  [ .. | objects | select((.type // "") | IN("media","mediaInline"))
+    | (.attrs.alt // null) as $alt
+    | ([$atts[] | select($alt != null and .filename == $alt) | attachmentId]) as $hits
+    | { adfId: (.attrs.id // null),
+        altText: $alt,
+        attachmentId: (if ($hits | length) == 1 then $hits[0] else null end) } ];
+
+def commentOut($viewIdx; $atts):
   . as $c
   | (($c.id // "") | tostring) as $id
   | ($viewIdx[$id] // {}) as $v
@@ -487,21 +534,13 @@ def commentOut($viewIdx):
              elif ($c.body | type) == "object" then ($c.body | adfPlain)
              else $c.body end),
       mentionAccountIds: ([($v.body // $c.body) | .. | objects | select(.type == "mention") | .attrs.id? // empty] | unique),
+      mediaRefs: (($v.body // $c.body) as $b | if ($b | type) == "object" then ($b | mediaRefs($atts)) else [] end),
       created: ($c.created // $v.created // null),
       visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $v.visibility // null) end)
     };
 
 def viewCommentIdx:
   ((.comment.comments // []) | map({ key: ((.id // "") | tostring), value: { body: .body, created: .created, visibility: (.visibility.value // null), author: .author } }) | from_entries);
-
-def adfMedia:
-  if type != "object" then []
-  elif .type == "media" then
-    [ { adfId: (.attrs.id // null),
-        altText: (.attrs.alt // null) } ]
-  else
-    ((.content // []) | map(adfMedia) | add // [])
-  end;
 
 ($view.fields // {}) as $f
 | ($f.attachment // []) as $att
@@ -519,7 +558,7 @@ def adfMedia:
    end) as $devCached
 | ($f.description // null) as $desc
 | (if $desc == null then "" else ($desc | adfText) end) as $descText
-| (if $desc == null then [] else ($desc | adfMedia) end) as $descMedia
+| (if $desc == null then [] else ($desc | mediaRefs($att)) end) as $descMedia
 | {
     key: $key,
     url: (if $host != "" then "https://" + $host + "/browse/" + $key else null end),
@@ -579,24 +618,25 @@ def adfMedia:
           type: ($st.fields.issuetype.name // null),
           descriptionAdf: $sdesc,
           descriptionText: (if $sdesc == null then "" else ($sdesc | adfPlain) end),
-          comments: (if $d == null then [] else (($sf | viewCommentIdx) as $subIdx | ($d.comments // []) | map(commentOut($subIdx))) end),
+          descriptionMediaRefs: (if $sdesc == null then [] else ($sdesc | mediaRefs($sf.attachment // [])) end),
+          comments: (if $d == null then [] else (($sf | viewCommentIdx) as $subIdx | ($d.comments // []) | map(commentOut($subIdx; $sf.attachment // []))) end),
           attachments: (if $sf == null then [] else (($sf.attachment // []) | map({
-            id: (.id // null),
+            id: attachmentId,
             name: (.filename // null),
             size: (.size // null),
             mimeType: (.mimeType // null),
-            contentUrl: (.content // null),
+            contentUrl: attachmentContentUrl,
             author: (if (.author | type) == "object" then (.author.displayName // null) else .author end),
             created: (.created // null)
           })) end)
         })),
-    comments: ($commentsResp.comments // [] | map(commentOut($viewCommentIdx))),
+    comments: ($commentsResp.comments // [] | map(commentOut($viewCommentIdx; $att))),
     attachments: ($att | map({
-      id: (.id // null),
+      id: attachmentId,
       name: (.filename // null),
       size: (.size // null),
       mimeType: (.mimeType // null),
-      contentUrl: (.content // null),
+      contentUrl: attachmentContentUrl,
       author: (if (.author | type) == "object" then (.author.displayName // null) else .author end),
       created: (.created // null)
     })),
@@ -609,6 +649,7 @@ def adfMedia:
       isStale: (($devCached.pullrequest.overall.stateCount // 0) == 0),
       byInstance: ($devCached.pullrequest.byInstanceType // null)
     } end),
+    attachmentSite: (if $contentHost == "" then null else $contentHost end),
     pullRequests: ($prs | map({
       number: .number,
       title: .title,

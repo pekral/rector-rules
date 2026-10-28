@@ -116,7 +116,7 @@ For every recommendation include:
 
 - what to change
 - why it helps
-- expected impact (latency, DB load, memory, throughput)
+- measured baseline (the Telescope duration, query count, or memory this change targets)
 - implementation risk or side effects
 - verification plan (how to measure after change)
 
@@ -138,7 +138,7 @@ The skill must:
 
 - prefer evidence from Telescope data over assumptions
 - match UI request with DB request whenever possible
-- clearly separate confirmed findings from hypotheses
+- report confirmed findings only, and list every unconfirmed point under *Not verified* with the step that settles it (`@rules/general/general.md` *Verified statements only*)
 - avoid recommending changes without measurable validation
 - keep output concise and implementation-oriented
 

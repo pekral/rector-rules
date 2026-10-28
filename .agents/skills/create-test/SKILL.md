@@ -89,6 +89,7 @@ Rules:
      - `refactor(<scope>): pre-existing — …` (project-rule violation, behavior-preserving) — apply `@rules/refactoring/general.md` *Test Coverage Contract*: when the target lines are below 100% coverage, author a dedicated `test(<scope>): cover <area> before pre-existing refactor` commit **before** the refactor commit, and do **not** modify pre-existing tests inside the refactor commit (mechanical renames forced by the refactor itself stay exempt and must be flagged in the commit body).
 4. The "Do not modify production code unless strictly required" constraint above is **overridden** for these fixes — the production-code change is the fix itself, and it lives in its own commit.
 5. If a pre-existing issue is **non-trivial** (would significantly expand the change or requires architectural discussion), do **not** fix it. Surface it in the skill's output report as a deferred follow-up with the reason.
+6. **A refactoring-only change fixes no bug and no security weakness.** When the current change is refactoring-only, the *Bugs* and *Security vulnerabilities* above are not fixed here, and rule 1 does not apply to them. Keep the behaviour unchanged and file each one as a follow-up issue per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*. A project-rule violation that changes no behaviour is still fixed under rule 3.
 
 ---
 

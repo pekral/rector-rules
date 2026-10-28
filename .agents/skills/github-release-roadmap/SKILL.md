@@ -82,7 +82,7 @@ Treat the user's categories as **desired release outcomes, not automatically as 
 - the requested category it serves;
 - the change type — `bugfix`, `feature`, or `breaking`;
 - the matching existing label(s), if any;
-- the inclusion recommendation, its rationale, its dependencies, and a confidence level;
+- the inclusion recommendation, its rationale, its dependencies, and every point the issue content does not settle, under *Not verified*;
 - a tentative priority and schedule, when the evidence supports one.
 
 **Labels are additive, never substitutive.** Prefer an existing label whose meaning fits. Never replace an existing label. Propose a **new** label only when no existing label adequately represents a category or a change type, and carry its name, description, and colour into the approval plan.
@@ -104,7 +104,7 @@ Before any mutation, present a single package containing:
 - the existing Project to reuse, the template Project to copy, or the blank Project to create;
 - the Project fields and the per-item dates and priorities to add or update;
 - any new issues to create;
-- all assumptions, risks, and manual steps, plus the expected number and type of mutations.
+- every point not verified (each with the question that settles it), the risks, and the manual steps, plus the number and type of mutations the plan performs.
 
 End with an **explicit confirmation question**. A vague acknowledgement is not approval — ask again when the intent is unclear.
 

@@ -6,6 +6,12 @@ This is phase 3 of `@rules/compound-engineering/tracker.md` *Tracker status trac
 
 The write is unconditional, idempotent, and verified — the same apply-then-verify discipline the phase-1 and phase-2 writes use. A zero exit code is not evidence: an external write can be silently blocked in auto-mode.
 
+### Pull-request label (every tracker)
+The pull request is on GitHub whatever the source tracker is, so this write runs for a GitHub, a JIRA, and a Bugsnag source, and also when there is no source tracker item.
+1. **Create the label when the repository lacks it**, exactly as step 1 of *GitHub-specific write* below.
+2. **Apply it to the pull request:** `gh pr edit <PR-NUMBER|URL> --add-label "ready to merge"`.
+3. **Re-read and verify the label landed** via `skills/code-review-github/scripts/load-issue.sh <PR-URL>`. When it did not land, report the failed write in the completion report; the PR stays promoted.
+
 ### GitHub-specific write
 1. **Create the label when the repository lacks it**, then ignore the "already exists" outcome on every later run: `gh label create "ready to merge" --description "The code review for this issue converged; the PR is waiting to be merged" --color 1d76db`. This mirrors the `ready for review` label creation in `@skills/resolve-issue/references/tracker-follow-up.md`.
 2. **Apply it to the source issue:** `gh issue edit <N> --add-label "ready to merge"`.
@@ -20,12 +26,12 @@ The write is unconditional, idempotent, and verified — the same apply-then-ver
 - There is none. Bugsnag's `status` field is a resolution enum (`open` / `fixed` / `ignored` / `snoozed`) carrying no ready-to-merge value, so no status write exists to make — the same documented limitation the phase-1 and phase-2 writes already carry. The substitute signal is the comment on the error and its mirror on the linked GitHub issue in `linkedIssues[]`.
 
 ### No source tracker item — explicit no-op
-- A branch that resolves no tracker issue (a task the user described directly) has nothing to write a status on. Skip the issue-side write, state the skip in the completion report, and promote the PR exactly as above. This is not a failure and not a partial success; the PR's own half of the signal is unaffected.
+- A branch that resolves no tracker issue (a task the user described directly) has nothing to write a status on. Skip the issue-side write, state the skip in the completion report, and promote and label the PR exactly as above. This is not a failure and not a partial success; the PR's own half of the signal is unaffected.
 
 ### Revert when the review re-opens
 A commit landing after the promotion can re-open the review (*Finalization* — **Only a gate fix that changes business logic re-opens the review**). Phase 3 then states something untrue, so withdraw it symmetrically with how it was written, and only for the halves that were actually written:
 
-1. `gh pr ready --undo <PR-NUMBER|URL>` returns the PR to Draft when it had already been promoted.
+1. `gh pr ready --undo <PR-NUMBER|URL>` returns the PR to Draft when it had already been promoted, and `gh pr edit <PR-NUMBER|URL> --remove-label "ready to merge"` removes the PR label.
 2. `gh issue edit <N> --remove-label "ready to merge"` removes the GitHub signal. The still-present `ready for review` label is again the active phase-2 signal, which is what is true — the work waits on a reviewer.
 3. `skills/code-review-jira/scripts/transition-to-code-review.sh <KEY|URL>` moves JIRA back to the review column. That is the **existing** second sanctioned transition, so the revert direction needs no new capability.
 4. Verify each withdrawal by re-reading through the deterministic loader, exactly as the write was verified. When a withdrawal does not land — a write silently blocked in auto-mode, or exit 5 because the review column is not reachable from the ready-to-merge column — report the stale phase-3 signal in the completion report and never report convergence. The tracker then still claims *ready to merge* over a re-opened review, so a human has to reset it. The PR stays in Draft either way.

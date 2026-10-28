@@ -68,7 +68,7 @@ For every entry in the final set (primary + accepted related), rewrite its block
 
 ### 5. Verify before writing — deterministic loss-check
 For every entry this run is about to change:
-- Count words and bytes of the original block and the compacted block (the report needs both, plus a rough token estimate — bytes ÷ 4, the same heuristic this skill's own originating issue used).
+- Count words and bytes of the original block and the compacted block (the report needs both). Report no token count: no tokenizer runs here, and a count derived from bytes is an estimate (`@rules/general/general.md` *Verified statements only*).
 - Extract two token sets from the block text — before-edit and after-edit: every `### slug` / `[[slug]]` reference, every URL, every `#<number>` issue/PR reference, every commit SHA, every concrete pointer (a `path/to/file.ext`, optionally `:line`, or a bare class/method/script name quoted in backticks), and every parenthetical counter-example or stated exception (invariant #5) — a `(e.g. …)` clause, a named sanctioned exception, a caveat. **Never narrow this to only `#N` / commit-SHA / `### slug` references** — that subset is structurally blind to a dropped concrete pointer or a deleted counter-example, exactly the class of loss a slug-count-only check (49 entries before, 49 after) cannot detect (issue #148).
 - The after-set must be a **superset-or-equal** of the before-set. When a token from the before-set is missing from the after-set, **revert that one entry's edit** back to its original text and record the missing token plus the slug in the report — never publish a compacted entry that dropped a token, and never let one failed entry block the others in the same run.
 
@@ -86,9 +86,9 @@ For every entry this run is about to change:
 - **Touched range source:** working tree diff | last-commit diff | bulk (`MODE: bulk` — every existing entry)
 
 ### Entries compacted
-| Slug | Before (words / bytes / ~tokens) | After (words / bytes / ~tokens) | Reason touched |
+| Slug | Before (words / bytes) | After (words / bytes) | Reason touched |
 |---|---|---|---|
-| `<slug>` | 120 / 850 / 213 | 78 / 520 / 130 | primary (git diff) |
+| `<slug>` | 120 / 850 | 78 / 520 | primary (git diff) |
 | `<related-slug>` | … | … | related (shared `Trigger:` keyword "…") |
 
 ### Related entries not compacted this run
@@ -108,7 +108,7 @@ For every entry this run is about to change:
 
 ### Totals
 - Entries touched: N compacted + M related (cap 3) + K deferred
-- Words / Bytes / ~Tokens: <before totals> → <after totals>
+- Words / Bytes: <before totals> → <after totals>
 ```
 
 When there is nothing to compact, render only: `Nothing to compact — no diff on `<file>` since HEAD, and the immediately preceding commit did not touch it either.` and stop; omit every other subsection.

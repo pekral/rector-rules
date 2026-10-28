@@ -33,4 +33,4 @@ Every recommendation the worker returns carries all eight, in this order. A find
 5. **Smallest credible implementation scope** — the affected files and interfaces, and nothing beyond them.
 6. **Regression risks and migration concerns** — what can break, and what already-stored data or already-published interface the change has to carry forward.
 7. **Existing and additional validation required** — the tests that already cover the target lines, and the tests that would have to be added first.
-8. **Confidence** — `high`, `medium`, or `low`.
+8. **Not verified** — every point the evidence does not settle, each with the step that settles it, or `none`. Never a confidence level (`@rules/general/general.md` *Verified statements only*).

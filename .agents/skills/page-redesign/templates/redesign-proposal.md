@@ -1,6 +1,6 @@
 # Redesign — {page name}
 
-> Fill every section. Write in the language of the assignment (`@rules/reports/general.md`); keep every on-screen label verbatim in the language the application uses. Delete a section only when it does not apply, and say why in *Assumptions and gaps*.
+> Fill every section. Write in the language of the assignment (`@rules/reports/general.md`); keep every on-screen label verbatim in the language the application uses. Delete a section only when it does not apply, and say why in *Not verified*.
 
 **Page:** {route} · {view file} · {component or controller class}
 **Viewport:** {width × height the application is actually used at}
@@ -59,7 +59,7 @@ One row per element. This is what the developer builds from, so no cell is left 
 - The main layout shell: {header, sidebar, navigation, footer} stay exactly as they are.
 - {behaviour, contract, or element the redesign deliberately leaves alone, and why}
 
-## Assumptions and gaps
+## Not verified
 
-- {material that was missing, the assumption made in its place, and what would confirm it}
+- {material that was missing, the choice the proposal made in its place, and what would confirm it}
 - {state left out of scope, with the reason}

@@ -1,30 +1,32 @@
-# Round-3 deferral boundary
+# Cap-round deferral boundary
 
 Referenced from `skills/process-code-review/SKILL.md` *Review loop* step 6. Extracted to keep the skill body under the skill-check token limit; the procedure is the skill's, stated once here.
 
-Round 3 is the loop's last review. It is a **deferral boundary**, not a failure line: what remains is triaged into one of three outcomes rather than iterating a fourth time. The point is a review that converges in a bounded number of rounds without lowering the bar of anything that merges — every outcome below is either a fix, a recorded tracker item, or a hard stop.
+The cap round — the round equal to `review.max-iterations`, round 3 by default (`references/review-state.md` *Configuration*) — is the loop's last review. It is a **deferral boundary**, not a failure line: what remains is triaged into one of three outcomes rather than iterating once more. The point is a review that converges in a bounded number of rounds without lowering the bar of anything that merges — every outcome below is either a fix, a recorded tracker item, or a hard stop.
 
 ## Resolution table — every remaining finding lands in exactly one row
 
-| Remaining finding at round 3 | Outcome | Effect on the convergence gate |
+| Remaining finding at the cap round | Outcome | Effect on the convergence gate |
 |---|---|---|
 | **Critical** (including every not-fulfilled reviewer instruction, which the fulfillment gate already raises as Critical) | **Hard stop.** Surface the findings, escalate to the user. Never filed as a sub-issue. | Blocks. The run does not converge, the PR stays a Draft, and nothing is published. |
 | **Moderate meeting the S1–S3 security carve-out** (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*: produced by a security lens, citing a rule in `@rules/security/**`, or landing on a security surface) | **Hard stop**, identical to a Critical. Never deferred, never filed as a sub-issue. | Blocks. |
+| **Moderate at or above `review.blocking-threshold`** (only when the manifest sets the threshold below `critical`) | **Hard stop**, identical to a Critical. Never deferred, never filed as a sub-issue. | Blocks. |
+| **Moderate: a behaviour change in a refactoring-only pull request** (`@rules/refactoring/general.md` *Code Review Application*) | **Blocking.** Never deferred, neither as a sub-issue nor by linking an existing issue. The loop restores the old behaviour. | Blocks. |
 | **Moderate, non-security, passing the filing bar** | **Deferred** — filed as a sub-issue of the source tracker item and recorded in the published report. | Does not block. The finding is resolved for this PR by being scheduled, not by being forgotten. |
 | **Moderate, non-security, already recorded in an open tracker issue** | **Deferred by linking** that existing issue instead of creating a duplicate, per *Deduplicate before filing* in the filing-bar rule. | Does not block. |
 | **Moderate, non-security, failing the filing bar** | **Blocking.** | Blocks. See *A Moderate that satisfies neither criterion* below. |
 
 ## The filing bar is cross-referenced, never restated
 
-Whether a non-security Moderate may be deferred is decided by the bar that already exists: `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* → *The filing bar*. It files exactly two things — a critical gap in the business logic the assignment asked for, and a critical security issue — and ignores everything else, refactoring follow-ups and nice-to-have work included. Read the bar there and apply it verbatim.
+Whether a non-security Moderate may be deferred is decided by the bar that already exists: `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* → *The filing bar*. It files exactly three things — a critical gap in the business logic the assignment asked for, a critical security issue, and a discrepancy a refactoring-only change found and kept unchanged — and ignores everything else, refactoring follow-ups and nice-to-have work included. Read the bar there and apply it verbatim.
 
-**The bar is deliberately narrow, so the row below it carries most of the traffic.** A round-3 Moderate that is a refactoring, an architectural cleanup, or a debt item does not become a sub-issue any more: it is fixed in the loop, or it blocks. That is the intended consequence of not filing such work — the finding is resolved rather than queued, and the backlog stays a list of work that must actually be done.
+**The bar is deliberately narrow, so the row below it carries most of the traffic.** A cap-round Moderate that is a refactoring, an architectural cleanup, or a debt item does not become a sub-issue any more: it is fixed in the loop, or it blocks. That is the intended consequence of not filing such work — the finding is resolved rather than queued, and the backlog stays a list of work that must actually be done. A behaviour change in a refactoring-only pull request is such a Moderate too: the loop restores the old behaviour, and the change is never deferred (`@rules/refactoring/general.md` *Code Review Application*).
 
 A second copy of the bar here would be a second source of truth to drift from, so the paragraph above points at it rather than restating its conditions.
 
 ## A Moderate that satisfies neither criterion still blocks
 
-A round-3 Moderate can fail the filing bar while also not being security-relevant — a genuine architectural debt item with a named consequence that the bar nonetheless routes elsewhere, or an item whose deferral would only produce backlog noise. **It blocks.** The run does not converge, and the finding is surfaced to the user exactly like a Critical.
+A cap-round Moderate can fail the filing bar while also not being security-relevant — a genuine architectural debt item with a named consequence that the bar nonetheless routes elsewhere, or an item whose deferral would only produce backlog noise. **It blocks.** The run does not converge, and the finding is surfaced to the user exactly like a Critical.
 
 This is deliberate. The filing bar exists to keep noise out of the backlog, never to create a silent bypass: an item that is not important enough to file and not fixed in the loop would otherwise vanish between the two criteria, and the PR would merge carrying a Moderate nobody ever sees again. Exactly one of *deferred* or *blocking* always applies to every non-security Moderate, and a run that cannot decide which treats the finding as blocking.
 
@@ -42,4 +44,5 @@ Use `scripts/file-deferred-moderate.sh <PARENT> <TITLE> <BODY-FILE|-> [<LABEL>]`
 
 - Every deferred finding appears in the single published CR comment's `## Deferred to sub-issues` section as a **deferred** entry carrying the created sub-issue URL — never as a resolved finding and never silently dropped. A reader must be able to tell a fix from a deferral at a glance.
 - The `Counts:` line keeps the **real** detected numbers, per `@rules/code-review/review-process.md` *Output Rules — Truthful reporting (issue #74)*. A deferred Moderate was detected; the report says so and says where it went.
+- **Record every deferral that landed** with `review-state.sh defer`, then run `review-state.sh evaluate --final` (`references/review-state.md`). The script refuses a deferral before the cap round and a deferral of a hard stop.
 - **A deferral that did not land is not a deferral.** When the script exits non-zero — creation blocked, the relation unverified, no parent available — the finding reverts to **blocking** and the run does not converge. Report the failed write rather than assuming it.

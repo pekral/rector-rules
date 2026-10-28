@@ -8,6 +8,8 @@
 #   2. sources this file
 #   3. resolves the attachment inventory as a JSON array of
 #        { "id", "name", "declaredMime", "size", "contentUrl" }
+#      plus an optional "referencedBy" list the manifest carries through unchanged, and an optional
+#      "blockReason": an item that carries one is blocked with that reason and never requested
 #   4. writes a curl auth config file (chmod 600) carrying ONLY the auth header
 #      (empty string when the source needs no auth)
 #   5. calls att_run "<inventory_json>" "<auth_config_file>" "<dest_dir>" "<tracker>" "<ref>"
@@ -142,9 +144,12 @@ att_run() {
 
     status="downloaded"; reason=""; localPath=""; size=0; sha=""
 
-    local hostReason
+    local hostReason blockReason
+    blockReason="$(printf '%s' "$inventory" | jq -r ".[$i].blockReason // \"\"")"
     if (( i >= ATT_MAX_COUNT )); then
       status="block"; reason="exceeds max attachment count (${ATT_MAX_COUNT})"
+    elif [[ -n "$blockReason" ]]; then
+      status="block"; reason="$blockReason"
     elif [[ -z "$url" ]]; then
       status="block"; reason="no downloadable contentUrl in inventory"
     elif hostReason="$(att_host_block_reason "$url")"; [[ -n "$hostReason" ]]; then
@@ -177,6 +182,7 @@ att_run() {
         localPath: (if $lp == "" then null else $lp end),
         status: $st,
         reason: (if $rs == "" then null else $rs end),
+        referencedBy: ($e.referencedBy // null),
         safePath: null
       }]' <<< "$entries")"
   done

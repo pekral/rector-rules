@@ -14,6 +14,9 @@
 **Status:** clean / needs-fix  *(`clean` when the run converged — no Critical, no unfulfilled reviewer comment, and every remaining Moderate carrying a `Deferred:` field. A Moderate without that field is outstanding, so the status is `needs-fix`.)*
 **Counts:** Critical {n} · Moderate {n}  *(always the real detected counts)*
 **Merge verdict:** {yes | no} — assignment met: {yes | no | no linked issue} · open Critical: {n} · {when no: every blocker in one short clause each — the open Critical findings, the unmet criteria, an unfulfilled reviewer comment, an undeferred Moderate, or a missing green quality gate}  *(always rendered — the one-line answer to "can we merge, and is the assignment met with no Critical finding?". `yes` only when all of `@rules/code-review/general.md` *Merge verdict* holds. It never replaces the merge gate.)*
+**Input consistency:** {yes | no | not applicable — the diff writes no persisted data} — {when no: every entry point that bypasses the change, with its `file:line`}  *(always rendered — answers "is the data stored consistently whatever input in the application writes it?" per `@rules/code-review/general.md` *Input consistency and reuse*)*
+**Reuse (DRY):** {no duplication found | every existing implementation the diff should reuse, with its `file:line`}  *(always rendered — answers "can existing code in the codebase be used instead of repeating it?" per `@rules/code-review/general.md` *Input consistency and reuse*)*
+**Security assessment:** untrusted data: {none | each new path, unsafe deserialization, or vulnerable dependency, with its `file:line`} · public exposure: {none | each new service or port and the address it is reachable from} · regression test: {not required | present — the test that pins it | required — each unpinned guarantee} · automatic rule: {not applicable | none practical | the strongest practical mechanism and its level}  *(always rendered — `not applicable — the diff changes no code` when the diff changes no application, configuration, or deployment code; per `@rules/code-review/general.md` *Security assessment*)*
 **Mode:** HOTFIX — coverage waived, review scoped to assignment + bug fix (declared by {account})  *(render this line only on a declared HOTFIX run; it is the merge gate's only trusted evidence of the mode — `@rules/code-review/general.md` *HOTFIX runs*. Omit it entirely on every ordinary run.)*
 **Reviewed revision:** {full head SHA this round reviewed}  *(always rendered — the next round resolves its baseline from this line)*
 **Reviewed diff fingerprint:** {patch-id of the effective PR diff}  *(always rendered — preserves the verdict across a content-identical history rewrite)*
@@ -21,6 +24,7 @@
 **Coverage:** {result} (tool: {name or "not available — <reason>"})  *(render this line only when the `## Coverage` section is rendered — i.e. uncovered changed lines or unavailable tooling)*
 **Last updated:** {ISO-8601 timestamp of this CR run}
 **Quality gate:** {command} — {green | reported: <what>} on {full head SHA the gate ran on}{, tree {tree} — record {record path}, when `run-gate.sh` wrote one}  *(rendered on a converged run; `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* reads this line off this comment. Omit it on a run that carries no gate record.)*
+**Not verified:** {each point this run could not verify — what is unknown and the step that settles it; one entry per point, separated by ` · `}  *(render this line only when the run holds at least one such point, on a converged run too — `@rules/code-review/general.md` *Safety*. It carries the database-engine entry of `@skills/code-review/references/specialized-reviews.md` verbatim when that branch fires. Never an assumption, an estimate, or a confidence level. Omit it entirely when every point was verified.)*
 **{tracker-mirror field}:** {tracker-mirror status}  *(field name and status wording are defined per-wrapper in that skill's own Output Rules section — see `@skills/code-review-github/SKILL.md`, `@skills/code-review-jira/SKILL.md`, or `@skills/code-review-bugsnag/SKILL.md` for the concrete values)*
 
 ---
@@ -47,6 +51,7 @@
 - **Rule:** `@rules/<area>/<file>.md#<section>`
 - **Provenance:** `regression — introduced in this revision` | `pre-existing — carried from round {n}` | `pre-existing — untouched by this revision`
 - **Impact:** one sentence — what breaks or what risk this introduces.
+- **Evidence:** `failing-test` | `static-analysis` | `runtime-failure` | `exploit-path` | `logic-trace` | `rule-violation` — the evidence another reader can check without trusting this review: the failing test, the analyser error, the reproducible failure, the exploit path, the traced logic defect, or the explicit rule the line breaks. *(Required on every finding. A point that has none goes under `## Needs verification`, never here.)*
 - **Faulty Example:**
   ```php
   // minimal code or input that reproduces the issue (no secrets / PII)
@@ -57,12 +62,33 @@
   ```php
   // minimal corrected snippet — must comply with @rules/php/core-standards.md (and @rules/laravel/architecture.md on Laravel projects). Use `n/a — <reason>` only when a snippet adds no value.
   ```
+- **Author:** `@<login>` — the pull request's `author.login`. *(Render only in a review-only run (`/report-code-review`), and only on a finding about a missing test or a DRY finding, per `@rules/code-review/general.md` *The author of the changes is the account that pushed the pull request* → *Second exception*. Omit the field on every other finding and on every other run.)*
 
 ### 🟠 Moderate 1. <short title>
 
-(same fields as Critical, Provenance included, plus one field that renders only on a round-3 deferral)
+(same fields as Critical, Provenance and Author included, plus `Level` and one field that renders only on a cap-round deferral)
 
+- **Level:** `High` | `Medium` | `Low` — the lens's own level of a Moderate a security lens raised. *(Omit it on every other Moderate, which reads as `Medium`.)*
 - **Deferred:** `<sub-issue URL>` — filed as a sub-issue of the source tracker item per `@skills/process-code-review/references/round-three-deferral.md`; the finding is recorded, not resolved. *(Omit this field entirely unless the finding was deferred.)*
+
+## Needs verification
+
+> Render only in a **round report of the review loop** (`@skills/process-code-review/SKILL.md` *Review loop*), and only when the round holds a point that no check of this run proved. Each entry has the same fields as a finding above except `Evidence`, and its `Test hint` names the step that settles the point.
+> An entry here is not a finding: it never counts in the `Counts:` line, and `skills/_shared/review-state.sh` tracks it with the status `needs-verification`, which blocks nothing — **except an entry that meets the S1–S3 security carve-out** (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*), which blocks the loop until it is proven and fixed, or proven absent.
+> A published comment never renders this section: the converged comment carries the remaining non-security points on the `Not verified:` line instead.
+
+### 🟠 Moderate 1. <short title>
+
+(same fields as a finding, without `Evidence`)
+
+---
+
+## Missing tests added
+
+> Render only in a review-only run (`/report-code-review`) whose missing-tests commit added at least one test. Omit the heading entirely otherwise. Each line is information, not a finding: the test is already on the branch, so it adds nothing to the Counts line. It names the gap the change shipped with and mentions its author, per `@rules/code-review/general.md` *The author of the changes is the account that pushed the pull request* → *Second exception*. Render it on a run with no finding too.
+
+- **Commit:** `{full SHA of the missing-tests commit}`
+- `path/to/SomethingTest.php` — {the behaviour the test protects, in plain language} — `@<login>`
 
 ---
 
@@ -91,6 +117,15 @@
 
 ---
 
+## Input consistency
+
+> Render on every run whose diff writes persisted data — on a converged run too — per `@rules/code-review/general.md` *Input consistency and reuse*. When the diff writes no persisted data, omit the heading; the `Input consistency:` header line says `not applicable`. A bypassing entry point also appears as a Critical finding under `## Findings`.
+
+- **Stored data:** {table.column | JSON key | file | cache entry | queued payload}
+- `path/to/EntryPoint.php:42` — {the input it serves, in plain language} — {covered | bypasses the change — see finding <n>}
+
+---
+
 ## Documentation Requests
 
 > Render only when **Third-Party API & Service Analysis** step 7 in `@skills/code-review/SKILL.md` produced at least one blocking documentation request — i.e. the ordered source walk in step 2 resolved no reference for a third-party contract the diff touches. Each entry accompanies (never replaces) the Moderate finding raised for that contract; it is what lets the author close it with a single link. Omit the entire section when every affected contract resolved a reference — no `None.` placeholder.
@@ -104,8 +139,8 @@
 
 ## Database Analysis
 
-> Render only when the diff touches database operations (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access) **and** at least one finding is produced by the run's DB lens (`@skills/mysql-problem-solver/SKILL.md` on MySQL / MariaDB and on an unresolved engine, `@skills/postgres-patterns/SKILL.md` on PostgreSQL) or by the *N+1 queries* walk of `@rules/code-review/core-analysis.md`. An N+1 finding starts its one-sentence problem with `N+1:`.
-> Render one section whichever lens produced the findings — never a per-engine variant and never two sections. On MySQL / MariaDB the schema-feature trigger may add `@skills/mysql-patterns/SKILL.md` with `MODE=cr` as a second producer of this same section — render its findings here beside the engine lens's, still as one section. Omit the entire section when no DB operations are present in the diff, or when DB ops are present but no findings result — never leave a placeholder or fold it into Coverage. Report only findings and their fix recommendations — never the trigger decision, an inspected `file:line` list, or an EXPLAIN / static-analysis summary.
+> Render only when the diff touches database operations (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access) **and** at least one finding is produced by the run's DB lens (`@skills/postgres-patterns/SKILL.md` on PostgreSQL; the advisory `casey` report on MySQL / MariaDB is a separate comment, never this section) or by the *N+1 queries* walk of `@rules/code-review/core-analysis.md`. An N+1 finding starts its one-sentence problem with `N+1:`.
+> Render one section whichever lens produced the findings — never a per-engine variant and never two sections. On MySQL / MariaDB the schema-feature trigger may add `@skills/mysql-patterns/SKILL.md` with `MODE=cr` as a producer of this same section — render its findings here beside the rule walks' findings, still as one section. The advisory `casey` report is its own PR comment and never renders here. Omit the entire section when no DB operations are present in the diff, or when DB ops are present but no findings result — never leave a placeholder or fold it into Coverage. Report only findings and their fix recommendations — never the trigger decision, an inspected `file:line` list, or an EXPLAIN / static-analysis summary.
 
 - **Findings:**
   1. **{Critical / Moderate}** — `file:line` — one-sentence problem
@@ -124,11 +159,11 @@
 
 ### 🔴 Critical 1. <short title>
 
-(same fields as `## Findings` — Location / Rule / Provenance / Impact / Faulty Example / Expected behavior / Test hint / Suggested fix)
+(same fields as `## Findings` — Location / Rule / Provenance / Impact / Evidence / Faulty Example / Expected behavior / Test hint / Suggested fix)
 
 ### 🟠 Moderate 1. <short title>
 
-(same fields as Critical, Provenance included, plus one field that renders only on a round-3 deferral)
+(same fields as Critical, Provenance included, plus `Level` and one field that renders only on a cap-round deferral)
 
 - **Deferred:** `<sub-issue URL>` — filed as a sub-issue of the source tracker item per `@skills/process-code-review/references/round-three-deferral.md`; the finding is recorded, not resolved. *(Omit this field entirely unless the finding was deferred.)*
 
@@ -152,12 +187,11 @@
 
 ### 🔴 Critical 1. <short title>  *(gaps case only)*
 
-(same fields as `## Findings` — Location / Rule / Provenance / Impact / Faulty Example / Expected behavior / Test hint / Suggested fix; **Rule** cites the unmet requirement / acceptance criterion and its source instead of a `@rules/*.md` path)
+(same fields as `## Findings` — Location / Rule / Provenance / Impact / Evidence / Faulty Example / Expected behavior / Test hint / Suggested fix; **Rule** cites the unmet requirement / acceptance criterion and its source instead of a `@rules/*.md` path)
 
 (Repeat for every gap.)
 
 ---
 
 **Summary:** {n} Critical · {n} Moderate · assignment conformance: {conformant | N gap(s) | no linked issue}{` · coverage {result}` — appended only when the `## Coverage` section is rendered; omitted on a clean 100% pass}
-{` · Assumption: <the assumption sentence verbatim from the branch that fired>` — appended **only** when a lens ran on an engine that is unresolved or has no dedicated lens, per `@skills/code-review/references/specialized-reviews.md`; omitted when the engine resolved to `mysql` / `mariadb` / `pgsql`, and omitted when neither trigger fired at all, so no resolution step ran and no lens is waiting on its answer}
 {` · security: owned by leonardo (<url of leonardo's security comment>)` — appended **only** when the inline `security-review` pass was skipped because the caller set `SECURITY_OWNER=leonardo`; omitted when the pass ran here. **The URL is mandatory**: the token records a delegation, and without a link to the delivered review there is nothing to distinguish a security pass that ran from one that died mid-run. A token with no URL is itself the visible gap, and `@skills/merge-github-pr/SKILL.md` blocks the merge on it} · {tracker-mirror status}

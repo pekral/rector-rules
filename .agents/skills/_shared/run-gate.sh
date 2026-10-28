@@ -425,7 +425,8 @@ self_test() {
     evidence="$tmp/evidence-$RANDOM"
     gate_selftest_project "$evidence" "{ \"extra\": { \"ai-olympus\": { $base, \"gate\": [\"vendor/bin/gate-ok\"], \"gate-evidence\": \"$value\" } } }"
     code=0; run_in "$evidence" --tier full || code=$?
-    check "an evidence directory of $value is refused" "$([[ "$code" -eq 3 ]] && echo pass)"
+    check "an evidence directory of $value is refused and the refusal names the gate-evidence key" \
+      "$([[ "$code" -eq 3 && "$(printf '%s' "$OUT" | jq -r .reason)" == 'refused: gate-evidence must be a relative path inside the project — '* ]] && echo pass)"
   done
 
   local unignored="$tmp/unignored"

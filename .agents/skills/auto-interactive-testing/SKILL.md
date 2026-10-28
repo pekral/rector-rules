@@ -59,13 +59,12 @@ A defect issue that is already closed by a merged pull request needs nothing.
 
 ### 4. Prepare the environment
 
-Check these before the first scenario, and check them again after every merge:
+Check and prepare the local environment as `@skills/interactive-testing/SKILL.md` *Local readiness* states, before the first scenario and again after every merge. Check these too:
 
 1. The working tree is the default branch, freshly pulled and clean.
-2. The front-end build matches the head commit, and no dev-server hot file sends the assets to a server the browser cannot reach.
-3. The queue workers run the current code. Restart them after a merge. Start the processes a scenario needs, such as the queue workers or a websocket server, in a terminal the user can see.
-4. Credits, feature switches, and similar settings that a scenario needs are set. Record the original value of every setting you change.
-5. Before a scenario that sends mail, read the effective mailer configuration and confirm that it writes only to a log or a test sink. When it does not, the scenario is `Blocked`. Change the mail configuration only when a project instruction documents that switch.
+2. The queue workers restart after a merge. Start the processes a scenario needs in a terminal the user can see.
+3. Credits, feature switches, and similar settings that a scenario needs are set. Record the original value of every setting you change.
+4. Before a scenario that sends mail, read the effective mailer configuration and confirm that it writes only to a log or a test sink. When it does not, the scenario is `Blocked`. Change the mail configuration only when a project instruction documents that switch.
 
 ### 5. Run the scenarios
 

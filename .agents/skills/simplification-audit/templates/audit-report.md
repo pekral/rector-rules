@@ -30,7 +30,7 @@ One block per accepted recommendation, each assigned to exactly one authoritativ
 5. **Smallest credible implementation scope:** <affected files and interfaces>
 6. **Regression risks and migration concerns:** <…>
 7. **Existing and additional validation required:** <tests that cover it now, tests to add first>
-8. **Confidence:** high / medium / low
+8. **Not verified:** <each open point with the step that settles it, or `none`>
 
 ## Explicit skip decisions
 
@@ -50,9 +50,9 @@ Patterns a single subsystem cannot own, recorded so they are visible without wid
 
 ## Priorities and dependencies
 
-Ranked by concrete impact, confidence, implementation effort, blast radius, and prerequisites.
+Ranked by concrete impact, open points, implementation scope, blast radius, and prerequisites.
 
-| Rank | Recommendation | Impact | Confidence | Effort | Blast radius | Depends on |
+| Rank | Recommendation | Impact | Not verified | Scope (files) | Blast radius | Depends on |
 |------|----------------|--------|------------|--------|--------------|------------|
 | 1 | <R-id> | <…> | <…> | <…> | <…> | <R-id or none> |
 

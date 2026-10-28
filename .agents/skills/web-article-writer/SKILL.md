@@ -42,7 +42,7 @@ Use whatever the user supplies and infer safe defaults from the target website w
 - output format or destination file
 - whether an illustration, image brief, or alt text is required
 
-Do not force the user to complete a form. Ask one concise question only when a missing answer would materially change the article and cannot be inferred safely. Otherwise proceed and report important assumptions in the delivery notes.
+Do not force the user to complete a form. Ask one concise question only when a missing answer would materially change the article and cannot be inferred safely. Otherwise proceed and list each choice made without the user's answer as not verified in the delivery notes, with the question that settles it.
 
 ## Execution
 
@@ -73,7 +73,7 @@ If no target site is available, use clean Markdown with one H1, descriptive H2/H
 - For externally verifiable claims, prefer primary sources. Use reputable secondary sources only when primary evidence is unavailable or insufficient.
 - Verify time-sensitive facts with current sources when browsing is available.
 - Maintain an internal claim ledger mapping each consequential claim to its evidence. Do not expose this private working list unless the user asks for it.
-- If a claim cannot be verified, omit it, qualify it transparently, or identify it in the delivery notes. Do not fill gaps with plausible prose.
+- If a claim cannot be verified, omit it, attribute it to its named source, or list it as not verified in the delivery notes. Never soften it into a hedged sentence, and do not fill gaps with plausible prose.
 
 ### 4. Plan before writing
 Create an internal outline that gives each section one job. A useful default arc is:
@@ -138,7 +138,7 @@ When returning the result in conversation, use this order and omit sections that
 1. **Article metadata** — title, slug, description or excerpt, publish date, and other fields only when supported by the target site.
 2. **Article** — the complete publication-ready body in the requested format and language.
 3. **Visual** — generated asset or image brief, filename, dimensions or aspect ratio, and alt text when requested.
-4. **Delivery notes** — only material assumptions, unverified claims that were excluded, required manual actions, and suggested internal links that could not be confirmed.
+4. **Delivery notes** — only material choices made without the user's answer (listed as not verified), unverified claims that were excluded, required manual actions, and suggested internal links that could not be confirmed.
 
 Do not expose chain-of-thought, internal scoring, the claim ledger, or a research diary.
 

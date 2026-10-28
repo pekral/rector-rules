@@ -39,7 +39,7 @@ A changed line is **off** it when it cannot be reached or influenced by an attac
 ### Input & Injection
 - SQL / command injection
 - XSS (stored, reflected, DOM)
-- unsafe deserialization
+- unsafe deserialization — PHP `unserialize()` on a value an attacker can influence (a request field, a cookie, an uploaded file, a cache or queue payload whose store an attacker can write) without `allowed_classes` set to `false` or an explicit class list; `Phar::getMetadata()` / `PharFile::getMetadata()` without `allowed_classes`, and on PHP below 8.0 a `phar://` path built from input; `yaml_parse*()` with `yaml.decode_php` enabled and Symfony `Yaml::parse()` with `Yaml::PARSE_OBJECT` on untrusted input
 
 ### Authentication & Access Control
 - missing authorization (IDOR / BOLA)
@@ -136,6 +136,16 @@ Walk every code path the diff adds or modifies that persists a user-controlled s
 
 The **Suggested Fix** normalizes to **NFC** and strips / rejects the disallowed ranges at the input boundary (a reusable validation rule, a Data Validator, or a central attribute cast — never ad-hoc per call site), so the stored bytes are clean for every later consumer; identity-sensitive fields add a single-script / confusable check before the uniqueness lookup. Severity: **Critical** when the field drives a security decision (authentication identifier, authorization key, allow / deny list, identity uniqueness, financial reference); **Medium** for general user-content fields. Scope boundary — this owns the stored byte content (INPUT / STORAGE); output encoding (XSS) and file-content render (issue #680) stay with their own rules, one finding per surface.
 
+### Network Exposure of New Services and Ports (issue #236)
+Walk every line the diff adds or modifies that starts a listener or opens a path to one, and decide who can reach it:
+- **Container and orchestration** — a compose `ports:` entry, a `Dockerfile` `EXPOSE`, a Kubernetes `Service` of type `LoadBalancer` or `NodePort`, an `Ingress`, a Helm value that sets any of them.
+- **Network policy** — a cloud security group, firewall, `ufw`, or `iptables` rule that opens an inbound port or accepts a `0.0.0.0/0` source.
+- **Application binding** — a bind to `0.0.0.0` or `::`, `php artisan serve --host=0.0.0.0`, a dev server (Vite, Octane, Reverb, Horizon, Telescope, Xdebug) started on all interfaces, and a new queue, cache, database, search, metrics, or admin service (Redis, MySQL, Elasticsearch, Prometheus, phpMyAdmin, Adminer, Mailpit) added to a configuration that ships.
+
+Raise a finding when a new service or port is reachable beyond what the assignment needs: published on all interfaces instead of loopback or the internal network, open to `0.0.0.0/0`, a data store, queue, cache, metrics, debug, or admin surface reachable from outside the private network, or a listener with no authentication or with a default credential. The application's own HTTP(S) entry point behind the project's proxy is not a finding when the assignment asks for it; name it as the reachable entry point.
+
+The **Suggested Fix** binds the port to loopback (`127.0.0.1:3306:3306`) or drops the `ports:` entry and reaches the service by its Compose service name, narrows the source range, and requires authentication. Severity: **Critical** when a data store, queue, admin, or debug surface is reachable from a public interface or with no authentication; **High** otherwise, including a local-development file that publishes a data store on all interfaces. Scope boundary — `@skills/docker-patterns/SKILL.md` owns the shape of the image and its services, and this walk owns who can reach the port; a hardcoded credential stays with *General Secure Coding Practices*. Raise one finding per violation, never two for the same line.
+
 ### Dependencies & Configuration
 - vulnerable packages (`composer.lock`, `composer audit`)
 - unsafe configuration (uploads, execution, credentials)
@@ -146,6 +156,17 @@ the GitHub Advisory Database / NVD for a named component or version the diff tou
 - retry abuse
 - non-idempotent operations
 - unsafe external calls
+
+---
+
+## Change Security Assessment (issue #236)
+Every code change gets four security verdicts, on every run and whatever the findings are. A diff that changes no application, configuration, or deployment code answers `not applicable — the diff changes no code`. The verdicts reuse the walks above and add no new severity; `@rules/code-review/general.md` *Security assessment* owns how the review renders them.
+
+1. **Untrusted data, deserialization, dependency.** Does the diff add a new path for untrusted data, an unsafe deserialization, or a vulnerable dependency? A new path is an entry point the diff adds — a route, a webhook, a job payload, a console argument, an imported file, a consumed outbound response — whose data reaches a sink. Answer from *Input & Injection*, the attack-surface rule, the walks above, and *Dependencies & Configuration*. Name each path, deserialization, or package with its `file:line`.
+2. **Public exposure.** Would a new service or port be publicly reachable? Answer from *Network Exposure of New Services and Ports*. Name each new service or port with the address it is reachable from.
+3. **Security regression test.** A test is required when the diff adds or changes a security guarantee — a validation, an authorization check, an output escape, a signature or allow-list check, a restriction of the address a service binds to — and no test in the repository asserts its failure path: the request rejected, the access denied, the value escaped, the host refused. Search the whole project before you decide.
+   A missing test is a **High** finding that maps to Moderate in a code review, and its **Test Hint** names the layer and the entry point. A line that already carries a finding is not raised again for the missing test, because that finding's reproducer fields already drive it. The coverage gate owns line coverage and this verdict owns the security assertion, so raise one finding per violation.
+4. **Automatic rule.** Can an automatic mechanism catch this defect class in later implementations? For each finding and each guarantee under verdict 3, name the strongest practical level of `@skills/code-review/references/prevention-proposal.md` *The mechanism hierarchy* and the concrete mechanism — for example a PHPStan rule that bans `unserialize()` without `allowed_classes`, an architecture test, or a CI check. Check the existing safeguards first and extend a partial one before you add a new one. The review names the mechanism and files nothing, and it implements nothing. A class that recurs across pull requests takes the recurrence route of that reference.
 
 ---
 

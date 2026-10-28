@@ -14,9 +14,10 @@
 #
 # Output (stdout): a JSON array in chronological order, one object per comment:
 #   [ { "index", "id", "author", "created", "visibility", "body",
-#       "charCount", "lineCount" }, … ]
+#       "mediaRefs", "charCount", "lineCount" }, … ]
 # An issue with no comments yields []. `charCount`/`lineCount` let the caller
-# decide whether to read a comment whole or in chunks. `id` is the JIRA comment ID
+# decide whether to read a comment whole or in chunks. `mediaRefs` names the attachments
+# pasted into the comment (see load-issue.sh). `id` is the JIRA comment ID
 # (null when the source carried none), the handle `delete-owned-comment.sh` takes.
 #
 # Exit codes (propagated from load-issue.sh):
@@ -58,6 +59,7 @@ printf '%s' "$ISSUE_JSON" | jq '
         created:    .value.created,
         visibility: .value.visibility,
         body:       .value.body,
+        mediaRefs:  (.value.mediaRefs // []),
         charCount:  ((.value.body // "") | length),
         lineCount:  ((.value.body // "") | split("\n") | length)
       }

@@ -91,7 +91,7 @@ Fill `templates/redesign-proposal.md`. The test of the handoff is one question: 
 - `proposal.md` — from `templates/redesign-proposal.md`: the problems found, the redesigned layout, the per-element specification, the state table, the density and extensibility notes, and the explicit do-not-change list.
 - `mockups/<state>.html` — one self-contained mockup per state in the map.
 - `previews/<state>.png` — one rendered preview per mockup.
-- A short summary naming the states covered, the material that was missing, and every assumption the proposal rests on.
+- A short summary naming the states covered, the material that was missing, and every choice the proposal made without a fact, listed as not verified with what would confirm it.
 
 Write these into the caller's working directory or the path the caller names; never into the application's own view directories.
 

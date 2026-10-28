@@ -1,7 +1,7 @@
 # Public-by-design routes — meant to be unauthenticated
 
 Do **not** flag these for "missing auth". If a route only *looks* public, mark it
-**"assumed public — confirm"** rather than asserting a hole.
+**"Not verified: public by design — the owner confirms"** rather than asserting a hole.
 
 ## Authentication & account flows
 - `login`, `register`, `logout` (logout may be auth-only — check).

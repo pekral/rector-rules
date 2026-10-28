@@ -121,6 +121,9 @@
 set -euo pipefail
 
 PROG="${0##*/}"
+# AUTH_RE, DATA_RE, and QUEUE_RE are shared with gate-context.sh.
+# shellcheck source=domain-vocabulary.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/domain-vocabulary.sh"
 
 usage() {
   cat >&2 <<'EOF'
@@ -143,10 +146,7 @@ DOC_RE='(^|/)(docs?|documentation)/|\.(md|mdx|markdown|rst|txt|adoc)$|(^|/)(read
 TEST_RE='(^|/)tests?/|(^|/)spec/|tests?\.php$|\.test\.[a-z]+$|\.spec\.[a-z]+$|_test\.[a-z]+$|(^|/)test_[a-z0-9_]+\.py$|(^|/)phpunit\.xml|(^|/)pest\.php$'
 FORMAT_RE='(^|/)\.(editorconfig|gitignore|gitattributes|prettierrc|eslintrc|styleci)([.-][a-z0-9]+)*$|(^|/)(pint|\.php-cs-fixer)\.[a-z.]+$|(^|/)(ruleset|phpcs)\.xml(\.dist)?$|(^|/)rector\.php$|(^|/)phpstan\.neon(\.dist)?$'
 
-AUTH_RE='auth|login|logout|password|credential|secret|token|jwt|oauth|saml|session|crypt|cipher|(^|/)policies/|policy|(^|/)gates?/|permission|privilege|(^|/)acl|(^|/)roles?/|admin|guard|csrf|cors|sanctum|passport|2fa|mfa'
-DATA_RE='(^|/)migrations?/|migration|\.sql$|(^|/)schema[./]|truncate|drop_'
 PAY_RE='payment|billing|invoice|subscription|checkout|stripe|paypal|braintree|adyen|gopay|refund|pricing|currency'
-QUEUE_RE='(^|/)jobs?/|(^|/)queues?/|queue|worker|(^|/)listeners?/|(^|/)events?/|lock|mutex|semaphore|concurren|cache|redis|schedul|cron|broadcast'
 API_RE='(^|/)routes/api|(^|/)api/|api[a-z0-9_-]*controller|openapi|swagger|graphql|\.proto$'
 CORE_RE='(^|/)config/|serviceprovider|(^|/)bootstrap/|(^|/)routes/|kernel\.php$|(^|/)composer\.json$|(^|/)package\.json$|\.github/workflows/|(^|/)providers?/|(^|/)middleware/|(^|/)src/(support|core|foundation)/|dockerfile|docker-compose'
 

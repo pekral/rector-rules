@@ -13,7 +13,7 @@ metadata:
 - Shell-driven Playwright, headless scripts, HTTP requests, unit tests, source inspection, and generated screenshots never replace this walkthrough. They may supply supplementary evidence only. If an interactive browser tool is unavailable, return `Blocked`.
 - Use the project URL supplied by the user or recorded in the consuming project's instructions or memory. If neither identifies the target, ask for it. Do not silently switch hosts, environments, or checkouts.
 - Sign in as *Sign-in and test accounts* below states. A missing login never ends the UI check, and it never makes you wait for the user.
-- Test the running application without changing its implementation, configuration, permissions, credentials, or database directly. The exceptions are a local test account that *Sign-in and test accounts* allows and local test data that *Missing test data* allows. Report defects with reproduction steps. Fixing, publishing to a tracker, deploying, or merging requires a separate assignment.
+- Test the running application without changing its implementation, configuration, permissions, credentials, or database directly. The exceptions are the local preparation that *Local readiness* allows, a local test account that *Sign-in and test accounts* allows, and local test data that *Missing test data* allows. Report defects with reproduction steps. Fixing, publishing to a tracker, deploying, or merging requires a separate assignment.
 - Respect the browser tool's confirmation rules. Use reversible, clearly identified test data within the authorized workspace. Do not trigger AI processing, recurring jobs, external imports, emails, tracker comments, or destructive actions unless that specific effect is authorized for the scenario. Opening a menu is not evidence that its actions work.
 
 ## Use when
@@ -30,6 +30,29 @@ metadata:
 - Project URL, account/role, workspace, available test data, and authorized side effects.
 
 Infer routine choices from the current task. Ask only for missing information that blocks a concrete scenario, while continuing independent scenarios.
+
+## Local readiness
+
+This section owns how a testing agent prepares the local environment before the walkthrough. Other skills and agents reference it and do not restate it.
+
+Check every item before the first scenario. When an item is not ready, prepare it yourself with the project's own documented command, then check it again. A preparation step never makes you wait for the user.
+
+1. **The checkout is the revision under test.** The working tree is on the head of the requested change. When it is on another revision and the tree is clean, switch to the head (`gh pr checkout <PR>` or `git switch <branch>`) and pull it with `git pull --ff-only`. Record the branch the run started on.
+2. **The dependencies match the lock files.** When `vendor/` or `node_modules/` does not match `composer.lock` or the JavaScript lock file, run `composer install` or the project's install command (for example `npm ci`). Install only from the committed lock files: never run `composer update`, `composer require`, or `npm install`. The package-registry download is an outbound request: append one `outbound-request` audit line for each install, per `@rules/compound-engineering/orchestration.md` *Audit trail for memory reads, outbound requests, and external writes*.
+3. **The environment file exists.** When `.env` is missing, create it through the project's documented setup step, for example a copy of `.env.example` and `php artisan key:generate`. Never edit an existing `.env`.
+4. **The local database is migrated.** When `php artisan migrate:status` (or the framework's equivalent) shows a pending migration, run the migrations. Never run `migrate:fresh`, a rollback, or a wipe.
+5. **The application caches are current.** Clear a stale configuration, route, or view cache, for example with `php artisan optimize:clear`.
+6. **The front-end assets match the head commit.** Build them with the project's build command, or start its dev server. A stale dev-server hot file must not send the assets to a server the browser cannot reach.
+7. **The application answers on the project URL.** When it does not, start it with the project's documented serve or container command. Start the processes a scenario needs, such as queue workers or a websocket server. Restart a process that still runs older code.
+
+Preparing the environment is allowed only inside these limits:
+
+- **Local target only.** The same rule as *Sign-in and test accounts*: never prepare, migrate, or restart anything on a production, staging, or other shared remote environment.
+- **The project's own commands.** Use the commands the project documents in its instructions, README, `composer.json` scripts, `package.json` scripts, or container files. Never invent a bootstrap the project does not have.
+- **Tracked files stay untouched.** Never edit, commit, or revert a tracked file. Never stash, reset, or discard uncommitted changes. When the working tree carries changes that do not belong to the requested change, do not switch the checkout: the walkthrough is `Blocked`, and the report names the files.
+- **Traceable.** Report every preparation step under **Scope**: the item, the command, and its result. At the end, stop the processes this run started, switch back to the branch the run started on, and delete a local branch this run created, unless the user needs them to reproduce a failure; then list them under **Cleanup**. Leave a process this run restarted running, and list it under **Cleanup**.
+
+When an item cannot be made ready inside these limits, every scenario that depends on it is `Blocked`. State the failing command, its error, and the exact step that unblocks it. Continue the scenarios that do not depend on it.
 
 ## Sign-in and test accounts
 
@@ -82,13 +105,17 @@ When no source can produce the data inside these limits, the scenario is `Blocke
 
 ### 1. Derive scenarios from the assignment and diff
 
-1. Read repository instructions and relevant project memory. Inspect `git status`, current revision, and the requested diff without switching branches or modifying files.
+1. Read repository instructions and relevant project memory. Inspect `git status`, current revision, and the requested diff. Do not modify files; switch the checkout only as *Local readiness* allows.
 2. For a merged change, compare its recorded base and head; an empty working-tree diff does not mean there is nothing to test. Include all commits in the requested change, not just the last styling commit.
 3. Turn each requirement and meaningful changed behavior into a row: preconditions, user actions, expected visible result, persistence check, and relevant viewport/role.
 4. Include the main successful flow, validation/empty states, navigation, save/reload behavior, and immediate regressions implied by the diff. Distinguish layout changes from processing or integration behavior outside the assignment.
 5. Record the revision and browser target. If the served checkout/version cannot be established, state that limitation instead of assuming it matches the diff.
 
-### 2. Open the interactive browser and establish prerequisites
+### 2. Prepare the local environment
+
+Check and prepare the local environment as *Local readiness* states, before the first scenario.
+
+### 3. Open the interactive browser and establish prerequisites
 
 1. Read the browser tool documentation and open the project using its supported interactive browser API. Sign in as *Sign-in and test accounts* states.
 2. Observe the rendered page before interacting. Verify the signed-in identity, selected workspace, record state, and relevant permissions from visible UI.
@@ -96,7 +123,7 @@ When no source can produce the data inside these limits, the scenario is `Blocke
 4. When the scenario's workspace, record, or record state is missing, create it as *Missing test data* states. Ask for the correct workspace or account only when that section leaves the scenario `Blocked`. Never invent membership on an existing workspace, and never change status or indexing flags of existing records to force a pass.
 5. Record a time boundary for browser console evidence so old errors are not attributed to the current scenario.
 
-### 3. Exercise the actual user flow
+### 4. Exercise the actual user flow
 
 1. Navigate through visible links and menus. Use accessible roles/names or observed test IDs; never guess selectors, use hidden application state, or call backend actions to simulate clicks.
 2. After each meaningful action, inspect fresh browser state before choosing the next action. Wait for the specific result, enabled control, selected tab, or loaded form. A deferred panel's heading alone does not prove its form finished loading.
@@ -107,9 +134,9 @@ When no source can produce the data inside these limits, the scenario is `Blocke
 7. Read recent console errors through the browser tool. Reproduce suspicious behavior once with a stable, fully loaded page. Separate reproducible failures, transient observations, environment blockers, and unproven attribution to the diff.
 8. For side-effecting flows without authorization, or whose prerequisites *Missing test data* cannot create, stop before the effect and mark that portion `Blocked`; do not mark the entire action passed because its button rendered.
 
-### 4. Restore test data and report evidence
+### 5. Restore test data and report evidence
 
-1. Restore only values changed by this run and verify the restoration in the UI. Delete the test data this run created, per *Missing test data*. Do not overwrite unrelated concurrent edits or delete existing user data. Report any remaining test records or side effects.
+1. Restore only values changed by this run and verify the restoration in the UI. Delete the test data this run created, per *Missing test data*. Stop the processes and restore the checkout, per *Local readiness*. Do not overwrite unrelated concurrent edits or delete existing user data. Report any remaining test records or side effects.
 2. Produce a verdict for every scenario: `Passed`, `Failed`, `Partial`, or `Blocked`. An unexecuted scenario is never `Passed`.
 3. For each failure, include exact URL, viewport, account role/record state, minimal steps, expected versus observed behavior, and a screenshot or concrete visible evidence. Redact secrets and avoid embedding unrelated user data.
 4. Report which scenarios were not exercised and the exact prerequisite needed to unblock each one.
@@ -120,17 +147,18 @@ When no source can produce the data inside these limits, the scenario is `Blocke
 
 Return a concise report in the user's language:
 
-- **Scope:** assignment, tested base/head and working-tree changes, project URL, account role/workspace, browser tool, viewport sizes.
+- **Scope:** assignment, tested base/head and working-tree changes, project URL, account role/workspace, browser tool, viewport sizes, and every preparation step *Local readiness* ran.
 - **Result:** one row per scenario with expected behavior, actual interactions and observation, evidence, and verdict.
 - **Findings:** reproducible failures, transient observations, and environment blockers kept distinct; never claim a regression without evidence linking it to the change.
 - **Untested:** exact scenarios and missing prerequisites.
-- **Cleanup:** restored values, any remaining test artifacts, every test account this run created, and every test record this run created or left in place.
+- **Cleanup:** restored values, the restored checkout, processes this run started or restarted and left running, any remaining test artifacts, every test account this run created, and every test record this run created or left in place.
 - **Next step:** implementation fixes, access/data preparation, or acceptance when all required rows passed.
 
 Report in the current task by default. Do not post messages to external trackers or create a new agent/task unless asked.
 
 ## Done when
 
+- Every *Local readiness* item was checked, and prepared when it was not ready, before the first scenario.
 - The agent itself operated the interactive browser and observed the results.
 - Every acceptance criterion has an honest verdict backed by executed interactions or a named blocker.
 - Save/reload checks, relevant visual states, and recent browser errors were considered.

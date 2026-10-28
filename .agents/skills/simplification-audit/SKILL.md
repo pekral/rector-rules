@@ -86,7 +86,7 @@ Before finishing, run fresh independent passes for:
 
 When the coverage pass finds a real omission, add an **explicit new subsystem row** and audit it. Never hide an omission by broadening a boundary that is already marked complete.
 
-Then rank the accepted recommendations by concrete impact, confidence, implementation effort, blast radius, and prerequisites, and name the best first implementation slices.
+Then rank the accepted recommendations by concrete impact, open points, implementation scope, blast radius, and prerequisites, and name the best first implementation slices.
 
 ---
 

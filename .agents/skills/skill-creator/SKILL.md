@@ -44,7 +44,7 @@ Before generating any file, gather:
 - **Integrations** — issue tracker, GitHub, MySQL, Telescope, etc. (or none)
 - **Output expectations** — markdown report, code change, PR comment, etc.
 
-If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `resolve-issue` or a scheduled workflow), infer the inputs from the triggering issue / PR description and state the assumptions in the final summary.
+If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `resolve-issue` or a scheduled workflow), take the inputs from the triggering issue / PR description, cite where each one came from, and list every input the source does not settle as not verified in the final summary.
 
 ---
 
