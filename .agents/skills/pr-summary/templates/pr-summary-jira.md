@@ -103,6 +103,10 @@ Questions
 Review findings
   A plain-language retelling of the newest GitHub pull-request review, so the
   reader understands what the review reported and can respond to it.
+  - When the issue links more than one pull request, Review findings, What
+    changed, and Impact after deployment sit in one h2. group per pull
+    request, below Acceptance criteria, and their headings drop to h3.
+    (references/several-pull-requests.md).
   - One bullet per finding: what can go wrong for the user or the business, and
     what the fix would change. Plain prose only.
   - A point that blocks the merge comes first and says in words that it blocks

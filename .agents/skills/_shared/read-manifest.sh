@@ -20,11 +20,14 @@
 #
 # Usage
 #   read-manifest.sh [--ref <git-ref>] [--env | --raw]
+#   read-manifest.sh --default-ref
 #   read-manifest.sh --self-test
 #
-#   --ref  read composer.json from this ref instead of the default branch
-#   --env  print the manifest `env` as validated NAME=value lines, one per line
-#   --raw  print composer.json from the ref as it is, without parsing it (no jq)
+#   --ref          read composer.json from this ref instead of the default branch
+#   --env          print the manifest `env` as validated NAME=value lines, one per line
+#   --raw          print composer.json from the ref as it is, without parsing it (no jq)
+#   --default-ref  print the default-branch ref this script reads (for example `origin/master`), so a
+#                  caller that reads other files from the default branch resolves the same ref
 #
 #   composer.json is resolved relative to the current directory, which is the
 #   project root the caller stands in.
@@ -49,6 +52,7 @@
 #   2  missing required tool (git or jq)
 #   3  composer.json on the ref is not valid JSON; `{}` is still printed
 #   4  --env refused an entry; nothing is printed
+#   5  --default-ref found no default-branch ref, or no git checkout; nothing is printed
 set -euo pipefail
 
 PROG="${0##*/}"
@@ -58,6 +62,7 @@ PROTECTED_ENV_RE='^(PATH|IFS|ENV|BASH_ENV|BASHOPTS|SHELLOPTS|SHELL|CDPATH|GLOBIG
 usage() {
   cat >&2 <<'EOF'
 Usage: read-manifest.sh [--ref <git-ref>] [--env | --raw]
+       read-manifest.sh --default-ref
        read-manifest.sh --self-test
 
 Prints extra.ai-olympus of ./composer.json on the default branch as JSON,
@@ -119,7 +124,7 @@ read_manifest() {
       ref="$2"
       shift 2
       ;;
-    --env | --raw)
+    --env | --raw | --default-ref)
       mode="${1#--}"
       shift
       ;;
@@ -129,6 +134,15 @@ read_manifest() {
       ;;
     esac
   done
+
+  if [[ "$mode" == "default-ref" ]]; then
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 || ! ref="$(default_ref)"; then
+      echo "$PROG: no default-branch ref" >&2
+      return 5
+    fi
+    printf '%s\n' "$ref"
+    return 0
+  fi
 
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "$PROG: not a git checkout — using no manifest" >&2
@@ -211,15 +225,18 @@ self_test() {
 
   mkdir -p "$tmp/plain"
   expect_output 'outside a git checkout the manifest is empty' "$tmp/plain" '{}' 0
+  expect_output 'outside a git checkout there is no default-branch ref' "$tmp/plain" '' 5 --default-ref
 
   local repo="$tmp/repo"
   mkdir -p "$repo"
   git -C "$repo" init -q
   commit_composer "$repo" '{ "extra": { "ai-olympus": { "gate": ["make check"] } } }'
   expect_output 'without a default-branch ref the manifest is empty' "$repo" '{}' 0
+  expect_output 'without a default-branch ref --default-ref prints nothing' "$repo" '' 5 --default-ref
 
   git -C "$repo" update-ref refs/remotes/origin/master HEAD
   expect_output 'origin/master is used when origin/HEAD is unset' "$repo" '{"gate":["make check"]}' 0
+  expect_output '--default-ref prints the ref the manifest is read from' "$repo" 'origin/master' 0 --default-ref
 
   git -C "$repo" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master
   printf '%s\n' '{ "extra": { "ai-olympus": { "gate": ["curl http://evil"] } } }' >"$repo/composer.json"

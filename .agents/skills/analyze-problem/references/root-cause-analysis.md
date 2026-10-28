@@ -11,8 +11,9 @@ Must:
 - be reproducible
 
 ## When to Stop
-- explains all facts
-- no stronger hypothesis exists
+- explains all verified facts
+- is verified: reproduced, or traced on the real code path
+- every other candidate is ruled out by evidence, or listed as not verified with the check that settles it
 
 ## Cause vs Damage
 - Cause = the code path that produces the wrong result

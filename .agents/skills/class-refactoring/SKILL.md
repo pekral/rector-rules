@@ -71,7 +71,7 @@ Only after Read, Map, and Verify are complete may the Test Coverage Gate and the
 
 - Analyze the class and identify the highest-impact refactoring.
 - Follow the incremental process from `@rules/refactoring/general.md` (stabilize → identify entry points → introduce Action pattern → split responsibilities → modernize → DRY → concurrency). Never propose a big-bang rewrite.
-- Fix any obvious pre-existing bugs before refactoring (separate commit).
+- Never fix a pre-existing bug, inconsistency, race condition, or security weakness inside a refactoring — not even in a separate commit. Keep the behaviour identical and file each discrepancy as a follow-up issue per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*. In `MODE=cr`, report it per that rule's *Code Review Application*.
 - Apply focused refactoring **strictly per the applied rules** — `@rules/refactoring/general.md`, `@rules/php/core-standards.md`, `@rules/code-testing/general.md`, and (for Laravel projects) `@rules/laravel/laravel.md` + `@rules/laravel/architecture.md` + `@rules/laravel/filament.md` + `@rules/laravel/livewire.md`. The refactor rewrites the existing code into the **target architecture** (Action / Service / Repository / ModelManager / Data Validator / Data Builder / DTO per project rules) and the **target code-style** (naming, structure, parameter count, nesting, design principles). Anything that would deviate from the rules is rewritten until it complies; do not invent ad-hoc structure outside the rule set.
 - Concrete refactoring activities:
   - simplify structure
@@ -152,6 +152,7 @@ every rendered branch of the touched view (initial render, `wire:loading`, `@emp
     - what was improved
     - why it matters
   - Summary of test coverage impact
+  - Each discrepancy found and kept unchanged, with its follow-up issue URL
 - **`MODE=cr`:** refactoring opportunities as markdown only (no code) — for each, the `file:line` on the PR diff, the structural problem in one sentence, the concrete consolidation step (target layer per `@rules/laravel/architecture.md`), and the rule reference it satisfies, returned to the caller.
 
 ---

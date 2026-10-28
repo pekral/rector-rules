@@ -34,5 +34,5 @@
 ### Risks and Trade-offs
 ...
 
-### Confidence / Limitations
-...
+### Not Verified
+- Not verified: {what this analysis could not check, e.g. EXPLAIN on production-size data} — settled by {the exact step}

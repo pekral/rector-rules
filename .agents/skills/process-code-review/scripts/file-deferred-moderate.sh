@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# file-deferred-moderate.sh — file one round-3 deferred Moderate finding as a
+# file-deferred-moderate.sh — file one cap-round deferred Moderate finding as a
 # SUB-ISSUE of the source tracker item, and nothing else.
 #
 # Called by skills/process-code-review/SKILL.md *Review loop* step 6 (the

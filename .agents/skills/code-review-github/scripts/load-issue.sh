@@ -30,6 +30,7 @@
 #     "reactionsCount": <int>,
 #
 #     # issue-only (null / [] when kind == "pr")
+#     "authorAssociation": <string|null>,
 #     "closingPullRequests": [ { "number", "title", "url", "state" } ],
 #     "subIssues": [ {
 #         "number", "title", "url", "state", "author", "body",
@@ -64,6 +65,9 @@
 #   - `closingPullRequests` (for issues) is sourced from
 #     `closedByPullRequestsReferences` and surfaces the PRs that will close the
 #     issue when merged. `closingIssues` (for PRs) lists issues the PR closes.
+#   - `authorAssociation` (for issues) is the association of the issue's author
+#     with the repository, read by the same GraphQL call as `subIssues`. It is
+#     null when that call fails, so a caller reads null as untrusted.
 #   - `subIssues` (for issues) is sourced from the GraphQL `subIssues` connection
 #     (the `gh` CLI `--json` projection does not expose it). Each entry carries
 #     the sub-issue's full body and comments so the assignment context is
@@ -187,11 +191,12 @@ fi
 # PRs and on any GraphQL failure we fall back to an empty array so the script
 # never breaks on a repo without the feature enabled.
 SUBISSUES_JSON='[]'
+ISSUE_ASSOCIATION='null'
 if [[ "$KIND" == "issue" ]]; then
   # `$owner` / `$repo` / `$n` are GraphQL variables bound by the `-F` flags below, not shell ones.
   # The single quotes are what keeps the shell out of them, so expanding here would break the query.
   # shellcheck disable=SC2016
-  SUBISSUES_QUERY='query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){subIssues(first:50){nodes{number title url state body createdAt updatedAt closedAt author{login} labels(first:50){nodes{name}} comments(first:100){nodes{author{login} body createdAt updatedAt url}}}}}}}'
+  SUBISSUES_QUERY='query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){authorAssociation subIssues(first:50){nodes{number title url state body createdAt updatedAt closedAt author{login} labels(first:50){nodes{name}} comments(first:100){nodes{author{login} body createdAt updatedAt url}}}}}}}'
   if RAW_SUBISSUES="$(gh api graphql -f query="$SUBISSUES_QUERY" -F owner="$OWNER" -F repo="$REPO" -F n="$NUMBER" 2>/dev/null)" && [[ -n "$RAW_SUBISSUES" ]]; then
     SUBISSUES_JSON="$(printf '%s' "$RAW_SUBISSUES" | jq -c '
       [ (.data.repository.issue.subIssues.nodes // [])[] | {
@@ -213,10 +218,14 @@ if [[ "$KIND" == "issue" ]]; then
             url: (.url // null)
           } ]
         } ]' 2>/dev/null || printf '[]')"
+    ISSUE_ASSOCIATION="$(printf '%s' "$RAW_SUBISSUES" | jq -c '.data.repository.issue.authorAssociation | if type == "string" then . else null end' 2>/dev/null || printf 'null')"
   fi
 fi
 if ! printf '%s' "$SUBISSUES_JSON" | jq -e . >/dev/null 2>&1; then
   SUBISSUES_JSON='[]'
+fi
+if ! printf '%s' "$ISSUE_ASSOCIATION" | jq -e 'type == "string" or . == null' >/dev/null 2>&1; then
+  ISSUE_ASSOCIATION='null'
 fi
 
 jq -n \
@@ -224,7 +233,8 @@ jq -n \
   --arg owner "$OWNER" \
   --arg repo "$REPO" \
   --argjson payload "$PAYLOAD" \
-  --argjson subIssues "$SUBISSUES_JSON" '
+  --argjson subIssues "$SUBISSUES_JSON" \
+  --argjson association "$ISSUE_ASSOCIATION" '
 def total_reactions:
   ([ (.reactionGroups // [])[] | (.users.totalCount // .reactors.totalCount // 0) ] | add) // 0;
 
@@ -292,6 +302,7 @@ $payload as $p
     comments: ($p.comments | map_comments),
     reactionsCount: ($p | total_reactions),
 
+    authorAssociation: (if $kind == "issue" then $association else null end),
     closingPullRequests: (if $kind == "issue"
       then ($p.closedByPullRequestsReferences | map_refs)
       else [] end),

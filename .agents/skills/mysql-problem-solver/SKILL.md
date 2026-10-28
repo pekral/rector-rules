@@ -26,8 +26,19 @@ Focus on:
 - EXPLAIN-based diagnosis when possible
 - safe, justified optimizations
 
-**In a code review this skill owns query performance and its plan, never the shape of a schema feature.** When the CR's schema-feature trigger fires on the same diff (`@skills/code-review/references/specialized-reviews.md` *Specialized Reviews*), `@skills/mysql-patterns/SKILL.md` with `MODE=cr` runs alongside this skill and owns whether an upsert is one statement over a backing unique index, whether a JSON path is indexed through a generated column, whether the partition key matches the predicate, whether `sticky` survives a read-after-write path, and whether a concurrent transaction carries a deadlock retry.
-Raise one finding per violation: keep index usage, rows examined, `EXPLAIN` shape, and the non-regression gate here, and never restate a schema-shape finding in your own words. Both lenses fold into the review's single `## Database Analysis` section.
+## Modes
+
+- **Default (no `MODE`)** — investigate a reported problem and answer with the full analysis report below.
+- **`MODE=cr-report`** — the code-review report the `casey` agent writes (`agents/casey.md`, `@skills/code-review/references/specialized-reviews.md` *MySQL report — the `casey` agent*). The review itself never runs this skill inline. In this mode the skill:
+  - runs against a **locally started database only** — never a shared, staging, or production host. With no local database, it analyses statically and says so;
+  - is **read-only** — it never writes a migration, an index, a query, or a configuration change, and never runs a statement that changes data or schema. Plain `EXPLAIN` and `SHOW` only; `EXPLAIN ANALYZE` (MariaDB `ANALYZE`) executes the statement, so run it on a `SELECT` only — never on `INSERT` / `UPDATE` / `DELETE`;
+  - is **diff-scoped** — every item anchors to a `file:line` the diff added or modified; a pre-existing query the diff does not touch is out of scope;
+  - reports **critical items only** — a full scan, `filesort`, or `temporary` on a realistically large table on a hot path, a per-row query in a loop, an N+1 on a list, a DDL that blocks writes during a deploy, or a comparable outage or data-loss risk. A non-critical observation is omitted, never downgraded into the report;
+  - gives each item its evidence (`file:line`, the reconstructed SQL, the `EXPLAIN` baseline when DB access exists, or the stated limitation when it does not) and one proposed optimization held against *Performance Non-Regression on Query Changes* in `@rules/sql/optimalize.md`;
+  - answers `No critical MySQL item in this diff.` when nothing qualifies.
+
+**In a code review this skill owns query performance and its plan, never the shape of a schema feature.** When the CR's schema-feature trigger fires on the same diff (`@skills/code-review/references/specialized-reviews.md` *Specialized Reviews*), `@skills/mysql-patterns/SKILL.md` with `MODE=cr` runs in the review beside this skill's `casey` report and owns whether an upsert is one statement over a backing unique index, whether a JSON path is indexed through a generated column, whether the partition key matches the predicate, whether `sticky` survives a read-after-write path, and whether a concurrent transaction carries a deadlock retry.
+Raise one point per violation: keep index usage, rows examined, `EXPLAIN` shape, and the non-regression gate here, and never restate a schema-shape finding in your own words. The schema-pattern findings stay in the review's `## Database Analysis` section; this skill's items stay in the `casey` report.
 
 The same division holds against the CR's latency lens. When `@skills/latency-critical-systems/SKILL.md` with `MODE=cr` runs over the same diff, it owns **the budget of the path and the freshness of its data** — the stated p50 / p95 / p99 target, the mapped hot path, the staleness window on a cached or broadcast read, and the backpressure that bounds queue depth. This skill keeps the query and its plan, including N+1. The two divide the *dimensions* of a hot-path change, never its lines: a `foreach` issuing a query per row on a queue path carries this skill's query-plan finding, and the latency lens speaks on the same change only when it also leaves the path with no stated budget or no freshness window — a different defect, never this skill's finding restated.
 
@@ -110,7 +121,7 @@ If access fails, continue statically and say so.
 
 ## Output Format
 
-Use the template defined in `templates/analysis-report.md`.
+Use the template defined in `templates/analysis-report.md`. In `MODE=cr-report`, use `templates/cr-report.md` instead.
 ---
 
 ## Principles

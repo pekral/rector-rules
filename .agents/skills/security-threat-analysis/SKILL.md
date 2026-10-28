@@ -29,7 +29,7 @@ Before generating the report, capture:
 - **Project context** — language/framework of the current repository (read from `composer.json`, `package.json`, lockfiles)
 - **Scope** — whether the user wants threat analysis only, or analysis plus a fix plan tailored to the current project
 
-If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `leonardo` in security analysis mode), infer them from the triggering issue and state the assumptions at the top of the report.
+If running interactively, confirm the inputs with the user. If running autonomously (e.g. invoked by `leonardo` in security analysis mode), take them from the triggering issue, cite where each one came from, and list every input the issue does not settle as not verified at the top of the report.
 
 ## Execution
 

@@ -64,9 +64,9 @@ safe_display() {
   printf '%s' "$1" | LC_ALL=C tr -cd '[:print:]' | cut -c1-160
 }
 
-json_string() {
-  printf '%s' "$1" | LC_ALL=C sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\n\r'
-}
+# json_string comes from the one shared definition.
+# shellcheck source=json-string.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/json-string.sh"
 
 required_keys_for() {
   case "$1" in

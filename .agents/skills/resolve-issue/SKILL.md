@@ -103,6 +103,7 @@ Reading, mapping, and verifying come first; implementing comes last. This pre-fl
 2. **Map** — map the change's blast radius: every call site, caller, data-flow path, and existing test that the in-scope change touches, plus the existing logic to reuse: grep the whole project by behaviour, never by name (DRY), and keep simple, non-repeated logic inline (`@rules/php/core-standards.md` Design Principles).
    Then run a **completeness sweep** over the whole tree. Grep the entire repository for every name, pattern, convention, and section title the change renames, removes, or redefines — never only the files the assignment names, and never only the files you have already opened.
    Cover every file category the repository carries: source, tests, `rules/`, `skills/`, `agents/`, documentation, configuration, and generated assets such as `CHANGELOG.md` or `README.md`. Record the full match list before you edit anything, then classify each match as in scope for this change or as a stated exception. An incomplete sweep leaves a stale reference in a file nobody opened, and that reference surfaces later as a failing pinned test or a broken cross-reference.
+   On a `STANDARD` or `CRITICAL` task, record the Map result through `@skills/blast-radius-analysis/SKILL.md`: it grades each impact, names the regression scenarios to test, and owns a scope change.
 3. **Verify** — check your assumptions against the real code and its observed behavior (for bugs, reproduce the failure; for features, confirm the integration points exist as assumed). If reading and mapping contradict the issue framing or the scenario table, stop and surface the discrepancy instead of implementing on a wrong premise.
 
 Only after Read, Map, and Verify are complete may implementation begin.
@@ -120,7 +121,7 @@ Intermediate commits are not individually gated; the project's gate runs once on
 
 ### Pre-existing issue handling
 
-While reading and modifying the files required for the in-scope work, you may encounter problems **unrelated to the current assignment** but already present in those files — bugs, project-rule violations, security vulnerabilities, or unnecessary comments. **Fix a pre-existing issue you encountered in a file you had to read**, in its own `pre-existing — ` commit ordered before the in-scope commits; **do not** scan unrelated files for more, and defer any **non-trivial** one (rule 5) to the *Out of scope (deferred)* group instead of fixing it inline. The full categories, commit conventions, and per-type test-coverage workflow live in `references/pre-existing-issue-handling.md`.
+While reading and modifying the files required for the in-scope work, you may encounter problems **unrelated to the current assignment** but already present in those files — bugs, project-rule violations, security vulnerabilities, or unnecessary comments. **Fix a pre-existing issue you encountered in a file you had to read**, in its own `pre-existing — ` commit ordered before the in-scope commits; **do not** scan unrelated files for more, and defer any **non-trivial** one (rule 5) to the *Out of scope (deferred)* group instead of fixing it inline. A refactoring-only assignment files a bug or a security weakness instead (rule 6). The full categories, commit conventions, and per-type test-coverage workflow live in `references/pre-existing-issue-handling.md`.
 
 ### If bug
 
@@ -166,7 +167,7 @@ Walk these items and record each one's result in the handoff:
 
 **This is not a review, and it never substitutes for one.** It does **not** run `code-review` / `security-review` over its own diff, produces no severity-graded findings, and gates nothing on a finding count. Anything needing a reviewer's judgment belongs to `leonardo`, on a tier that dispatches it.
 
-**Blocked, not shipped.** When an item cannot be satisfied — a criterion has no implementation, the tests covering the change fail, static analysis is red — stop as **Blocked** and surface it rather than opening a pull request that knowingly carries it. The procedure, the boundary, and what the removed duplicate review cost live in `references/pre-pr-self-check.md`.
+**Blocked, not shipped.** When an item cannot be satisfied — a criterion has no implementation, the tests covering the change fail, static analysis is red — stop as **Blocked** and surface it rather than opening a pull request that knowingly carries it. The procedure, the boundary, and what the removed duplicate review cost live in `references/pre-pr-self-check.md`. Prevention proposal sources also need the `references/safeguard-implementation.md` proofs.
 
 ## Security remediation checklist (when a pre-implementation security plan exists)
 

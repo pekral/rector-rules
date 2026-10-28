@@ -87,4 +87,4 @@ Use **labels** for categories that stay meaningful outside this release. Use **P
 
 - Derive `Start date` / `Target date` only when the user supplied a window or a capacity rule. Otherwise propose the ordering and leave the dates unset.
 - Order the scope by dependency first, then by priority. An issue that blocks another is scheduled before it, whatever its priority.
-- State every scheduling assumption in the confirmation package. An assumption that would make the roadmap misleading if wrong is a question, not an assumption.
+- List every scheduling choice the evidence does not settle under *Not verified* in the confirmation package. A choice that would make the roadmap misleading if wrong is a question, not a choice.

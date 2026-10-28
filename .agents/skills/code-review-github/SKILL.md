@@ -28,7 +28,7 @@ Perform code review for a GitHub pull request and publish results to:
 - The context-brief and comment-array helpers are `skills/code-review-github/scripts/gather-issue-context.sh <URL>` and `skills/code-review-github/scripts/parse-comments.sh <URL>`. The brief renders the issue/PR plus its body, comments, changed files, commits, reviews, CI checks, recursively-loaded linked issues/PRs, and an inventory of external URLs.
 - Prefer the GitHub MCP fallback for the data the scripts cannot cover: review-thread / line-anchored comments, per-commit check runs, and binary attachment contents.
 - Load each linked issue (from `closingIssues[]`) the same way — pass its `url` field to the same script.
-- If multiple PRs exist for one issue, review each independently.
+- If multiple PRs exist for one issue, review each independently. On the issue, the remarks and findings are split per pull request (`@rules/code-review/general.md` *An issue with several pull requests — remarks and findings split per pull request*).
 
 #### Issue Context Analysis
 The assignment is the **linked GitHub issue**. Fetch it via `skills/code-review-github/scripts/load-issue.sh <URL>` and run the four analysis steps in `references/cr-wrapper-contract.md` *Issue Context Analysis* against its description, comments, and referenced attachments or links.

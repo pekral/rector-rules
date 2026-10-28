@@ -53,7 +53,7 @@ Reports on JIRA and Bugsnag keep the assignment language. The key never lets one
 ### How to detect the assignment language
 1. Read the issue description and the most recent author-written comment off the deterministic loader (`skills/code-review-github/scripts/load-issue.sh` for GitHub, `skills/code-review-jira/scripts/load-issue.sh` for JIRA). The wording the reporter used there is the canonical signal.
 2. When the issue body is empty or contains only a screenshot, fall back to the language of the linked JIRA ticket, the parent epic, or the PR description written by the same reporter.
-3. When no signal is available, default to English and state the assumption in the published report's footer.
+3. When no signal is available, default to English and state in the published report's footer that the assignment language was not verified.
 
 ### Scope clarifications
 - **This rule picks the language; `@rules/writing/general.md` shapes the sentences.** Once the language is settled here, the report is written in the simplified technical style that rule mandates — one idea per sentence, active voice, one term per concept — in that language, never only in English. The two rules never override each other: raise one finding per violation, and never a second finding on the same line for the sibling rule.

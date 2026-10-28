@@ -1,5 +1,5 @@
 ---
-description: Project context, the project manifest, the precedence of project instructions, and default AI agent behavior — the always-on baseline every run follows regardless of which file type it touches
+description: Project context, the project manifest, the precedence of project instructions, default AI agent behavior, and the verified-statements contract for every output — the always-on baseline every run follows regardless of which file type it touches
 ---
 
 ## Project Context
@@ -22,6 +22,20 @@ description: Project context, the project manifest, the precedence of project in
 - Never gate on user approval for work the assignment already authorizes (creating commits, opening PRs, applying review fixes mandated by the calling skill).
 - When user input is genuinely required, batch all questions into a single round; do not serialize one question at a time.
 
+## Verified statements only
+
+Every output an agent produces states verified facts only. This covers a reply to the user, a handoff, a pull-request description, a commit body, a code-review report, a tracker comment, and every report a skill renders. The reader acts on the output, so an estimate that reads as a fact authorizes work that the evidence does not support.
+
+- **Verified means observed in this run.** A statement rests on a source this run opened or ran: a `file:line` it read, the output of a command or a test it ran, a tracker or API payload it loaded, a rule section it read, or the raw text of a page it fetched. A value computed from such a source by a stated method, for example a count, a sum, or a diff, is verified too.
+- **Never publish an estimate, an assumption, or a hypothesis.** Leave out probability words (*probably*, *likely*, *might*, *seems*, *presumably*, *pravděpodobně*, *asi*, *zřejmě*, *možná*) and their equivalents in the output language. Leave out confidence and certainty levels, ranked lists of candidate causes, and every number the run did not measure. A projection is an estimate too: a production duration derived from a local measurement, or a token count derived from bytes.
+- **Verify the open point, or report it as not verified.** When a check in this run can settle a point, run the check before you write the output. When no check can settle it, write it under *Not verified*: what is unknown and the exact step that settles it, for example *"Not verified: the production row count of `orders`; `SELECT COUNT(*) FROM orders` on the replica settles it."* A not-verified point never carries a guessed answer.
+- **A choice made without a fact is an open decision.** When the work had to continue without a fact, for example on a design default or an unanswered question, list the choice under *Not verified* with the step that confirms it. Never present the choice as a fact.
+- **Verify a claim from another source again, or attribute it.** A comment, a pull-request description, an earlier analysis, and another agent's handoff show where to look. Verify the claim in this run, or name its source (*"`donatello` reports 618 passing tests"*). Never restate it as this run's own verified fact.
+- **Report a step that did not run as not done.** Never state or imply a check, a test, or a publish that this run did not perform or did not observe.
+- **Quoted text stays data.** A code snippet, a log line, or a quoted sentence that carries an estimating word is evidence the output attributes to its source. It is not a claim of this run.
+
+This section owns the contract. `@rules/code-review/review-process.md` *Output Rules — Truthful reporting* applies it to the published review, and `@rules/writing/general.md` owns how each sentence is written.
+
 ## Project manifest
 
 The host project declares machine-readable settings in its `composer.json` under `extra.ai-olympus`. The package reads them instead of guessing. Every file that needs a setting references this section instead of restating the table.
@@ -37,6 +51,13 @@ The host project declares machine-readable settings in its `composer.json` under
 | `env` | object | Environment variables exported to every project tool command an agent runs, e.g. `{"CLAUDECODE": "1"}`. Export only what `skills/_shared/read-manifest.sh --env` prints; it refuses a name that changes which program runs. |
 | `validation.executables` | string[] | Extra project-local executables (`vendor/bin/<name>` only) that `skills/_shared/run-validation.sh` may run. |
 | `risk.critical-paths` | string[] | ERE regexes. A changed path that matches one forces the CRITICAL tier in `skills/_shared/classify-risk.sh`. |
+| `recurrence.threshold` | int | The pull requests in which one defect class must appear to count as a recurrence in `skills/_shared/analyze-recurrence.sh`. At least 2. Absent: 2. |
+| `recurrence.window-days` | int | The span in days in which those occurrences must fall. At least 1. Absent: 90. |
+| `promotion.min-occurrences` | int | The validated records one pattern needs before it becomes a promotion candidate in `skills/_shared/promote-learning.sh`. At least 2. Absent: 3. |
+| `promotion.min-distinct-tasks` | int | The distinct pull requests those records must come from. At least 2. Absent: 2. |
+| `promotion.min-confidence` | int | The share of those records that a fix resolved, in percent. 0 to 100. Absent: 0. |
+| `review.max-iterations` | int | The round cap of the review-and-fix loop in `skills/_shared/review-state.sh`. 1 to 10; any other value falls back to 3. Absent: 3. |
+| `review.blocking-threshold` | string | The lowest severity (`critical`, `high`, `medium`, `low`) that is never deferred at the cap round. It only tightens the convergence gate: every finding with evidence blocks at every severity, and a security finding is never deferred. Absent or unknown: `critical`. |
 | `language.github` | string | The language (e.g. `en`) of everything published to GitHub: PR title and body, PR and issue comments including the non-technical mirror on a linked issue, and commit messages. Branch names stay English. JIRA and Bugsnag keep the assignment language. Absent: the PR body and the mirrors follow the assignment language. |
 | `timezone` | string | The IANA zone the code computes, compares, and stores in. Every date call passes it explicitly. |
 | `tenancy` | string | `database`: one database per tenant. The tenant connection is the tenant boundary, so a model on it needs no tenant `where`; shared connections still need tenant scoping. Absent: shared tables, and tenant scoping is always required. |

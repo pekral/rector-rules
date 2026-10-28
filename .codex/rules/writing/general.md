@@ -17,7 +17,7 @@ Every response an agent produces — a reply to the user, a handoff, a pull requ
 - **Short paragraphs.** Roughly **six sentences** maximum. A longer block of reasoning becomes a list, a table, or several paragraphs.
 - **Sequences are numbered lists.** Two or more steps that happen in order are a numbered list, never a sentence chaining them with *then*.
 - **No marketing register.** Drop superlatives, intensifiers, and self-congratulation — *comprehensive*, *robust*, *seamlessly*, *significantly improved*, *carefully verified*. State what was done and what it produces. A verdict is a fact (*build green, 618 tests*), never an adjective (*excellent coverage*).
-- **No hedging where a fact is available.** Write *the test fails on line 42*, not *there may possibly be an issue around line 42*. When the fact is genuinely unknown, say what is unknown and what would settle it.
+- **No hedging where a fact is available.** Write *the test fails on line 42*, not *there may possibly be an issue around line 42*. When the fact is genuinely unknown, say what is unknown and what would settle it. Which statements an output may carry at all is owned by `@rules/general/general.md` *Verified statements only*.
 - **Nested conditions get unnested.** A sentence carrying two or more conditions becomes a list of cases, one case per line.
 
 ### Language neutrality (this rule never forces English)

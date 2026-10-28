@@ -11,7 +11,7 @@ A feature adds new behavior; a bug fixes incorrect existing behavior. -->
 ...
 
 <!-- Short summary in 2–5 sentences.
-For a bug: what is happening, where, and the most likely reason.
+For a bug: what is happening, where, and the verified cause — or that the cause is not verified yet.
 For a feature: the target behavior to build and where it belongs. -->
 
 ...
@@ -45,7 +45,7 @@ For a feature: the target behavior to build and where it belongs. -->
 ## 3. Verified Facts
 
 <!-- Only confirmed information from the assignment, issue, comments, logs, screenshots, attachments, or code.
-Do not put assumptions here. -->
+Do not put open points here. -->
 
 - ...
 - ...
@@ -53,45 +53,44 @@ Do not put assumptions here. -->
 
 ---
 
-## 4. Assumptions and Missing Information
+## 4. Not Verified
 
-### Assumptions
+<!-- Every point this analysis could not verify (`@rules/general/general.md` *Verified statements only*).
+Each entry states what is unknown and the exact step that settles it. Never write an assumed answer next to it. -->
 
-<!-- What we assume but cannot confirm. -->
-
-- ...
+- Not verified: ... — settled by ...
 - ...
 
 ### Missing Information
 
-<!-- What would help verify the cause or the proposed solution. -->
+<!-- Information this run had no access to, and who or what can supply it. -->
 
 - ...
 - ...
 
 ---
 
-## 5. Probable Root Cause
+## 5. Root Cause
 
-**Most probable cause:**
-<!-- Clearly describe the root cause. -->
-
-...
-
-**Why this cause is probable:**
-
-- ...
-- ...
-- ...
-
-**Certainty level:**
-<!-- High / Medium / Low -->
+**Verified root cause:**
+<!-- The cause this run verified. Write "Not verified" when no candidate was verified. -->
 
 ...
 
-**Alternative possible causes:**
+**How it was verified:**
+<!-- The reproduction, the test run, or the traced code path (`file:line`) that proves the cause. -->
 
 - ...
+
+**Candidates ruled out:**
+<!-- Each candidate cause the analysis checked and excluded, with the evidence that excluded it. -->
+
+- ...
+
+**Open candidates:**
+<!-- Only when the root cause is not verified: each remaining candidate as an open question with the check that settles it.
+No ranking, no likelihood, no certainty level. -->
+
 - ...
 
 ---
@@ -167,7 +166,8 @@ that regenerates, a derived value the next run recomputes — say that and say w
 - ...
 - ...
 
-**Possible side effects:**
+**Side effects:**
+<!-- Behaviour the fix changes besides the defect, each traced to the code path that carries it. -->
 
 - ...
 - ...
@@ -178,7 +178,7 @@ that regenerates, a derived value the next run recomputes — say that and say w
 
 <!-- Concrete technical direction, but without the implementation itself unless the user asked for code. -->
 
-### Likely Change Locations
+### Change Locations
 
 - `app/...`
 - `routes/...`

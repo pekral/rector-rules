@@ -2,7 +2,7 @@
 
 > Read-only / advise-only. A clean report means "no broken authorization found in the
 > layers I checked", **not** "this app is secure". Inventory source:
-> `php artisan route:list --json` (or: static `routes/*.php` fallback — confidence lowered).
+> `php artisan route:list --json` (or: static `routes/*.php` fallback — route middleware not verified, structural findings moved to open points).
 
 ## Summary
 - **Critical:** <n>  ·  **Moderate:** <n>  ·  **Covered:** <n>
@@ -21,7 +21,7 @@ policy: a Moderate hardening finding, not an exposure.
 ## Findings
 
 ### 🔴 Critical — verify & fix now
-**IDOR on `GET /orders/{order}`** — `OrderController@show` (`app/Http/Controllers/OrderController.php:24`) · confidence **High**
+**IDOR on `GET /orders/{order}`** — `OrderController@show` (`app/Http/Controllers/OrderController.php:24`) · evidence **structural**
 - Route has `auth` but no policy / gate, and `Order::findOrFail($id)` is not scoped to the user.
 - **Evidence:** `route:list` → `OrderController@show:24` → no layer-2 / layer-3 check.
 ```php
@@ -32,12 +32,13 @@ public function show($id)
 ```
 - **Fix sketch (advice — apply by hand):** use route-model binding + `authorize('view', $order)`, or scope the query: `$request->user()->orders()->findOrFail($id)`.
 
-### 🟡 Moderate — needs judgment or hardening (state the assumption)
-**Likely IDOR on `PATCH /posts/{post}`** — `PostController@update:41` · confidence **Medium**
-- Assumes `Post` is user-owned (`belongsTo(User::class)` on `Post`). If so, the bound model is not authorized.
+### 🟡 Moderate — open point or hardening (the open point under *Not verified*)
+**Unauthorized update on `PATCH /posts/{post}`** — `PostController@update:41` · evidence **open point**
+- Verified: `Post` carries `user_id` and `belongsTo(User::class)` (`app/Models/Post.php:18`); `update()` calls no `authorize()` and applies no owner scope.
+- **Not verified:** whether any authenticated user may edit any post — the product owner settles it.
 - **Fix sketch:** add `authorize('update', $post)` or scope through `$request->user()->posts()`.
 
-**Hardening** — `Post` has inline ownership checks but no `PostPolicy` · confidence **Low**
+**Hardening** — `Post` has inline ownership checks but no `PostPolicy` · evidence **hardening**
 - **Fix sketch:** extract a centralized policy.
 
 ### ✅ Covered

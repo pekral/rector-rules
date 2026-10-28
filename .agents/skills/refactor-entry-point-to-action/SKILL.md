@@ -82,7 +82,7 @@ Only after Read, Map, and Verify are complete may the Test Coverage Gate and the
 > **`MODE=cr`:** run steps 1–2 read-only, then emit the Action-extraction proposal described under Modes and stop — do not run steps 3–12 (they author tests, create files, run fixers, and chain reviews).
 
 1. Inspect the target entry point and identify orchestration responsibilities.
-2. Scan touched files for obvious pre-existing issues that would block or compromise the refactor. Fix only safe, relevant issues; keep unrelated cleanup out of scope.
+2. Scan touched files for obvious pre-existing issues that would block or compromise the refactor. Fix only a structural issue that changes no behaviour; keep unrelated cleanup out of scope. A pre-existing bug, inconsistency, race condition, or security weakness stays as it is and is filed as a follow-up issue per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*.
 3. **Test Coverage Gate (blocking pre-flight).** Verify coverage of the *current* entry-point method that the refactor will touch, using the project's available coverage tooling scoped to that file (per `@rules/php/core-standards.md` Testing section). Every line, branch, and condition must already be at 100%. If coverage is below 100% on the target lines, **stop and write the missing tests first** via `@skills/create-test/SKILL.md`, then commit them in a dedicated `test(scope): cover <area> before refactor` commit per `@rules/git/general.md` Allowed Types. The pre-refactor coverage commit and the refactor commit are **always two separate commits**. Only after the gate is green may the refactor proceed.
 4. **Reuse-or-create decision (blocking).** Search `app/Actions/**` for an Action that already orchestrates this use case, as the Map step required. Reuse that Action when one exists — point the entry point at it, or widen it. Create a new Action in the correct domain folder only when the search finds none, and record in the refactor plan which Actions you read and why none of them fits.
 5. Move orchestration from the entry point into the Action `__invoke(...)`.
@@ -104,7 +104,7 @@ Only after Read, Map, and Verify are complete may the Test Coverage Gate and the
 - Do not place data mapping/transformation directly inside an Action — extract into a Data Builder.
 - Do not return or construct an HTTP response inside an Action — the Action returns domain data, the controller builds the response.
 - Do not bypass repository/model-manager/service boundaries.
-- Do not introduce unrelated behavioral changes.
+- Do not change behaviour — not even to fix a bug the extraction exposes. File it instead (`@rules/refactoring/general.md` *Behaviour stays identical — bugs included*).
 - Do not add speculative flexibility, configurability, or error handling while extracting the Action. The extraction moves orchestration as-is into the Action and the Data Validator; new parameters, mode switches, strategy hooks, retry knobs, or guards for scenarios the original entry point did not handle belong to a separate `feat(scope): …` commit and a separate issue. Apply the **Simplicity First** rule from `@skills/class-refactoring/SKILL.md` Refactoring Guidelines and the YAGNI rules in `@rules/php/core-standards.md` Design Principles.
 
 ## Done when
@@ -114,7 +114,7 @@ Only after Read, Map, and Verify are complete may the Test Coverage Gate and the
 - `app/Actions/**` was searched before the Action was written, and the refactor plan records either the existing Action that was reused or the Actions that were read and why none of them fits.
 - The Action follows project Action-pattern rules.
 - Validation is delegated to a dedicated Data Validator (using validation traits from `app/Concerns/`) when applicable.
-- Behavior, signatures, and response format remain unchanged.
+- Behavior, signatures, and response format remain unchanged, bugs included, and every discrepancy found has a follow-up issue linked from the PR `## TODO`.
 - The pre-refactor coverage commit reports 100% coverage on the entry-point lines that were refactored, and the assertion logic in those tests is unchanged through the refactor commit (mechanical renames flagged in the commit body excepted).
 - After the refactor, coverage scoped to the changed files was re-verified and **stayed** 100% with the pre-existing assertions passing unchanged.
 - New tests covering paths introduced by the refactor (e.g. Data Validator failure modes) live in a separate `test(scope): …` commit after the refactor.

@@ -42,6 +42,8 @@ A flaky test fails inconsistently, is hard to reproduce, and is often "fixed" by
 - For Laravel:
     - Use `Model::factory()` for persisted data.
     - Do not duplicate database defaults unless explicitly required by the test.
+    - **Insert test data in one batch whenever possible.** A test that needs several rows of one table writes them with one bulk insert, never with one `create()` per row. Note that `Model::factory()->count($n)->create()` still issues one `INSERT` per model, so it is not a batch. Build the rows with the factory and write them in one statement: `Model::insert(Model::factory()->count($n)->raw())`, or the project's ModelManager `bulkCreate($rows)`. A per-row `create()` inside a `foreach`, a `for`, or a `collect()->each()` is the same defect.
+    - **A per-row insert stays only where a batch cannot work.** The cases are: the test needs model events or observers that a bulk insert skips, it needs the generated keys of the rows it just wrote, it builds related records through `has()` / `for()`, the factory runs `afterCreating()` callbacks, the factory sets an attribute the model casts or mutates or the test reads the timestamps (`raw()` returns uncast definition values and `insert()` writes no `created_at` / `updated_at`), or it writes a single row.
 - Avoid mocking data that can be created via factories.
 
 ## Mocking

@@ -155,10 +155,38 @@ gate_no_symlink() {
   return 0
 }
 
+# A relative, git-ignored, untracked path with no symlink in it. Every probe
+# must be ignored, so a file the scripts write there never dirties the tree.
+#   gate_scratch_path <name> <path> <probe>...
+#   <name> is the setting or option that supplied <path>; the refusal names it.
+#   returns 3 with GATE_REASON when the path is not acceptable
+gate_scratch_path() {
+  local name="$1" path="$2" probe
+  shift 2
+  if [[ ! "$path" =~ ^[A-Za-z0-9._/-]+$ || "$path" == /* || "$path" == '..' || "$path" == ../* || "$path" == */.. || "$path" == */../* ]]; then
+    GATE_REASON="refused: $name must be a relative path inside the project — $(safe_display "$path")"
+    return 3
+  fi
+
+  gate_no_symlink "$path" || return 3
+
+  for probe in "$@"; do
+    if ! git check-ignore -q -- "$probe" 2>/dev/null; then
+      GATE_REASON="refused: $(safe_display "$path") is not git-ignored — add it to .gitignore"
+      return 3
+    fi
+  done
+  if [[ -n "$(git ls-files -- "$path" 2>/dev/null)" ]]; then
+    GATE_REASON="refused: $(safe_display "$path") contains a tracked file"
+    return 3
+  fi
+  return 0
+}
+
 # Resolve and check the evidence directory. With `write`, create it 0700.
 #   returns 3 with GATE_REASON when the directory is not acceptable
 gate_evidence_dir() {
-  local mode="$1" dir probe
+  local mode="$1" dir
   if ! printf '%s' "$PROJECT_MANIFEST" | jq -e '(.["gate-evidence"] // "") | type == "string"' >/dev/null 2>&1; then
     GATE_REASON='project manifest: gate-evidence must be a string'
     return 3
@@ -167,25 +195,9 @@ gate_evidence_dir() {
   [[ -n "$dir" ]] || dir="$GATE_DEFAULT_EVIDENCE"
   dir="${dir%/}"
 
-  if [[ ! "$dir" =~ ^[A-Za-z0-9._/-]+$ || "$dir" == /* || "$dir" == '..' || "$dir" == ../* || "$dir" == */.. || "$dir" == */../* ]]; then
-    GATE_REASON="refused: gate-evidence must be a relative path inside the project — $(safe_display "$dir")"
-    return 3
-  fi
-
-  gate_no_symlink "$dir" || return 3
-
   # Every path the scripts write must be ignored, so a record never dirties the
   # tree it describes and a branch can never commit one.
-  for probe in "$dir/0.full.json" "$dir/0.full.log" "$dir/gate.lock/holder"; do
-    if ! git check-ignore -q -- "$probe" 2>/dev/null; then
-      GATE_REASON="refused: $(safe_display "$dir") is not git-ignored — add it to .gitignore"
-      return 3
-    fi
-  done
-  if [[ -n "$(git ls-files -- "$dir" 2>/dev/null)" ]]; then
-    GATE_REASON="refused: $(safe_display "$dir") contains a tracked file"
-    return 3
-  fi
+  gate_scratch_path gate-evidence "$dir" "$dir/0.full.json" "$dir/0.full.log" "$dir/gate.lock/holder" || return 3
 
   if [[ "$mode" == "write" ]]; then
     (umask 077 && mkdir -p -- "$dir")

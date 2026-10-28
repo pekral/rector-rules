@@ -71,7 +71,7 @@ Return:
 - **Status** — `Redesign done`, or `Blocked: <what stopped you>`.
 - **Where it landed** — the proposal path, the mockup directory, and the preview directory.
 - **Coverage** — states in the map, mockups written, previews rendered. Three equal numbers, or the reason they differ.
-- **Decisions the caller has to make** — anything the assignment left open that you resolved with an assumption, and what would confirm it.
+- **Decisions the caller has to make** — anything the assignment left open that you resolved with a choice of your own, listed as not verified with what would confirm it (`@rules/general/general.md` *Verified statements only*).
 - **What you left to another skill** — the visual direction, the tokens, the accessibility pass, or the implementation, each named with the skill that owns it.
 - **Audit:** what you read and what you wrote — the memory entries you applied, the view files and screenshots you read, every path you created, and any outbound request you made (`@rules/compound-engineering/orchestration.md` *Audit trail for memory reads, outbound requests, and external writes*). You perform no external write, so that half of the trail is one line stating there was none.
 
