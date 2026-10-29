@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "metadata.schema.json",
+  "title": "Security audit run metadata",
+  "description": "metadata.json of a security-audit run: the profile, the explicit execution budget with its reserves, and what the run spent. scripts/audit-artifacts.sh validates it deterministically and checks the cross-field budget rules JSON Schema cannot express.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "profile", "scope", "commit", "started_at", "finished_at", "budget", "spent", "counts"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "profile": { "enum": ["quick", "standard", "deep"] },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "target"],
+      "properties": {
+        "kind": { "enum": ["repository", "subsystem"] },
+        "target": { "$ref": "#/$defs/text" }
+      }
+    },
+    "commit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+    "started_at": { "$ref": "#/$defs/timestamp" },
+    "finished_at": { "$ref": "#/$defs/timestamp" },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "total", "hunting_max", "verifier_reserve", "coverage_critic_reserve"],
+      "properties": {
+        "unit": { "const": "passes" },
+        "total": { "type": "integer", "minimum": 3 },
+        "hunting_max": { "type": "integer", "minimum": 1 },
+        "verifier_reserve": { "type": "integer", "minimum": 1 },
+        "coverage_critic_reserve": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "spent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hunting", "verification", "coverage_critic"],
+      "properties": {
+        "hunting": { "type": "integer", "minimum": 0 },
+        "verification": { "type": "integer", "minimum": 0 },
+        "coverage_critic": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confirmed", "needs_validation", "rejected"],
+      "properties": {
+        "confirmed": { "type": "integer", "minimum": 0 },
+        "needs_validation": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" }
+  }
+}

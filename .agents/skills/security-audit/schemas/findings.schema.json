@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "findings.schema.json",
+  "title": "Security audit findings",
+  "description": "findings.json of a security-audit run. One entry per finding, in the lifecycle confirmed, needs_validation, or rejected. scripts/audit-artifacts.sh validates it deterministically.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "findings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["location", "observation"],
+      "properties": {
+        "location": { "type": "string", "pattern": "^[^\\s:]+:[0-9]+(-[0-9]+)?$" },
+        "observation": { "$ref": "#/$defs/text" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fingerprint",
+        "verdict",
+        "severity",
+        "boundary",
+        "entrypoint",
+        "sink",
+        "root_cause",
+        "evidence",
+        "remediation",
+        "boundary_failure_demonstrated"
+      ],
+      "properties": {
+        "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+        "verdict": { "enum": ["confirmed", "needs_validation", "rejected"] },
+        "severity": { "enum": ["critical", "high", "medium", "low", "unrated"] },
+        "boundary": { "$ref": "#/$defs/text" },
+        "entrypoint": { "$ref": "#/$defs/text" },
+        "sink": { "$ref": "#/$defs/text" },
+        "root_cause": { "$ref": "#/$defs/text" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "remediation": { "$ref": "#/$defs/text" },
+        "boundary_failure_demonstrated": { "type": "boolean" },
+        "validation_needed": { "$ref": "#/$defs/text" },
+        "rejection_reason": { "$ref": "#/$defs/text" }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["verdict"], "properties": { "verdict": { "const": "confirmed" } } },
+          "then": {
+            "properties": {
+              "severity": { "enum": ["critical", "high", "medium", "low"] },
+              "boundary_failure_demonstrated": { "const": true }
+            }
+          }
+        },
+        {
+          "if": { "required": ["verdict"], "properties": { "verdict": { "const": "needs_validation" } } },
+          "then": {
+            "required": ["validation_needed"],
+            "anyOf": [
+              { "properties": { "severity": { "const": "unrated" } } },
+              { "properties": { "boundary_failure_demonstrated": { "const": true } } }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["verdict"], "properties": { "verdict": { "const": "rejected" } } },
+          "then": {
+            "required": ["rejection_reason"],
+            "properties": {
+              "severity": { "const": "unrated" },
+              "boundary_failure_demonstrated": { "const": false }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

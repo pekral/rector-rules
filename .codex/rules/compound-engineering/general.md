@@ -22,6 +22,19 @@ The sections that govern a run taking its assignment from a tracker item live in
 
 - **A run that reads, claims, updates, links, labels, or files a tracker item reads and applies `@rules/compound-engineering/tracker.md` first.** Every skill and agent that performs one of those steps names the file.
 
+## The assignment is the scope
+
+The goal of every assignment is that every acceptance criterion is met. This section is the one owner of that goal and of its boundary. Other files reference it and never restate it.
+
+- **Verify each criterion before you report the work done.** Check every acceptance criterion against the result, with a test or an observation. A criterion with no check is not met. The report names each criterion as met or unmet, and an unmet criterion is never reported as done.
+- **Change nothing outside the assignment.** A change is inside the assignment only when one of these requires it:
+  1. an acceptance criterion;
+  2. a line the change itself writes, including its comments, which `@rules/php/core-standards.md` governs;
+  3. a Critical finding, a Moderate finding, or an unfulfilled reviewer instruction on the diff (the convergence gate in `@skills/process-code-review/SKILL.md` *Review loop* step 4);
+  4. the exact-head quality gate, required CI, or a merge conflict.
+- **The one exception is security.** An agent that changes files and finds a security vulnerability along the way fixes it, in its own `pre-existing — ` commit with a regression test (`@skills/resolve-issue/references/pre-existing-issue-handling.md`). A security vulnerability is a defect that a rule in `@rules/security/**` names and that has an exploit path. A defect that only sits on a security surface is not one. The fix is the smallest change that closes the vulnerability, in a file the change had to read. Anything more is outside the assignment. `@skills/security-audit/SKILL.md` covers its whole requested scope by design. A refactoring-only change files the vulnerability instead (`@rules/refactoring/general.md` *Behaviour stays identical — bugs included*).
+- **Record everything else; implement none of it.** This covers a pre-existing bug, a project-rule violation, a comment outside the lines the change writes, a refactoring, an optimization, and a nice-to-have point. The existing filing path decides what happens to it: `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues*, and in merge preparation an open decision (`@skills/verify-merge-readiness/SKILL.md` *Scope — the assignment only*). A point that clears no bar is dropped, not carried forward.
+
 ## No generated documentation in `docs/`
 
 An agent never generates documentation into `docs/` — no new file and no new subdirectory, unless the user explicitly asks for that file. Nothing checks generated documentation: no test, no fixer, no reviewer. The code moves and the document does not, so the next reader trusts a description of code that no longer exists. The one path an agent writes under `docs/` on its own is `docs/memory/PROJECT_MEMORY.md` (`@rules/compound-engineering/memory.md`).
@@ -47,4 +60,5 @@ Surface *what was blocked*, *why* (the denied capability), and *how to unblock i
 
 ## Code Review Application
 
+- A change outside the assignment that is not a security fix is a finding of the Assignment Conformance Gate, direction *Changes → requirements* (`@skills/code-review/references/assignment-conformance-gate.md` step 2). Raise it there and nowhere else.
 - Treat a change that makes future work harder — new abstraction where an existing part fit, undocumented non-obvious decision, hidden coupling — as a finding, with the concrete existing part it should have used.

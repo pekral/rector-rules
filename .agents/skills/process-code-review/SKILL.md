@@ -90,26 +90,11 @@ If a **CR-skill finding** lacks Faulty Example, Expected Behavior, or Test Hint,
 
 ### Pre-fix phase — pre-existing issue handling
 
-While reading the affected files in preparation for the CR fixes, you may encounter problems that are **unrelated to the reviewer feedback** but were already present in those files. The following categories qualify:
+Change nothing outside the assignment (`@rules/compound-engineering/general.md` *The assignment is the scope*). The review fixes land on the diff; they never widen into the files they read.
 
-- **Bugs** — incorrect logic, broken edge cases, null-dereference risks, race conditions, or runtime errors that exist before this CR.
-- **Project-rule violations** — code that contradicts any rule listed in this skill's *Constraints* block (`@rules/php/core-standards.md`, `@rules/git/general.md`, `@rules/laravel/*`, …) or any other rule under `.claude/rules/`.
-- **Security vulnerabilities** — anything `@rules/security/backend.md`, `@rules/security/frontend.md`, or `@rules/security/mobile.md` would flag (injection, missing authn/authz, unsafe deserialization, sensitive-data exposure, …).
+The one exception is a **pre-existing security vulnerability** you encountered in a file you had to read for the CR fixes. Fix it in its own `fix(<scope>): pre-existing — <description>` commit, ordered **before** the CR-fix commits, with its regression test in the same commit and the same diff-scoped 100% coverage rule as CR fixes. The procedure lives in `@skills/resolve-issue/references/pre-existing-issue-handling.md`; do **not** scan unrelated files for more.
 
-Rules:
-
-1. **Do not silently ignore** a pre-existing issue you encountered in a file you had to read for the CR fixes — fix it in this PR.
-2. **Do not expand scope** by actively scanning unrelated files for additional pre-existing issues. Limit attention to files already touched by the CR fixes.
-3. Land each pre-existing fix in its **own separate commit**, ordered **before** the CR-fix commits:
-   - Use a Conventional Commits subject per `@rules/git/general.md`: `fix(<scope>): pre-existing — <description>` for bugs and security, `refactor(<scope>): pre-existing — <description>` for rule violations without behavior change.
-   - The `pre-existing — ` prefix is mandatory so reviewers can identify these commits at a glance.
-   - **Test coverage workflow depends on the commit type:**
-     - `fix(<scope>): pre-existing — …` (bug, security) — add the regression test in the **same commit** as the fix; the test must fail before the fix lands and pass after.
-     - `refactor(<scope>): pre-existing — …` (project-rule violation, behavior-preserving) — apply `@rules/refactoring/general.md` *Test Coverage Contract*: when the target lines are below 100% coverage, author a dedicated `test(<scope>): cover <area> before pre-existing refactor` commit **before** the refactor commit, and do **not** modify pre-existing tests inside the refactor commit (mechanical renames forced by the refactor itself stay exempt and must be flagged in the commit body).
-   - Either way, pre-existing fixes follow the same diff-scoped 100% coverage rule as CR fixes.
-4. In the single CR comment posted during **PR update**, list every pre-existing fix under a `## Pre-existing fixes` heading with a one-line rationale, so reviewers can review them independently of the CR thread.
-5. If a pre-existing issue is **non-trivial** (would significantly expand the PR or requires architectural discussion), do **not** fix it. Surface it in the CR comment as a deferred follow-up with the reason, **and file it yourself as a follow-up issue in the originating tracker** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (mechanics in `@skills/resolve-issue/SKILL.md` *Deferred-item follow-up issues*) — do not leave the filing to the reviewer. The entry carries the created issue URL.
-6. **On a refactoring-only pull request, a bug or a security weakness is filed, never fixed** — `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*.
+In the single CR comment posted during **PR update**, list every pre-existing security fix under a `## Pre-existing fixes` heading with a one-line rationale, so reviewers can review them independently of the CR thread. On a refactoring-only pull request a vulnerability is filed, never fixed (`@rules/refactoring/general.md` *Behaviour stays identical — bugs included*).
 
 ---
 
@@ -197,11 +182,11 @@ When an earlier pass had already promoted it, withdraw both signals now — `ref
 
 This step **assembles** the comment body; **Completion** publishes it. This skill publishes nothing itself. One comment per destination, in the `cr-comment` namespace — canonical contract: `@rules/code-review/general.md` *One published comment per review run — a TL;DR, not a systematic report*. The retired `cr-status` namespace has no publisher left.
 
-- **`## TL;DR`** — one plain-language line per change the loop landed: each CR item fixed, each pre-existing fix, the gate commit, and the reason any reviewer point was rejected or deferred. It replaces the resolved-items checklist: it says what changed, not which checks ran.
+- **`## TL;DR`** — one plain-language line per change the loop landed: each CR item fixed, each pre-existing security fix, the gate commit, and the reason any reviewer point was rejected or deferred. It replaces the resolved-items checklist: it says what changed, not which checks ran.
 - **The `Quality gate:` header value** — the command, its verdict, and the head SHA from Finalization, plus the tree and the record path when `run-gate.sh` wrote a record. `@skills/merge-github-pr/SKILL.md` *Pre-merge quality gate* reads it here.
 - **`## Affected behaviour outside the diff`** — only when the last review round listed at least one affected part (`@rules/code-review/core-analysis.md` *Behaviour changed outside the diff*): each entry unchanged. Omit when none was listed.
 - **`## Deferred to sub-issues`** — only when the Review loop deferred a Moderate at the cap round or a refactoring-only pull request carries over a discrepancy: one entry per finding with `file:line`, the original severity, the reason, and the sub-issue or follow-up issue URL (`references/round-three-deferral.md` *Reporting the deferral*).
-- **`## Pre-existing fixes`** — only when **Pre-fix phase** landed one: each commit subject with a one-line rationale from the commit body. Omit when none landed.
+- **`## Pre-existing fixes`** — only when **Pre-fix phase** landed a security fix: each commit subject with a one-line rationale from the commit body. Omit when none landed.
 
 Never quote or reply to a previous CR comment body — this run's publish updates the same `cr-comment` in place, replacing it. That comment's `Reviewed revision:` / `Reviewed diff fingerprint:` header lines carry the next round's baseline, and this skill holds the previous round's finding dispositions in its own loop state.
 

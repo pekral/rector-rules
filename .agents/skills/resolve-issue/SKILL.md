@@ -90,10 +90,10 @@ Run `@skills/prepare-issue-context/SKILL.md` with `MODE=resolve-issue` and the s
 6. **Gate — assignment specificity.** Step 5 already mapped every scenario to a code path; this gate only decides how clear the *requirements* are, from the scenario table and the current requirements:
    - **Specific** — expected behavior is unambiguous for every scenario and the root cause (bugs) or target behavior (features) is explicitly stated. **Skip** `@skills/analyze-problem/SKILL.md`; use the scenario table plus current requirements as the input for step 7.
    - **General** — requirements are vague, acceptance criteria are missing, or the root cause is not identified (when in doubt, general). **Run** `@skills/analyze-problem/SKILL.md` over the issue description, scenario table, and current requirements, and use its output for step 7.
-7. Review the input from step 6 and split the identified items into three groups:
+7. Review the input from step 6 and split the identified items into three groups (`@rules/compound-engineering/general.md` *The assignment is the scope*):
    - **In scope** — items that directly match the issue requirements; implemented.
-   - **Pre-existing issues** — bugs, project-rule violations, security vulnerabilities, or unnecessary comments already in the affected files (see *Pre-existing issue handling* below); fixed in **separate commits** in the same PR.
-   - **Out of scope (deferred)** — valid findings outside the current issue that are not pre-existing to fix now (enhancements, refactors, future features); added to the PR `## TODO` list **and each filed as a follow-up issue** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (see *Deferred-item follow-up issues* below).
+   - **Pre-existing security vulnerabilities** — already in the affected files (see *Pre-existing issue handling* below); fixed in a **separate commit** in the same PR.
+   - **Out of scope (deferred)** — valid findings outside the current issue (enhancements, refactors, and a future feature the assignment itself marks as later work); never implemented; added to the PR `## TODO` list **and filed as a follow-up issue when it clears the filing bar** of `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues* (see *Deferred-item follow-up issues* below).
 
 ### Read, Map & Verify before implementing (mandatory pre-flight)
 
@@ -121,7 +121,7 @@ Intermediate commits are not individually gated; the project's gate runs once on
 
 ### Pre-existing issue handling
 
-While reading and modifying the files required for the in-scope work, you may encounter problems **unrelated to the current assignment** but already present in those files — bugs, project-rule violations, security vulnerabilities, or unnecessary comments. **Fix a pre-existing issue you encountered in a file you had to read**, in its own `pre-existing — ` commit ordered before the in-scope commits; **do not** scan unrelated files for more, and defer any **non-trivial** one (rule 5) to the *Out of scope (deferred)* group instead of fixing it inline. A refactoring-only assignment files a bug or a security weakness instead (rule 6). The full categories, commit conventions, and per-type test-coverage workflow live in `references/pre-existing-issue-handling.md`.
+Change nothing outside the assignment (`@rules/compound-engineering/general.md` *The assignment is the scope*). The one exception is a **security vulnerability** you encountered in a file you had to read: fix it in its own `pre-existing — ` commit ordered before the in-scope commits, and **do not** scan unrelated files for more. A refactoring-only assignment files a vulnerability instead of fixing it. The commit conventions and the regression-test workflow live in `references/pre-existing-issue-handling.md`.
 
 ### If bug
 
@@ -183,11 +183,11 @@ When a plan does exist, it runs after the self-check above and **still before th
 
 **Open the pull request as a Draft** (`gh pr create --draft …`) per `@rules/git/pull-requests.md` *Draft pull requests* — the authoritative `code-review-github` / `process-code-review` loop still runs after the PR exists, and promotes it out of Draft on convergence.
 
-The opt-out consequences and the full PR body layout — **Summary**, **Changes**, **Pre-existing fixes**, **`## Security acceptance checklist`**, **TODO list**, and the mandatory **`## Audit`** section with its standalone-run fallback — live in `references/pull-request.md`.
+The opt-out consequences and the full PR body layout — **Summary**, **Changes**, **Pre-existing security fixes**, **`## Security acceptance checklist`**, **TODO list**, and the mandatory **`## Audit`** section with its standalone-run fallback — live in `references/pull-request.md`.
 
 ### Deferred-item follow-up issues
 
-Every item the run knowingly deferred — the *Out of scope (deferred)* group from step 7 and every non-trivial pre-existing issue deferred per *Pre-existing issue handling* rule 5 — must be registered as a **new issue in the originating tracker** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues*, right after the PR exists (so the new issue can link to it) and before the final report. **Never report a deferral as handled without a live issue URL.** The full per-tracker procedure — deduplicate, file, verify, cross-link — lives in `references/deferred-follow-up.md`.
+Every item the run knowingly deferred — the *Out of scope (deferred)* group from step 7 and every pre-existing security vulnerability deferred per `references/pre-existing-issue-handling.md` rule 5 — must be registered as a **new issue in the originating tracker** per `@rules/compound-engineering/tracker.md` *File deferred points as follow-up tracker issues*, right after the PR exists (so the new issue can link to it) and before the final report. **Never report a deferral as handled without a live issue URL.** The full per-tracker procedure — deduplicate, file, verify, cross-link — lives in `references/deferred-follow-up.md`.
 
 ## Final report
 
@@ -214,7 +214,7 @@ The non-technical report must be understandable by non-technical testers and pro
 - **What changed:** a brief, plain-language summary of the fix or feature
 - **How to test:** step-by-step instructions a tester can follow to verify the change works correctly
 - **Risk areas and edge cases:** specific scenarios the tester should focus on to catch potential regressions or unexpected behavior
-- **Pre-existing fixes also covered by this PR (when any):** plain-language one-line summary per pre-existing fix commit produced by *Pre-existing issue handling*, plus a one-line "what to re-verify" hint per fix so the tester knows the additional regression surface to validate. Omit the bullet entirely when no pre-existing fix landed.
+- **Pre-existing security fixes also covered by this PR (when any):** plain-language one-line summary per pre-existing security fix commit produced by *Pre-existing issue handling*, plus a one-line "what to re-verify" hint per fix so the tester knows the additional regression surface to validate. Omit the bullet entirely when no such fix landed.
 
 ### Per-tracker follow-up
 

@@ -1,27 +1,21 @@
 # Pre-existing issue handling
 
-Referenced from `skills/resolve-issue/SKILL.md` *Pre-existing issue handling*. Extracted to keep the skill body under the skill-check token limit (issue #59); the rules are unchanged.
+Referenced from `skills/resolve-issue/SKILL.md` *Pre-existing issue handling*, and from every other skill that reads code outside its own change. The principle has one owner: `@rules/compound-engineering/general.md` *The assignment is the scope*. This file states only the procedure for the one exception, a security vulnerability.
 
-While reading and modifying the files required for the in-scope work, you may encounter problems that are **unrelated to the current assignment** but were already present in those files. The following categories qualify as pre-existing issues that must be fixed in this PR:
+While reading and modifying the files required for the in-scope work, you may encounter a problem that is **unrelated to the current assignment** but was already present in those files.
 
-- **Bugs** — incorrect logic, broken edge cases, null-dereference risks, race conditions, or runtime errors that exist before this task.
-- **Project-rule violations** — code that contradicts any rule listed in this skill's *Constraints* block (`@rules/php/core-standards.md`, `@rules/laravel/*`, `@rules/sql/optimalize.md`, etc.) or any other rule under `.claude/rules/`.
-- **Security vulnerabilities** — anything `@rules/security/backend.md`, `@rules/security/frontend.md`, or `@rules/security/mobile.md` would flag (injection, missing authn/authz, unsafe deserialization, sensitive-data exposure, …).
-- **Unnecessary comments** — every comment already sitting in the region you are changing that carries a line which is not an `@` annotation. A PHP comment keeps only `@` annotations and tool directives (`@param`, `@return`, `@var`, `@throws`, `@template`, `@see`, `// @phpstan-ignore-line`, `// @codeCoverageIgnore`). Delete every other line per `@rules/php/core-standards.md` *Documentation* (*The default state of the codebase is no comment*): narration, restated signatures, type docblocks native types already carry, commented-out code, section banners, changelog notes, domain definitions, navigation markers, *why* paragraphs, and stale prose.
-When a comment was compensating for an unclear symbol, rename or extract before removing it. A *why* moves to the commit message or the PR description; no prose stays in the file.
+- **A security vulnerability is fixed in this PR.** `@rules/compound-engineering/general.md` *The assignment is the scope* defines what counts as one and how small the fix is.
+- **Every other problem follows the owner.**
 
-Rules:
+Rules for a security vulnerability:
 
-1. **Do not silently ignore** a pre-existing issue you encountered in a file you had to read for the in-scope work — fix it in this PR.
-2. **Do not expand scope** by actively scanning unrelated files for additional pre-existing issues. Limit attention to files already touched by the in-scope changes (or their direct dependencies you must read to understand the change).
-3. Land each pre-existing fix in its **own separate commit** inside the same PR:
-   - Use a Conventional Commits subject per `@rules/git/general.md`: `fix(<scope>): pre-existing — <description>` for bugs and security, `refactor(<scope>): pre-existing — <description>` for rule violations without behavior change.
-   - The `pre-existing — ` prefix is mandatory so reviewers can identify these commits at a glance (e.g. `fix(user): pre-existing — null check before dispatching welcome mail`).
-   - **Test coverage workflow depends on the commit type:**
-     - `fix(<scope>): pre-existing — …` (bug, security) — add the regression test in the **same commit** as the fix; the test must fail before the fix lands and pass after.
-     - `refactor(<scope>): pre-existing — …` (project-rule violation, behavior-preserving) — apply `@rules/refactoring/general.md` *Test Coverage Contract*: when the target lines are below 100% coverage, author a dedicated `test(<scope>): cover <area> before pre-existing refactor` commit **before** the refactor commit, and do **not** modify pre-existing tests inside the refactor commit (mechanical renames forced by the refactor itself stay exempt and must be flagged in the commit body).
-     - `refactor(<scope>): pre-existing — remove redundant comments in <area>` (unnecessary comments) — the deletion touches **no executable line**, so it neither needs a regression test nor triggers the *Test Coverage Contract*'s pre-refactor coverage commit; author no test for it. Keep the commit **comment-only** — the moment a deletion requires a rename, an extraction, or any other code change to stay readable, that is a different pre-existing item and belongs in its own `refactor(…)` commit under the normal coverage rules above.
-   - Either way, pre-existing fixes follow the same 100% coverage rule on changed lines as in-scope changes (step 16) — with the comment-only deletion above as the single exception, since it adds and modifies no executable line to cover.
-4. Commit a pre-existing fix **before** the in-scope work, so it forms an independently revertable base.
-5. If a pre-existing issue is **non-trivial** (would significantly expand the PR, requires architectural decisions, or affects shared infrastructure beyond the touched files), do **not** fix it inline. Move it to the *Out of scope (deferred)* group from step 7 and surface it under the PR's `## TODO` section with a one-line reason for deferral.
-6. **A refactoring-only assignment fixes no bug and no security weakness.** When the assignment is refactoring-only, the *Bugs* and *Security vulnerabilities* above are not fixed here, and rule 1 does not apply to them. Keep the behaviour unchanged and file each one as a follow-up issue per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*. A project-rule violation that changes no behaviour is still fixed under rule 3.
+1. **Do not silently ignore** a vulnerability you encountered in a file you had to read for the in-scope work — fix it in this PR.
+2. **Do not expand scope** by scanning unrelated files for more. Limit attention to files already touched by the in-scope changes (or their direct dependencies you must read to understand the change).
+3. Land the fix in its **own separate commit** inside the same PR:
+   - Use a Conventional Commits subject per `@rules/git/general.md`: `fix(<scope>): pre-existing — <description>`.
+   - The `pre-existing — ` prefix is mandatory so reviewers can identify the commit at a glance (e.g. `fix(user): pre-existing — authorize the record owner before download`).
+   - Add the regression test in the **same commit** as the fix. The test must fail before the fix lands and pass after.
+   - The fix follows the same 100% coverage rule on changed lines as the in-scope changes.
+4. Commit the fix **before** the in-scope work, so it forms an independently revertable base. A skill that has no in-scope commit of its own (`create-test`, `create-missing-tests-in-pr`, `process-code-review`) commits it as its own commit, distinct from its test or review-fix commits.
+5. If the vulnerability is **too large to fix inline** (it needs an architectural decision or reaches shared infrastructure beyond the touched files), do not fix it inline. It is a critical security issue under the filing bar: file it, subject to `agents/leonardo.md` *Never disclose an unfixed vulnerability on a public tracker*, and list it under the PR `## TODO` with the issue URL.
+6. **A refactoring-only assignment fixes no vulnerability.** Keep the behaviour unchanged and file it per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*.

@@ -9,7 +9,7 @@ metadata:
 ## Constraints
 - Apply @rules/code-testing/general.md
 - If the current project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, and `@rules/laravel/livewire.md`
-- Do not modify production code unless strictly required — the only exception is the **Pre-existing issue handling** workflow below, which lands its production-code fixes in their own separate commits
+- Do not modify production code unless strictly required — the only exception is the **Pre-existing issue handling** workflow below, which lands the production-code fix of a pre-existing security vulnerability in its own separate commit
 - Prefer the project's existing E2E path for user-visible or cross-boundary behavior. An isolated test is allowed only when it was designed before the production change, after a written failure inventory, per `@rules/code-testing/general.md` *Test Strategy*.
 - Run the authoring gate of `@skills/test-audit/SKILL.md` (`MODE=authoring`) before you write or change a test. **Coverage alone is never sufficient justification for creating a test.** Coverage stays the validation step at the end.
 
@@ -71,25 +71,11 @@ Follow this order:
 
 ### 8. Pre-existing issue handling
 
-While writing tests, you may uncover problems that are **unrelated to the current change** but were already present in the code you had to read or exercise. The following categories qualify:
+Change nothing outside the assignment (`@rules/compound-engineering/general.md` *The assignment is the scope*). While writing tests you may uncover a problem that is **unrelated to the current change** but was already present in the code you had to read or exercise.
 
-- **Bugs** — incorrect logic, broken edge cases, or runtime errors revealed by exploratory test runs, but already present before this task.
-- **Project-rule violations** — code that contradicts any rule listed in this skill's *Constraints* block or any other rule under `.claude/rules/`.
-- **Security vulnerabilities** — anything `@rules/security/backend.md`, `@rules/security/frontend.md`, or `@rules/security/mobile.md` would flag.
-
-Rules:
-
-1. **Do not silently ignore** a pre-existing issue you encountered in code you had to read or exercise to write the tests for the current change.
-2. **Do not expand scope** by actively scanning unrelated files for pre-existing issues. Limit attention to files already touched or exercised by the current change.
-3. Land each pre-existing fix (and its regression test) in its **own separate commit**, distinct from the test-coverage commit for the current change:
-   - Use a Conventional Commits subject per `@rules/git/general.md`: `fix(<scope>): pre-existing — <description>` for bugs and security, `refactor(<scope>): pre-existing — <description>` for rule violations without behavior change.
-   - The `pre-existing — ` prefix is mandatory so reviewers can identify these commits at a glance.
-   - **Test coverage workflow depends on the commit type:**
-     - `fix(<scope>): pre-existing — …` (bug, security) — add the regression test in the **same commit** as the fix; the test must fail before the fix lands and pass after.
-     - `refactor(<scope>): pre-existing — …` (project-rule violation, behavior-preserving) — apply `@rules/refactoring/general.md` *Test Coverage Contract*: when the target lines are below 100% coverage, author a dedicated `test(<scope>): cover <area> before pre-existing refactor` commit **before** the refactor commit, and do **not** modify pre-existing tests inside the refactor commit (mechanical renames forced by the refactor itself stay exempt and must be flagged in the commit body).
-4. The "Do not modify production code unless strictly required" constraint above is **overridden** for these fixes — the production-code change is the fix itself, and it lives in its own commit.
-5. If a pre-existing issue is **non-trivial** (would significantly expand the change or requires architectural discussion), do **not** fix it. Surface it in the skill's output report as a deferred follow-up with the reason.
-6. **A refactoring-only change fixes no bug and no security weakness.** When the current change is refactoring-only, the *Bugs* and *Security vulnerabilities* above are not fixed here, and rule 1 does not apply to them. Keep the behaviour unchanged and file each one as a follow-up issue per `@rules/refactoring/general.md` *Behaviour stays identical — bugs included*. A project-rule violation that changes no behaviour is still fixed under rule 3.
+- **A security vulnerability is fixed**, in its own commit, distinct from the test-coverage commit, with its regression test in the same commit. The procedure lives in `@skills/resolve-issue/references/pre-existing-issue-handling.md`; the "Do not modify production code unless strictly required" constraint above is overridden for this fix only.
+- A refactoring-only change files a vulnerability instead of fixing it (`@rules/refactoring/general.md` *Behaviour stays identical — bugs included*).
+- Do not scan unrelated files for more.
 
 ---
 
@@ -99,7 +85,7 @@ Rules:
 - The authoring-gate record: one line per new or changed test (what it protects, the regression it catches, its owner boundary, its overlap)
 - Coverage status for current changes (must be 100%; a reported conflict or removable line leaves the gate open)
 - Test review result
-- List of pre-existing fix commits (if any), each with a one-line rationale, plus any pre-existing issue deferred as a follow-up with the reason
+- List of pre-existing security fix commits (if any), each with a one-line rationale, plus the URL of any follow-up issue filed for a point outside the assignment
 
 ---
 

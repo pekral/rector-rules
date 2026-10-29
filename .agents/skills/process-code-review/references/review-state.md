@@ -90,7 +90,7 @@ A finding may block only when it names a concrete defect or a violated explicit 
 
 ## Incremental scope and the broad review
 
-Round 1 reviews the whole PR diff. A later round reviews the delta since the last reviewed revision (`@rules/code-review/general.md` *Incremental Review Scope*), and the state keeps every open finding in view whether or not the delta touched it. `scope` widens the next round to the whole PR diff when the delta is not enough:
+Round 1 reviews the whole PR diff. A later round reviews the delta since the last reviewed revision (`@rules/code-review/general.md` *Incremental Review Scope*), the security lenses excepted: they read the whole PR diff in every round. The state keeps every open finding in view whether or not the delta touched it. `scope` widens the next round to the whole PR diff when the delta is not enough:
 
 | Reason | Trigger |
 | --- | --- |
