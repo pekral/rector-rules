@@ -20,6 +20,7 @@ metadata:
 - Neither mode merges.
 - Change only what the acceptance criteria require. An optimization, a refactoring, a pre-existing problem, or a nice-to-have is never implemented. It becomes a question in `Decisions before merge`.
 - Ask the user nothing except a business decision. Publish every business decision as a question in `Decisions before merge`, and do not implement it.
+- Before you write a question, look for its answer in the assignment and in the comments of the source issue and the pull request, per `@skills/verify-merge-readiness/SKILL.md` *Look for the answer before you ask*. A question already answered there is never asked again.
 - Never read a whole environment file, never print a secret, and never connect a CI client with a token.
 
 ## Use when

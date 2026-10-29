@@ -87,7 +87,7 @@
 #   0  every executed check passed
 #   1  usage error
 #   2  missing required tool (jq)
-#   3  the manifest is invalid or refused — escalate, do not treat as a pass
+#   3  the manifest is invalid or refused, or the logs directory could not be created — escalate, do not treat as a pass
 #   4  a check failed — escalate for interpretation
 set -euo pipefail
 
@@ -257,7 +257,7 @@ run_manifest() {
     return 0
   fi
 
-  mkdir -p -- "$logs_dir"
+  mkdir -p -- "$logs_dir" || refuse "cannot create the logs directory: $(safe_display "$logs_dir")"
 
   # --- Execute ---------------------------------------------------------------
   local failed=0 item log status
@@ -331,11 +331,11 @@ STUB
   # variable carrying quotes — the substitution expanded twice and every
   # assertion compared a file path against an exit code.
   verdict() {
-    local label="$1" json="$2" expected_exit="$3" expected_status="$4" expected_escalate="${5:-}"
+    local label="$1" json="$2" expected_exit="$3" expected_status="$4" expected_escalate="${5:-}" expected_reason="${6:-}"
     local manifest="$tmp/manifest-$RANDOM$RANDOM.json"
     printf '%s' "$json" >"$manifest"
 
-    local out actual status escalate
+    local out actual status escalate reason
     set +e
     out="$(cd "${VERDICT_PROJECT:-$tmp/project}" && "$script" --manifest "$manifest" --logs "${VERDICT_LOGS:-$tmp/logs}" 2>/dev/null)"
     actual=$?
@@ -352,6 +352,12 @@ STUB
     fi
     if [[ -n "$expected_escalate" && "$escalate" != "$expected_escalate" ]]; then
       printf 'FAIL  %-54s expected escalate=%s, got %s\n' "$label" "$expected_escalate" "$escalate" >&2
+      failures=$((failures + 1))
+      return 0
+    fi
+    reason="$(printf '%s' "$out" | jq -r '.escalation_reason // ""' 2>/dev/null || printf 'unparseable')"
+    if [[ -n "$expected_reason" && "$reason" != *"$expected_reason"* ]]; then
+      printf 'FAIL  %-54s expected a reason naming %s, got %s\n' "$label" "$expected_reason" "$reason" >&2
       failures=$((failures + 1))
       return 0
     fi
@@ -415,6 +421,16 @@ STUB
   else
     printf 'skip  %-54s the file system refuses the name\n' 'a log path with an invalid UTF-8 byte still reports'
   fi
+
+  # A logs directory that cannot be created used to end the run under `set -e` with no output
+  # document (issue #252). A regular file as its parent fails `mkdir -p` on every file system and
+  # for every user, root included, which `chmod 000` would not.
+  printf 'x' >"$tmp/logs-parent-file"
+  VERDICT_LOGS="$tmp/logs-parent-file/logs"
+  verdict 'an uncreatable logs directory still reports' \
+    '{ "head_sha": "abc1234", "tests": ["vendor/bin/pest tests/FooTest.php"], "lint": ["vendor/bin/pint --test"] }' \
+    3 invalid true 'logs directory'
+  VERDICT_LOGS=""
 
   # One refused command refuses the whole manifest — a partially-run validation
   # is a state nobody can act on.

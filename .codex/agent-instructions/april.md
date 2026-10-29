@@ -96,7 +96,7 @@ qualified deletions. It is not authorization to merge or to delete anything outs
    `templates/pr-summary-jira.md` for a JIRA ticket. Its first sentence is a TL;DR with the verified
    merge-readiness verdict. On a GitHub issue, directly after it,
    render the `Decisions before merge` section from the brief's `## Open decisions`, in the shape
-   `@skills/verify-merge-readiness/SKILL.md` step 4 defines: one numbered question per decision, with its options and its recommendation.
+   `@skills/verify-merge-readiness/SKILL.md` step 4 defines: one numbered question per decision, with its options and its recommendation, and then the `### Already decided` lines from the brief's `## Decided before merge`.
    Never drop, merge, or reword a decision into a verdict of your own. Include the current
    assignment-compliance block and the exact head SHA, diff fingerprint, gate result, PR URL, and
    issue URL. On a JIRA ticket follow the two-comment split of that same step 4: the TL;DR takes the
