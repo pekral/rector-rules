@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "findings.schema.json",
   "title": "Security audit findings",
-  "description": "findings.json of a security-audit run. One entry per finding, in the lifecycle confirmed, needs_validation, or rejected. scripts/audit-artifacts.sh validates it deterministically.",
+  "description": "findings.json of a security-audit run. One entry per finding, in the lifecycle confirmed, needs_validation, or rejected, deduplicated by the fingerprint of its fingerprint_basis. A finding an incremental run carries forward unchanged from its base run names the run that verified it in reused_from. scripts/audit-artifacts.sh validates it deterministically.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "findings"],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "const": 3 },
     "findings": {
       "type": "array",
       "items": { "$ref": "#/$defs/finding" }
@@ -15,20 +15,50 @@
   },
   "$defs": {
     "text": { "type": "string", "minLength": 1 },
+    "location": { "type": "string", "pattern": "^[^\\s:]+:[0-9]+(-[0-9]+)?$" },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
       "required": ["location", "observation"],
       "properties": {
-        "location": { "type": "string", "pattern": "^[^\\s:]+:[0-9]+(-[0-9]+)?$" },
+        "location": { "$ref": "#/$defs/location" },
         "observation": { "$ref": "#/$defs/text" }
       }
+    },
+    "fingerprint_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["boundary", "source", "sink", "root_cause"],
+      "properties": {
+        "boundary": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$" },
+        "source": { "type": "string", "pattern": "^[^\\s|]+( [^\\s|]+)?$" },
+        "sink": { "type": "string", "pattern": "^[^\\s#|]+#[^\\s#|]+$" },
+        "root_cause": { "type": "string", "pattern": "^CWE-[1-9][0-9]*$" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "effect"],
+      "properties": {
+        "kind": { "enum": ["middleware", "policy", "framework_protection", "validation", "sanitization", "configuration"] },
+        "effect": { "enum": ["stops", "does_not_stop", "unclear", "absent"] },
+        "location": { "$ref": "#/$defs/location" },
+        "observation": { "$ref": "#/$defs/text" }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["effect"], "properties": { "effect": { "enum": ["stops", "does_not_stop", "unclear"] } } },
+          "then": { "required": ["location", "observation"] }
+        }
+      ]
     },
     "finding": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "fingerprint",
+        "fingerprint_basis",
         "verdict",
         "severity",
         "boundary",
@@ -37,10 +67,14 @@
         "root_cause",
         "evidence",
         "remediation",
-        "boundary_failure_demonstrated"
+        "boundary_failure_demonstrated",
+        "hunters",
+        "verifier",
+        "controls"
       ],
       "properties": {
         "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+        "fingerprint_basis": { "$ref": "#/$defs/fingerprint_basis" },
         "verdict": { "enum": ["confirmed", "needs_validation", "rejected"] },
         "severity": { "enum": ["critical", "high", "medium", "low", "unrated"] },
         "boundary": { "$ref": "#/$defs/text" },
@@ -54,8 +88,19 @@
         },
         "remediation": { "$ref": "#/$defs/text" },
         "boundary_failure_demonstrated": { "type": "boolean" },
+        "hunters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^hunter-[1-9][0-9]*$" }
+        },
+        "verifier": { "type": ["string", "null"], "pattern": "^verifier-[1-9][0-9]*$" },
+        "controls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/control" }
+        },
         "validation_needed": { "$ref": "#/$defs/text" },
-        "rejection_reason": { "$ref": "#/$defs/text" }
+        "rejection_reason": { "$ref": "#/$defs/text" },
+        "reused_from": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
       },
       "allOf": [
         {
@@ -63,7 +108,19 @@
           "then": {
             "properties": {
               "severity": { "enum": ["critical", "high", "medium", "low"] },
-              "boundary_failure_demonstrated": { "const": true }
+              "boundary_failure_demonstrated": { "const": true },
+              "verifier": { "type": "string" },
+              "controls": {
+                "items": { "properties": { "effect": { "enum": ["does_not_stop", "absent"] } } },
+                "allOf": [
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "middleware" } } } },
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "policy" } } } },
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "framework_protection" } } } },
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "validation" } } } },
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "sanitization" } } } },
+                  { "contains": { "required": ["kind"], "properties": { "kind": { "const": "configuration" } } } }
+                ]
+              }
             }
           }
         },
@@ -83,7 +140,8 @@
             "required": ["rejection_reason"],
             "properties": {
               "severity": { "const": "unrated" },
-              "boundary_failure_demonstrated": { "const": false }
+              "boundary_failure_demonstrated": { "const": false },
+              "verifier": { "type": "string" }
             }
           }
         }

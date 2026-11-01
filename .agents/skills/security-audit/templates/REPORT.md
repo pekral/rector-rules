@@ -9,6 +9,7 @@ The canonical report shape for `@skills/security-audit/SKILL.md`. One report per
 - **Commit audited:** <SHA>
 - **Profile:** <quick | standard | deep>
 - **Working tree at start:** <`git status --short` output before the audit began, or `clean`>
+- **Base run:** <the `run_id` of the base run of an incremental run, or `none` for a full run>
 
 ## Budget
 
@@ -31,6 +32,8 @@ One block per finding of verdict `confirmed`, ordered by severity. Write `None.`
 - **Sink:** <where it does harm>
 - **Root cause:** <why the flow is possible>
 - **Evidence:** `<path>:<line>` — <what the cited line shows>
+- **Controls checked:** <each of the six kinds of control and its effect, with `<path>:<line>` for every control found>
+- **Hunted by / verified by:** <hunter IDs> / <verifier ID>
 - **Remediation:** <the minimal fix>
 
 ## Needs validation
@@ -43,4 +46,8 @@ One line per finding of verdict `rejected`: fingerprint and the control that sto
 
 ## Coverage
 
-One line per ledger row: ID, subsystem, final status, and the reason for every `skipped` or `gap` row. State the omissions the coverage critics found and how each was closed.
+One line per coverage unit: `coverage_id`, subsystem, surface, attack class, final status, and the reason for every `blocked`, `deferred`, or `out_of_scope` unit. Then one line per wave: its hunters, its critic, whether the working-tree snapshot still equals the baseline, and each gap the critic reported with its kind and how it was closed.
+
+## Incremental basis
+
+For a full run, write `None. This is a full run.` For an incremental run: the base run and its commit, then each changed path, each unit reused from the base run, each unit invalidated with the inputs or paths that changed, and each changed path no base unit held with the unit that now holds it. Then one line per invalidated finding: its fingerprint and the verdict this run gave it, or `not verified again` with the step that settles it.
