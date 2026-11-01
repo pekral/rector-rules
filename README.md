@@ -177,6 +177,27 @@ Use `withSkip()` — see [Skipping a rule you disagree with](#skipping-a-rule-yo
 Yes. Add `->withPhpSets()` or any other set alongside `withSets()`. A rule that ends up registered twice is
 not an error.
 
+**Can I add rules from another package, for example Laravel?**
+Yes, and nothing in this package has to change. Install the package and list its sets next to this one:
+
+```php
+use Rector\Config\RectorConfig;
+use RectorLaravel\Set\LaravelSetList;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__ . '/app'])
+    ->withSets([
+        __DIR__ . '/vendor/pekral/rector-rules/rector.php',
+        LaravelSetList::LARAVEL_CODE_QUALITY,
+        LaravelSetList::LARAVEL_COLLECTION,
+    ])
+    ->withComposerBased(laravel: true);
+```
+
+List only the sets that apply to your code permanently. `driftingly/rector-laravel` also ships one set per
+Laravel version, and all 18 of those are deprecated in that package. `withComposerBased(laravel: true)`
+replaces them: it reads the Laravel version from your `composer.json` and applies the matching upgrade rules.
+
 **Why is rule X not included?**
 Check `build/ignored-rules.php` in the repository — every rule that does not ship is listed there, except
 rules deprecated in Rector. Those are never shipped and never listed. Rules waiting on PHP 8.5 sit under a

@@ -10,6 +10,11 @@ below and run `vendor/bin/rector process --dry-run` — see [UPGRADING.md](UPGRA
 
 ## [Unreleased]
 
+### Added
+
+- A FAQ entry in `README.md` that shows how to combine this set with a third-party Rector package, with
+  `driftingly/rector-laravel` as the example.
+
 ### Changed
 
 - `rector.php` raises the Rector parallel process timeout to 180 seconds. A worker that needs longer than
