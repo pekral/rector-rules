@@ -117,7 +117,7 @@ The authoritative list is [`rules/rules.php`](rules/rules.php) — a plain array
 
 | File | Role |
 | --- | --- |
-| [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` and sets parallel processing (6 processes, 180 s timeout, 60-file jobs) |
+| [`rector.php`](rector.php) | Entry point — registers every rule from `rules/rules.php` and raises the Rector parallel process timeout to 180 s |
 | [`rules/rules.php`](rules/rules.php) | The 216 enabled rules (shipped) |
 | `build/ignored-rules.php` | The 221 rules that do not ship (development only). 2 JMS Serializer rules sit under a PHP 8.5 heading; the other 219 are grouped under a plain `// Ignored rules` heading. Rules deprecated in Rector are listed nowhere — they are deleted |
 | `build/find-missing-rules.php` | CI guard: fails if a rule is neither enabled nor listed as ignored, or if a deprecated rule is listed in either file (development only) |
