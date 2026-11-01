@@ -194,9 +194,10 @@ return RectorConfig::configure()
     ->withComposerBased(laravel: true);
 ```
 
-List only the sets that apply to your code permanently. `driftingly/rector-laravel` also ships one set per
-Laravel version, and all 18 of those are deprecated in that package. `withComposerBased(laravel: true)`
-replaces them: it reads the Laravel version from your `composer.json` and applies the matching upgrade rules.
+List only the sets that apply to your code permanently. `driftingly/rector-laravel` also ships per-version
+upgrade sets, in `LaravelSetList` and in `LaravelLevelSetList`, and that package deprecates every one of
+them. `withComposerBased(laravel: true)` replaces them: it reads the installed `laravel/framework` version
+and applies the upgrade rules bound to it.
 
 **Why is rule X not included?**
 Check `build/ignored-rules.php` in the repository — every rule that does not ship is listed there, except
