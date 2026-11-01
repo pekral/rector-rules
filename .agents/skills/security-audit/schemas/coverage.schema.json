@@ -2,58 +2,234 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "coverage.schema.json",
   "title": "Security audit coverage ledger",
-  "description": "coverage-ledger.json of a security-audit run. One row per subsystem in the audited scope. scripts/audit-artifacts.sh validates it deterministically.",
+  "description": "coverage-ledger.json of a security-audit run. One entry per coverage unit (one attack class on one surface of one subsystem), written as the inventory before the first hunter opens, and one wave record per hunting wave with its coverage critic. A covered unit records the security inputs on its path and their digest, so an incremental run can prove the path unchanged before it reuses the unit. base_run names the earlier run an incremental run compares with, or is null for a full run. scripts/audit-artifacts.sh validates it deterministically.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "entries"],
+  "required": ["schema_version", "base_run", "entries", "waves"],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "const": 3 },
+    "base_run": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "entries": {
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/entry" }
+    },
+    "waves": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/wave" }
     }
   },
   "$defs": {
     "text": { "type": "string", "minLength": 1 },
+    "path": { "type": "string", "pattern": "^(?!/)(?!\\./)(?!(.*/)?\\.\\.(/|$))[^\\x00-\\x1f]+$" },
+    "location": { "type": "string", "pattern": "^[^\\s:]+:[0-9]+(-[0-9]+)?$" },
+    "coverage_id": { "type": "string", "pattern": "^C[1-9][0-9]*$" },
+    "hunter_id": { "type": "string", "pattern": "^hunter-[1-9][0-9]*$" },
     "entry": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "subsystem", "boundary", "files", "status", "reviewed_by", "findings"],
+      "required": ["coverage_id", "surface", "boundary", "subsystem", "attack_class", "paths", "status", "agent", "findings"],
       "properties": {
-        "id": { "type": "string", "pattern": "^S[0-9]+$" },
+        "coverage_id": { "$ref": "#/$defs/coverage_id" },
+        "surface": {
+          "enum": [
+            "http_entrypoint",
+            "authentication",
+            "authorization",
+            "background_job",
+            "queue",
+            "webhook",
+            "file_handling",
+            "external_api",
+            "data_isolation",
+            "privileged_action",
+            "ai_tool",
+            "mcp_integration",
+            "agent_side_effect",
+            "frontend",
+            "configuration",
+            "ci_deploy",
+            "dependency"
+          ]
+        },
+        "boundary": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$" },
         "subsystem": { "$ref": "#/$defs/text" },
-        "boundary": { "$ref": "#/$defs/text" },
-        "files": {
+        "attack_class": {
+          "enum": ["auth_authz", "injection_input", "files_ssrf", "queues_webhooks", "data_isolation", "ai_tools", "wildcard"]
+        },
+        "paths": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/text" }
+          "items": { "$ref": "#/$defs/path" }
         },
-        "status": { "enum": ["queued", "in_review", "covered", "skipped", "gap"] },
-        "reviewed_by": {
-          "type": "array",
-          "items": { "enum": ["hunter", "verifier", "coverage_critic"] }
-        },
+        "status": { "enum": ["queued", "candidate", "covered", "blocked", "deferred", "out_of_scope"] },
+        "agent": { "type": ["string", "null"], "pattern": "^hunter-[1-9][0-9]*$" },
         "findings": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[a-f0-9]{16}$" }
         },
-        "reason": { "$ref": "#/$defs/text" }
+        "reason": { "$ref": "#/$defs/text" },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/security_input" }
+        },
+        "inputs_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "threats": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/threat" }
+        },
+        "action_binding": { "$ref": "#/$defs/action_binding" },
+        "reused_from": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
       },
       "allOf": [
         {
-          "if": { "required": ["status"], "properties": { "status": { "enum": ["skipped", "gap"] } } },
+          "if": { "required": ["status"], "properties": { "status": { "enum": ["blocked", "deferred", "out_of_scope"] } } },
           "then": { "required": ["reason"] }
         },
         {
+          "if": { "required": ["status"], "properties": { "status": { "enum": ["candidate", "covered"] } } },
+          "then": { "properties": { "agent": { "type": "string" } } }
+        },
+        {
           "if": { "required": ["status"], "properties": { "status": { "const": "covered" } } },
+          "then": { "required": ["inputs", "inputs_digest"] }
+        },
+        {
+          "if": { "required": ["reused_from"] },
+          "then": { "properties": { "status": { "const": "covered" } } }
+        },
+        {
+          "if": { "required": ["status", "attack_class"], "properties": { "status": { "const": "covered" }, "attack_class": { "const": "ai_tools" } } },
           "then": {
+            "required": ["threats"],
             "properties": {
-              "reviewed_by": { "contains": { "const": "hunter" } }
+              "threats": {
+                "allOf": [
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "prompt_provenance_confusion" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "persistent_memory_poisoning" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "cross_session_context_bleed" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "tool_argument_injection" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "confused_deputy" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "excessive_tool_authority" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "mcp_tool_identity_confusion" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "action_confirmation_binding_failure" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "schema_dispatcher_disagreement" } } } },
+                  { "contains": { "required": ["class"], "properties": { "class": { "const": "unbounded_agent_action_loop" } } } }
+                ]
+              }
             }
           }
+        },
+        {
+          "if": {
+            "required": ["status", "surface"],
+            "properties": { "status": { "const": "covered" }, "surface": { "enum": ["privileged_action", "agent_side_effect", "ai_tool", "mcp_integration"] } }
+          },
+          "then": { "required": ["action_binding"] }
         }
       ]
+    },
+    "security_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "source",
+            "sink",
+            "authorization",
+            "middleware",
+            "validation",
+            "sanitization",
+            "framework_protection",
+            "configuration",
+            "trust_boundary",
+            "tool_authority",
+            "action_binding"
+          ]
+        },
+        "path": { "$ref": "#/$defs/path" }
+      }
+    },
+    "threat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "outcome", "observation"],
+      "properties": {
+        "class": {
+          "enum": [
+            "prompt_provenance_confusion",
+            "persistent_memory_poisoning",
+            "cross_session_context_bleed",
+            "tool_argument_injection",
+            "confused_deputy",
+            "excessive_tool_authority",
+            "mcp_tool_identity_confusion",
+            "action_confirmation_binding_failure",
+            "schema_dispatcher_disagreement",
+            "unbounded_agent_action_loop"
+          ]
+        },
+        "outcome": { "enum": ["candidate", "no_candidate", "not_applicable"] },
+        "observation": { "$ref": "#/$defs/text" }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "location", "observation"],
+      "properties": {
+        "status": { "enum": ["bound", "unbound", "unclear"] },
+        "location": { "$ref": "#/$defs/location" },
+        "observation": { "$ref": "#/$defs/text" }
+      }
+    },
+    "action_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principal", "authority", "action", "resource", "arguments"],
+      "properties": {
+        "principal": { "$ref": "#/$defs/binding" },
+        "authority": { "$ref": "#/$defs/binding" },
+        "action": { "$ref": "#/$defs/binding" },
+        "resource": { "$ref": "#/$defs/binding" },
+        "arguments": { "$ref": "#/$defs/binding" }
+      }
+    },
+    "wave": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wave", "hunters", "critic", "worktree", "gaps"],
+      "properties": {
+        "wave": { "type": "integer", "minimum": 1 },
+        "hunters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/hunter_id" }
+        },
+        "critic": { "type": "string", "pattern": "^critic-[1-9][0-9]*$" },
+        "worktree": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "gaps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/gap" }
+        }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "detail", "resolution"],
+      "properties": {
+        "kind": {
+          "enum": ["missing_surface", "missing_attack_class", "uncovered_entrypoint", "unanalysed_boundary", "shallow_review", "assumption_based_finding"]
+        },
+        "detail": { "$ref": "#/$defs/text" },
+        "resolution": { "$ref": "#/$defs/text" },
+        "coverage_id": { "$ref": "#/$defs/coverage_id" }
+      }
     }
   }
 }

@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "metadata.schema.json",
   "title": "Security audit run metadata",
-  "description": "metadata.json of a security-audit run: the profile, the explicit execution budget with its reserves, and what the run spent. scripts/audit-artifacts.sh validates it deterministically and checks the cross-field budget rules JSON Schema cannot express.",
+  "description": "metadata.json of a security-audit run: the profile, the explicit execution budget with its reserves, what the run spent, and the working-tree snapshot taken before the audit. scripts/audit-artifacts.sh validates it deterministically and checks the cross-field budget rules JSON Schema cannot express.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "run_id", "profile", "scope", "commit", "started_at", "finished_at", "budget", "spent", "counts"],
+  "required": ["schema_version", "run_id", "profile", "scope", "commit", "worktree_baseline", "started_at", "finished_at", "budget", "spent", "counts"],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "const": 3 },
     "run_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "profile": { "enum": ["quick", "standard", "deep"] },
     "scope": {
@@ -20,6 +20,7 @@
       }
     },
     "commit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+    "worktree_baseline": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "started_at": { "$ref": "#/$defs/timestamp" },
     "finished_at": { "$ref": "#/$defs/timestamp" },
     "budget": {
