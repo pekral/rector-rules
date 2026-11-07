@@ -116,7 +116,7 @@ When neither the restructuring nor a scoped configuration entry resolves it, **s
   - **Repeated → extract it once** and call it from every place (the DRY half of this rule). First search the project for an implementation that already does it (`@rules/code-review/general.md` *Reuse Existing Logic*).
   - **Non-trivial orchestration → the class is justified** even with one caller: it coordinates two or more collaborators, branches on business state, or wraps a transaction.
   - **Always allowed:** a class a framework or vendor contract requires (a FormRequest, a Job, a Listener, a Policy, a Middleware, a migration), and a class a security rule requires. This rule never moves validation away from a trust boundary.
-  - This rule takes precedence over the layer-extraction mandates in `@rules/laravel/architecture.md` (Action, Data Builder, Data Validator, DTO, Service) for simple, non-repeated logic.
+  - This rule takes precedence over the layer-extraction mandates in `@rules/laravel/architecture.md` (Action, Data Builder, Data Validator, DTO, Service) for simple, non-repeated logic. The one exception is a data transformation moved out of an Enum: it goes to a Data Builder even when it is simple and has one caller (`@rules/laravel/architecture.md` Data Builders).
 - Keep related code together and maintain a logical folder structure.
 - Leave touched code cleaner than you found it.
 - Do not add speculative (YAGNI) parameters. Add a parameter to a method, function, action, or constructor only when at least one current caller actually needs it. Optional knobs, "in case" defaults, and parameters introduced solely for hypothetical future callers must be removed; add them later when a real use case appears.

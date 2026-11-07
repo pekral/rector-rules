@@ -17,6 +17,7 @@
 **Input consistency:** {yes | no | not applicable — the diff writes no persisted data} — {when no: every entry point that bypasses the change, with its `file:line`}  *(always rendered — answers "is the data stored consistently whatever input in the application writes it?" per `@rules/code-review/general.md` *Input consistency and reuse*)*
 **Reuse (DRY):** {no duplication found | every existing implementation the diff should reuse, with its `file:line`}  *(always rendered — answers "can existing code in the codebase be used instead of repeating it?" per `@rules/code-review/general.md` *Input consistency and reuse*)*
 **Security assessment:** untrusted data: {none | each new path, unsafe deserialization, or vulnerable dependency, with its `file:line`} · public exposure: {none | each new service or port and the address it is reachable from} · regression test: {not required | present — the test that pins it | required — each unpinned guarantee} · automatic rule: {not applicable | none practical | the strongest practical mechanism and its level}  *(always rendered — `not applicable — the diff changes no code` when the diff changes no application, configuration, or deployment code; per `@rules/code-review/general.md` *Security assessment*)*
+**Merge risk:** {low | medium | high} — impact: {tier} ({each `signal=` name}) · verification: {ok | poor} ({each `verification-signal=`}) · rollback: {cheap | costly} ({each `rollback-signal=` with its file}) · error detection: {ok | poor — each blanket or empty catch with its `file:line` | not checked — <reason>}  *(always rendered — the triage grade per `@rules/code-review/general.md` *Merge risk*. `skills/_shared/classify-risk.sh --merge-risk` computes every value except `error detection`. Informational: it never blocks and never replaces `Merge verdict:` or the merge gate.)*
 **Mode:** HOTFIX — coverage waived, review scoped to assignment + bug fix (declared by {account})  *(render this line only on a declared HOTFIX run; it is the merge gate's only trusted evidence of the mode — `@rules/code-review/general.md` *HOTFIX runs*. Omit it entirely on every ordinary run.)*
 **Reviewed revision:** {full head SHA this round reviewed}  *(always rendered — the next round resolves its baseline from this line)*
 **Reviewed diff fingerprint:** {patch-id of the effective PR diff}  *(always rendered — preserves the verdict across a content-identical history rewrite)*
@@ -83,12 +84,19 @@
 
 ---
 
-## Missing tests added
+## Interactive testing
 
-> Render only in a review-only run (`/report-code-review`) whose missing-tests commit added at least one test. Omit the heading entirely otherwise. Each line is information, not a finding: the test is already on the branch, so it adds nothing to the Counts line. It names the gap the change shipped with and mentions its author, per `@rules/code-review/general.md` *The author of the changes is the account that pushed the pull request* → *Second exception*. Render it on a run with no finding too.
+> Render in every review-only run (`/report-code-review`), from the `raphael` report, also when the walkthrough was `Blocked`. Omit the heading in every other run. A `Not met`, `Failed`, or `Partial` row is also a finding above. Never publish exploitable security details, a threat that predates the diff, or a local artifact file path.
 
-- **Commit:** `{full SHA of the missing-tests commit}`
-- `path/to/SomethingTest.php` — {the behaviour the test protects, in plain language} — `@<login>`
+- **Tested head:** `{full SHA}` · **URL:** {project URL} · **Account:** {role}
+- **Result:**
+
+| Scenario | Viewport | Verdict | Observation |
+|---|---|---|---|
+| {scenario} | {desktop / mobile} | {Met / Not met / Partial / Blocked} | {what the walkthrough observed} |
+
+- **Untested:** {scenario — missing prerequisite}, or `none`
+- **Cleanup:** {restored values, removed test data}, or `none`
 
 ---
 

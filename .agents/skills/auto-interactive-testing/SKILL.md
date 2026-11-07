@@ -78,12 +78,14 @@ Run `@skills/interactive-testing/SKILL.md` for the issue on the default branch:
 
 ### 6. Handle a new defect
 
+For a security candidate, follow `@skills/interactive-testing/SKILL.md` *Check security and repair confirmed threats* instead of the ordinary defect steps below. Verify the exploit path, repair a confirmed threat even when it predates the change, and re-test before acceptance. Follow that section's disclosure rules; never put an unfixed vulnerability into a public bug issue.
+
 1. Reproduce the failure once more on a stable, fully loaded page. Confirm that it belongs to the change under test.
 2. Search the open issues for a duplicate. When there is none, file one bug issue through `@skills/create-issue/SKILL.md`. Give the reproduction steps and link the interactive-testing issue.
 3. Fix it through step 3.
 4. Run the affected scenarios again on the updated default branch.
 
-A defect that the change under test did not cause is never fixed in this run. Name it in the final report, so the user decides whether to file it.
+A non-security defect that the change under test did not cause is never fixed in this run. Name it in the final report, so the user decides whether to file it.
 
 ### 7. Clean up
 

@@ -1,6 +1,6 @@
 ---
 name: casey
-description: Use when a converged code review touched MySQL — a MySQL / MariaDB project, or one whose database engine does not resolve — and the diff changes database operations. Runs `mysql-problem-solver` with `MODE=cr-report` over the pull request diff and returns one advisory report that proposes optimizations for critical MySQL problems only, published as its own PR comment in the `mysql-report` marker namespace. The report never gates convergence or the merge. Read-only — never edits, commits, pushes, or merges.
+description: Use when a converged code review, or the one review of a review-only run, touched MySQL — a MySQL / MariaDB project, or one whose database engine does not resolve — and the diff changes database operations. Runs `mysql-problem-solver` with `MODE=cr-report` over the pull request diff and returns one advisory report that proposes optimizations for critical MySQL problems only, published as its own PR comment in the `mysql-report` marker namespace. The report never gates convergence or the merge. Read-only — never edits, commits, pushes, or merges.
 tools: Read, Glob, Grep, Bash
 disallowedTools: Write, Edit
 model: sonnet
@@ -20,6 +20,7 @@ The dispatch carries:
 - the pull request URL and its head SHA;
 - the resolved database engine (`mysql`, `mariadb`, or `unresolved` / another driver with the `Not verified:` entry the review wrote);
 - the shared brief path, when `splinter` orchestrates the run.
+- `review_only`, when the run is a review-only run (`/report-code-review`).
 
 When the dispatch names `pgsql`, stop with `Not applicable — PostgreSQL project` and publish nothing. `postgres-patterns` already ran inside the review.
 
@@ -30,7 +31,7 @@ When the dispatch names `pgsql`, stop with `Not applicable — PostgreSQL projec
 2. **Run `@skills/mysql-problem-solver/SKILL.md` with `MODE=cr-report`** over the diff. That skill owns the analysis, the critical bar, the evidence, and the non-regression check on every proposal. Do not re-implement any of it.
 3. **Keep to the critical bar.** Report only items the skill classifies as critical in that mode. Omit everything below the bar. Never pad the report with general MySQL advice.
 4. **Stay out of the review's findings.** Read the review's published `## Database Analysis` section and omit every point it already carries — the gating walks of `@rules/code-review/core-analysis.md` (N+1, index reuse, query non-regression, deploy-safe schema, bulk data) and the schema-feature shape from `mysql-patterns`. One point per violation, owned by one place.
-5. **Publish the report.** Pipe the body into `skills/code-review-github/scripts/upsert-comment.sh <PR-URL> - mysql-report`. The helper upserts one comment per actor, so a later run replaces the earlier report. When the source resolves no GitHub pull request, publish nothing and carry the report in the handoff. Never publish it to a JIRA ticket: it is technical content (`@rules/reports/general.md`).
+5. **Publish the report.** Pipe the body into `skills/code-review-github/scripts/upsert-comment.sh <PR-URL> - mysql-report`. The helper upserts one comment per actor, so a later run replaces the earlier report. When the dispatch carries `review_only`, pass `--create` as the first argument, so the run creates a new comment and never updates the report of an earlier run. When the source resolves no GitHub pull request, publish nothing and carry the report in the handoff. Never publish it to a JIRA ticket: it is technical content (`@rules/reports/general.md`).
 
 ## Report shape
 
