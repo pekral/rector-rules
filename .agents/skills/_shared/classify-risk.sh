@@ -19,6 +19,9 @@
 # Usage
 #   classify-risk.sh [--files <path|->] [--assignment <path>]
 #                    [--floor <tier>] [--override <tier|thorough>]
+#   classify-risk.sh --merge-risk --diff <path|-> [--coverage ok|gap]
+#                    [--gate green|not-green] [--interactive met|gap|not-run]
+#                    [--assignment <path>] [--floor <tier>] [--override <tier>]
 #   classify-risk.sh --self-test
 #
 #   --files       newline-separated list of changed paths (`-` reads stdin),
@@ -113,6 +116,41 @@
 #   2. Otherwise an explicit --override is the tier.
 #   3. Otherwise the tier is the higher of the scored tier and --floor.
 #
+# Merge-risk mode (--merge-risk, the first argument)
+#   Grades a pull request low, medium, or high for a human who triages many of
+#   them. The code review renders the grade on its `Merge risk:` header line
+#   (@rules/code-review/general.md *Merge risk*). The grade is informational: it
+#   never blocks and never replaces a merge gate or the `Merge verdict:` line.
+#
+#   --diff         the unified diff, `git diff <base>..<head>` (`-` reads stdin).
+#                  The changed paths are read from it, so --files is refused.
+#   --coverage     ok, or gap: uncovered changed lines, coverage tooling that did
+#                  not run, or a waived coverage gate.
+#   --gate         green, or not-green: the quality gate on the reviewed head.
+#   --interactive  met, gap (a scenario Not met, Partial, Failed, or Blocked), or
+#                  not-run (the default: no walkthrough ran).
+#   --assignment, --floor, --override go to the tier classification unchanged.
+#
+#   impact        the tier and its signal= lines, classified from the same diff.
+#   verification  poor when coverage or the gate is not ok or was not supplied,
+#                 or when a walkthrough scenario was not met. ok otherwise.
+#   rollback      costly when the added lines carry a rollback signal: a
+#                 destructive migration (a drop or truncate outside down(), or an
+#                 empty down()), a persisted-data write, an external side effect
+#                 (mail, notification, HTTP client, queue dispatch), or a
+#                 configuration or infrastructure file (INFRA_RE). cheap otherwise.
+#                 A write or side effect counts in a .php file, an SQL write in a
+#                 .php or .sql file. Every changed path counts, including a rename, a
+#                 binary file, and a mode-only change.
+#
+#   low     tier FAST, verification ok, rollback cheap
+#   high    tier CRITICAL, and verification poor or rollback costly
+#   medium  everything else
+#
+#   Output: merge-risk=, merge-risk-rule=, verification=, one
+#   verification-signal=<input>|<value> per failed input, rollback=, one
+#   rollback-signal=<signal>|<first file> per signal, then the tier block above.
+#
 # Exit codes
 #   0  a classification was produced (this includes every tier — the tier is the
 #      result, never an error condition)
@@ -129,10 +167,15 @@ usage() {
   cat >&2 <<'EOF'
 Usage: classify-risk.sh [--files <path|->] [--assignment <path>]
                         [--floor <tier>] [--override <tier|thorough>]
+       classify-risk.sh --merge-risk --diff <path|-> [--coverage ok|gap]
+                        [--gate green|not-green] [--interactive met|gap|not-run]
+                        [--assignment <path>] [--floor <tier>] [--override <tier>]
        classify-risk.sh --self-test
 
 Prints key=value lines: tier, score, basis, files, override, forced, floor,
-and one signal= line per fired signal. Exit 1 on a usage error.
+and one signal= line per fired signal. --merge-risk prints merge-risk,
+merge-risk-rule, verification, and rollback lines before them.
+Exit 1 on a usage error.
 EOF
 }
 
@@ -148,13 +191,28 @@ FORMAT_RE='(^|/)\.(editorconfig|gitignore|gitattributes|prettierrc|eslintrc|styl
 
 PAY_RE='payment|billing|invoice|subscription|checkout|stripe|paypal|braintree|adyen|gopay|refund|pricing|currency'
 API_RE='(^|/)routes/api|(^|/)api/|api[a-z0-9_-]*controller|openapi|swagger|graphql|\.proto$'
-CORE_RE='(^|/)config/|serviceprovider|(^|/)bootstrap/|(^|/)routes/|kernel\.php$|(^|/)composer\.json$|(^|/)package\.json$|\.github/workflows/|(^|/)providers?/|(^|/)middleware/|(^|/)src/(support|core|foundation)/|dockerfile|docker-compose'
+# INFRA_RE is the configuration and infrastructure part of CORE_RE. The merge-risk
+# mode reads it as a rollback signal, so it is defined once and composed into CORE_RE.
+INFRA_RE='(^|/)config/|\.github/workflows/|dockerfile|docker-compose'
+CORE_RE="$INFRA_RE"'|serviceprovider|(^|/)bootstrap/|(^|/)routes/|kernel\.php$|(^|/)composer\.json$|(^|/)package\.json$|(^|/)providers?/|(^|/)middleware/|(^|/)src/(support|core|foundation)/'
 
 # Markers that prove the assignment states what "done" means. Both project
 # languages are covered: the assignment is written in whatever language the
 # reporter used, and an English-only marker set would score every Czech
 # assignment as unclear.
 AC_RE='acceptance criteria|acceptance-criteria|expected behaviou?r|expected result|definition of done|akceptačn|očekávan|kritéria|- \[ \]'
+
+# Rollback signals of the merge-risk mode. They are matched against the lower-cased
+# added lines of a unified diff, one line at a time, in documentation and test
+# files never. DATA_RE (domain-vocabulary.sh) decides which files are migrations.
+# WRITE_RE and EFFECT_RE read PHP calls, so they run on .php files only. SQL_WRITE_RE
+# reads SQL statements, so it runs on .php files (raw DB::statement, DB::update) and
+# .sql files. Other languages carry the same
+# words as plain text (store.dispatch, an echo of "Mail::", a regex in a script).
+DROP_RE='drop(column|columns|ifexists|morphs|timestamps|softdeletes|remembertoken)?[[:space:]]*\(|drop[[:space:]]+(table|column|database|schema)|(^|[^a-z0-9_])truncate([[:space:]]*\(|[[:space:]]+[`"a-z_])'
+WRITE_RE='->(save|savequietly|update|updatequietly|updateorcreate|updateorinsert|create|createmany|insert|insertorignore|insertgetid|upsert|delete|forcedelete|increment|decrement|sync|attach|detach|restore)[[:space:]]*\(|::(create|insert|upsert|updateorcreate|updateorinsert|firstorcreate|destroy)[[:space:]]*\(|storage::([a-z_]+\([^)]*\)->)?(put|putfile|putfileas|writestream|delete|move|copy|append|prepend)[[:space:]]*\(|file_put_contents[[:space:]]*\('
+SQL_WRITE_RE='insert[[:space:]]+into|update[[:space:]]+[^[:space:]]+[[:space:]]+set[[:space:]]|delete[[:space:]]+from'
+EFFECT_RE='mail::|->notify(now)?[[:space:]]*\(|notification::(send|sendnow)|http::|guzzlehttp|curl_(init|exec)|dispatch(sync|now|afterresponse)?[[:space:]]*\(|queue::(push|pushon|later|bulk)|bus::(dispatch|chain|batch|bulk)|->(queue|later)[[:space:]]*\('
 
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
@@ -490,6 +548,218 @@ classify() {
   return 0
 }
 
+# Read a `git diff` on stdin. Print `F|<path>` for every changed path and
+# `S|<signal>|<path>` for the first file of each rollback signal found in the
+# added lines. A drop inside a migration's down() is its rollback, not a signal;
+# a down() whose body is empty is the signal itself. A `Schema::` call changes the
+# schema, not the data, so it is never a persisted-data write.
+diff_rollback_scan() {
+  MR_DOC_RE="$DOC_RE" MR_TEST_RE="$TEST_RE" MR_DATA_RE="$DATA_RE" MR_DROP_RE="$DROP_RE" \
+    MR_WRITE_RE="$WRITE_RE" MR_SQL_WRITE_RE="$SQL_WRITE_RE" MR_EFFECT_RE="$EFFECT_RE" awk '
+    function hit(name) {
+      if (!(name in seen)) {
+        seen[name] = 1
+        print "S|" name "|" file
+      }
+    }
+    function count(text, brace,    copy) {
+      copy = text
+      return gsub(brace, "", copy)
+    }
+    # Record the path of the current diff entry. A pure rename, a binary file, and a
+    # mode-only change have no `+++` line, so the `diff --git` header and the
+    # `rename to` line are the sources, and the `+++` line refines them.
+    function setfile(path) {
+      file = path
+      print "F|" file
+      lowered = tolower(file)
+      skip = (lowered ~ ENVIRON["MR_DOC_RE"] || lowered ~ ENVIRON["MR_TEST_RE"])
+      migration = (lowered ~ ENVIRON["MR_DATA_RE"])
+      php = (lowered ~ /\.php$/)
+      sql = (lowered ~ /\.sql$/)
+      method = ""
+      tracking = 0
+    }
+    BEGIN { header = 1 }
+    /^diff / {
+      header = 1
+      file = ""
+      skip = 0
+      migration = 0
+      php = 0
+      sql = 0
+      rest = substr($0, 12)
+      if ($0 ~ /^diff --git / && rest !~ /"/ && (length(rest) - 5) % 2 == 0) {
+        half = (length(rest) - 5) / 2
+        if (substr(rest, 1, 2) == "a/" && substr(rest, half + 4, 2) == "b/" && substr(rest, 3, half) == substr(rest, half + 6)) {
+          setfile(substr(rest, half + 6))
+        }
+      }
+      next
+    }
+    header && /^--- / { old = substr($0, 5); sub(/^a\//, "", old); next }
+    header && /^rename to / { setfile(substr($0, 11)); next }
+    header && /^\+\+\+ / {
+      path = substr($0, 5)
+      if (path == "/dev/null") { path = old } else { sub(/^b\//, "", path) }
+      if (path != file) { setfile(path) }
+      next
+    }
+    /^@@/ { header = 0; next }
+    header || file == "" || skip { next }
+    {
+      kind = substr($0, 1, 1)
+      if (kind != "+" && kind != " ") { next }
+      code = tolower(substr($0, 2))
+      sub(/^[[:space:]]+/, "", code)
+      if (code ~ /^(\/\/|#|\*|\/\*|--)/) { next }
+
+      if (migration) {
+        body = ""
+        if (code ~ /function[[:space:]]+up[[:space:]]*\(/) { method = "up"; tracking = 0 }
+        if (code ~ /function[[:space:]]+down[[:space:]]*\(/) {
+          method = "down"
+          tracking = (kind == "+")
+          depth = 0
+          opened = 0
+          filled = 0
+          body = code
+          sub(/^[^{]*/, "", body)
+        } else if (tracking) {
+          body = code
+        }
+        if (tracking && body != "") {
+          depth += count(body, "\\{") - count(body, "\\}")
+          if (count(body, "\\{") > 0) { opened = 1 }
+          gsub(/[{};[:space:]]/, "", body)
+          if (body != "") { filled = 1 }
+          if (opened && depth <= 0) {
+            tracking = 0
+            if (!filled) { hit("destructive-migration") }
+          }
+        }
+        if (kind == "+" && method != "down" && code ~ ENVIRON["MR_DROP_RE"]) { hit("destructive-migration") }
+      }
+
+      if (kind != "+") { next }
+      data = code
+      gsub(/schema::[a-z]+/, "", data)
+      gsub(/(^|[^a-z0-9_])(carbon|carbonimmutable|date)::create/, "", data)
+      if (php && data ~ ENVIRON["MR_WRITE_RE"]) { hit("persisted-data-write") }
+      if ((php || sql) && data ~ ENVIRON["MR_SQL_WRITE_RE"]) { hit("persisted-data-write") }
+      if (php && code ~ ENVIRON["MR_EFFECT_RE"]) { hit("external-side-effect") }
+    }
+  '
+}
+
+# The merge-risk mode: one deterministic low / medium / high grade for a human
+# who triages many pull requests, with every fact behind it printed. The grade
+# is informational. It never blocks and never replaces a merge gate.
+merge_risk() {
+  local diff_arg="" coverage="" gate="" interactive="not-run"
+  local -a pass=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --diff | --coverage | --gate | --interactive | --assignment | --floor | --override)
+      [[ $# -ge 2 ]] || { usage; return 1; }
+      case "$1" in
+      --diff) diff_arg="$2" ;;
+      --coverage) coverage="$2" ;;
+      --gate) gate="$2" ;;
+      --interactive) interactive="$2" ;;
+      *) pass+=("$1" "$2") ;;
+      esac
+      shift 2
+      ;;
+    *)
+      echo "$PROG: unknown argument in --merge-risk mode: $(safe_display "$1")" >&2
+      usage
+      return 1
+      ;;
+    esac
+  done
+
+  [[ -n "$diff_arg" ]] || { echo "$PROG: --merge-risk needs --diff" >&2; usage; return 1; }
+  case "$coverage" in "" | ok | gap) ;; *) echo "$PROG: unknown --coverage value" >&2; return 1 ;; esac
+  case "$gate" in "" | green | not-green) ;; *) echo "$PROG: unknown --gate value" >&2; return 1 ;; esac
+  case "$interactive" in met | gap | not-run) ;; *) echo "$PROG: unknown --interactive value" >&2; return 1 ;; esac
+
+  local diff_text
+  if [[ "$diff_arg" == "-" ]]; then
+    diff_text="$(cat)"
+  elif [[ -r "$diff_arg" ]]; then
+    diff_text="$(cat -- "$diff_arg")"
+  else
+    echo "$PROG: cannot read diff: $(safe_display "$diff_arg")" >&2
+    return 1
+  fi
+
+  local scan files="" line path lowered
+  local -a hits=()
+  scan="$(diff_rollback_scan <<<"$diff_text")"
+  while IFS= read -r line; do
+    case "$line" in
+    F\|*) files+="${line#F|}"$'\n' ;;
+    S\|*) hits+=("${line#S|}") ;;
+    esac
+  done <<<"$scan"
+
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    lowered="$(lower "$path")"
+    [[ "$lowered" =~ $DOC_RE || "$lowered" =~ $TEST_RE ]] && continue
+    if [[ "$lowered" =~ $INFRA_RE ]]; then
+      hits+=("config-infrastructure|$path")
+      break
+    fi
+  done <<<"$files"
+
+  # The impact is the tier of the same diff, classified by the same function.
+  local classification tier
+  classification="$(classify --files - ${pass[@]+"${pass[@]}"} <<<"$files")" || return 1
+  tier="$(printf '%s\n' "$classification" | awk -F= '$1 == "tier" { print $2; exit }')"
+
+  local -a verification=()
+  case "$coverage" in
+  gap) verification+=('coverage|gap') ;;
+  "") verification+=('coverage|not-supplied') ;;
+  esac
+  case "$gate" in
+  not-green) verification+=('gate|not-green') ;;
+  "") verification+=('gate|not-supplied') ;;
+  esac
+  [[ "$interactive" == "gap" ]] && verification+=('interactive|gap')
+
+  local verified="ok" rollback="cheap" grade
+  [[ "${#verification[@]}" -eq 0 ]] || verified="poor"
+  [[ "${#hits[@]}" -eq 0 ]] || rollback="costly"
+
+  if [[ "$tier" == "FAST" && "$verified" == "ok" && "$rollback" == "cheap" ]]; then
+    grade="low"
+  elif [[ "$tier" == "CRITICAL" && ("$verified" == "poor" || "$rollback" == "costly") ]]; then
+    grade="high"
+  else
+    grade="medium"
+  fi
+
+  printf 'merge-risk=%s\n' "$grade"
+  printf 'merge-risk-rule=%s: tier %s, verification %s, rollback %s\n' "$grade" "$tier" "$verified" "$rollback"
+  printf 'verification=%s\n' "$verified"
+  local entry name
+  for entry in ${verification[@]+"${verification[@]}"}; do
+    printf 'verification-signal=%s\n' "$entry"
+  done
+  printf 'rollback=%s\n' "$rollback"
+  for name in destructive-migration persisted-data-write external-side-effect config-infrastructure; do
+    for entry in ${hits[@]+"${hits[@]}"}; do
+      [[ "${entry%%|*}" == "$name" ]] && printf 'rollback-signal=%s\n' "$(safe_display "$entry")"
+    done
+  done
+  printf '%s\n' "$classification"
+  return 0
+}
+
 # Global, not local: the EXIT trap fires after the function's locals are gone,
 # and reading an unset local under `set -u` would abort the cleanup.
 SELF_TEST_TMP=""
@@ -716,6 +986,147 @@ self_test() {
     --files "$(writefiles 'serverless.yml')" --assignment "$tmp/clear.txt"
   cd "$tmp"
 
+  # --- Merge-risk mode -------------------------------------------------------
+  # `newfile <path> <added line>...` prints the git diff that adds one new file.
+  newfile() {
+    local file="$1"
+    shift
+    printf 'diff --git a/%s b/%s\nnew file mode 100644\n--- /dev/null\n+++ b/%s\n@@ -0,0 +1,%s @@\n' \
+      "$file" "$file" "$file" "$#"
+    printf '+%s\n' "$@"
+  }
+  writediff() {
+    local target="$tmp/diff-$RANDOM$RANDOM.diff"
+    cat >"$target"
+    printf '%s' "$target"
+  }
+  local verified=(--coverage ok --gate green --assignment "$tmp/clear.txt")
+  local fix migration_drop migration_empty migration_create
+  fix="$({
+    newfile 'src/Formatter.php' '<?php' "return trim(\$value);"
+    newfile 'tests/Unit/FormatterTest.php' 'Order::create(["id" => 1]);' "Mail::to(\$user)->send(new Welcome());"
+  } | writediff)"
+  migration_drop="$(newfile 'database/migrations/2026_01_01_drop_legacy.php' \
+    'public function up(): void' '{' "    Schema::table(\"orders\", function (Blueprint \$table) {" \
+    "        \$table->dropColumn(\"legacy\");" '    });' '}' | writediff)"
+  migration_empty="$(newfile 'database/migrations/2026_01_01_add_note.php' \
+    'public function up(): void' '{' "    Schema::table(\"orders\", fn (Blueprint \$table) => \$table->string(\"note\"));" '}' \
+    'public function down(): void' '{' '    // irreversible' '}' | writediff)"
+  migration_create="$(newfile 'database/migrations/2026_01_01_create_orders.php' \
+    'public function up(): void' '{' "    Schema::create(\"orders\", function (Blueprint \$table) {" "        \$table->id();" '    });' '}' \
+    'public function down(): void' '{' '    Schema::dropIfExists("orders");' '}' | writediff)"
+
+  expect_line 'a small tested fix with green checks is low risk' 'merge-risk=low' \
+    --merge-risk --diff "$fix" "${verified[@]}"
+  expect_line 'the grade prints the rule that decided it' \
+    'merge-risk-rule=low: tier FAST, verification ok, rollback cheap' --merge-risk --diff "$fix" "${verified[@]}"
+  expect_line 'a write in a test file is no rollback signal' 'rollback=cheap' \
+    --merge-risk --diff "$fix" "${verified[@]}"
+  expect_line 'a destructive migration with poor verification is high risk' 'merge-risk=high' \
+    --merge-risk --diff "$migration_drop" --coverage gap --gate green --assignment "$tmp/clear.txt"
+  expect_line 'a dropColumn in up() is a destructive migration' \
+    'rollback-signal=destructive-migration|database/migrations/2026_01_01_drop_legacy.php' \
+    --merge-risk --diff "$migration_drop" "${verified[@]}"
+  expect_line 'an empty down() is a destructive migration' \
+    'rollback-signal=destructive-migration|database/migrations/2026_01_01_add_note.php' \
+    --merge-risk --diff "$migration_empty" "${verified[@]}"
+  expect_line 'a drop inside down() is the rollback, not a signal' 'rollback=cheap' \
+    --merge-risk --diff "$migration_create" "${verified[@]}"
+  expect_line 'a verified CRITICAL change that is cheap to roll back is medium risk' 'merge-risk=medium' \
+    --merge-risk --diff "$migration_create" "${verified[@]}"
+  expect_line 'the tier block of the same diff follows the grade' 'forced=migrations-data-loss' \
+    --merge-risk --diff "$migration_create" "${verified[@]}"
+  expect_line 'a persisted-data write makes rollback costly' \
+    'rollback-signal=persisted-data-write|app/Actions/Order/CloseOrder.php' \
+    --merge-risk --diff "$(newfile 'app/Actions/Order/CloseOrder.php' "\$order->update([\"closed\" => true]);" | writediff)" "${verified[@]}"
+  expect_line 'a queue dispatch is an external side effect' \
+    'rollback-signal=external-side-effect|app/Actions/Order/SendInvoice.php' \
+    --merge-risk --diff "$(newfile 'app/Actions/Order/SendInvoice.php' "SendInvoiceJob::dispatch(\$orderId);" | writediff)" "${verified[@]}"
+  expect_line 'a mail send is an external side effect' \
+    'rollback-signal=external-side-effect|app/Actions/User/Welcome.php' \
+    --merge-risk --diff "$(newfile 'app/Actions/User/Welcome.php' "Mail::to(\$user)->send(new WelcomeMail());" | writediff)" "${verified[@]}"
+  expect_line 'a configuration file makes rollback costly' 'rollback-signal=config-infrastructure|config/queue.php' \
+    --merge-risk --diff "$(newfile 'config/queue.php' "'default' => 'sqs'," | writediff)" "${verified[@]}"
+  expect_line 'a FAST change with costly rollback is medium risk' 'merge-risk=medium' \
+    --merge-risk --diff "$({
+      newfile 'src/Store.php' "\$record->save();"
+      newfile 'tests/Unit/StoreTest.php' 'expect(true)->toBeTrue();'
+    } | writediff)" "${verified[@]}"
+  expect_line 'a coverage result that was not supplied is poor verification' 'verification-signal=coverage|not-supplied' \
+    --merge-risk --diff "$fix" --gate green --assignment "$tmp/clear.txt"
+  expect_line 'a red quality gate is poor verification' 'verification-signal=gate|not-green' \
+    --merge-risk --diff "$fix" --coverage ok --gate not-green --assignment "$tmp/clear.txt"
+  expect_line 'a walkthrough scenario that was not met is poor verification' 'verification-signal=interactive|gap' \
+    --merge-risk --diff "$fix" "${verified[@]}" --interactive gap
+  expect_line 'untrusted diff paths are rendered safely' 'rollback-signal=persisted-data-write|app/[2JEvil.php' \
+    --merge-risk --diff "$(newfile "$(printf 'app/\033[2JEvil.php')" "\$model->delete();" | writediff)" "${verified[@]}"
+  # A header-only entry of a diff carries no `+++` line: a pure rename, a binary
+  # file, and a mode-only change still reach the impact tier and the rollback signals.
+  renamediff() {
+    printf 'diff --git a/%s b/%s\nsimilarity index 100%%\nrename from %s\nrename to %s\n' "$1" "$2" "$1" "$2"
+  }
+  expect_line 'a pure-renamed migration forces CRITICAL like --files' 'forced=migrations-data-loss' \
+    --merge-risk --diff "$(renamediff 'database/migrations/2026_01_01_old.php' 'database/migrations/2026_01_02_new.php' | writediff)" "${verified[@]}"
+  expect_line 'a pure-renamed migration is graded CRITICAL' 'tier=CRITICAL' \
+    --merge-risk --diff "$(renamediff 'database/migrations/2026_01_01_old.php' 'database/migrations/2026_01_02_new.php' | writediff)" "${verified[@]}"
+  expect_line 'a binary file in config/ is a configuration change' 'rollback-signal=config-infrastructure|config/logo.png' \
+    --merge-risk --diff "$(printf 'diff --git a/config/logo.png b/config/logo.png\nindex 1111111..2222222 100644\nBinary files a/config/logo.png and b/config/logo.png differ\n' | writediff)" "${verified[@]}"
+  expect_line 'a mode-only change in config/ is a configuration change' 'rollback-signal=config-infrastructure|config/queue.php' \
+    --merge-risk --diff "$(printf 'diff --git a/config/queue.php b/config/queue.php\nold mode 100644\nnew mode 100755\n' | writediff)" "${verified[@]}"
+  expect_line 'a rename with edits reports the new path' 'forced=migrations-data-loss' \
+    --merge-risk --diff "$(printf 'diff --git a/db/a.php b/database/migrations/2026_01_02_new.php\nrename from db/a.php\nrename to database/migrations/2026_01_02_new.php\n--- a/db/a.php\n+++ b/database/migrations/2026_01_02_new.php\n@@ -1 +1 @@\n-x\n+y\n' | writediff)" "${verified[@]}"
+
+  # Text that only looks like a write or a side effect is no rollback signal.
+  expect_line 'a JavaScript store.dispatch is no side effect' 'rollback=cheap' \
+    --merge-risk --diff "$(newfile 'resources/js/store.js' 'store.dispatch(action);' | writediff)" "${verified[@]}"
+  expect_line 'Carbon::create is no persisted-data write' 'rollback=cheap' \
+    --merge-risk --diff "$(newfile 'src/Clock.php' 'return Carbon::create(2026, 1, 1);' | writediff)" "${verified[@]}"
+  expect_line 'a Model::create is still a persisted-data write' 'rollback-signal=persisted-data-write|src/Orders.php' \
+    --merge-risk --diff "$(newfile 'src/Orders.php' "return Order::create(\$data);" | writediff)" "${verified[@]}"
+  expect_line 'a shell string that names Mail:: is no side effect' 'rollback=cheap' \
+    --merge-risk --diff "$(newfile 'scripts/check.sh' 'echo "Mail:: usage found"' | writediff)" "${verified[@]}"
+  expect_line 'a regex text in a shell script is no write' 'rollback=cheap' \
+    --merge-risk --diff "$(newfile 'skills/_shared/scan.sh' "WRITE_RE='->(save|update)[[:space:]]*\\('" "x='insert into'" "y='delete from'" | writediff)" "${verified[@]}"
+  expect_line 'a column named truncated is no destructive migration' 'rollback=cheap' \
+    --merge-risk --diff "$(newfile 'database/migrations/2026_01_01_add_flag.php' \
+      'public function up(): void' '{' "    Schema::table(\"posts\", fn (Blueprint \$table) => \$table->boolean(\"truncated\"));" '}' \
+      'public function down(): void' '{' '    Schema::dropIfExists("posts");' '}' | writediff)" "${verified[@]}"
+  expect_line 'a truncate call in a migration is destructive' \
+    'rollback-signal=destructive-migration|database/migrations/2026_01_01_wipe.php' \
+    --merge-risk --diff "$(newfile 'database/migrations/2026_01_01_wipe.php' \
+      'public function up(): void' '{' '    DB::table("posts")->truncate();' '}' | writediff)" "${verified[@]}"
+  expect_line 'truncate table in a SQL file is destructive' \
+    'rollback-signal=destructive-migration|db/wipe.sql' \
+    --merge-risk --diff "$(newfile 'db/wipe.sql' 'TRUNCATE TABLE posts;' | writediff)" "${verified[@]}"
+  expect_line 'a delete from in a SQL file is a persisted-data write' \
+    'rollback-signal=persisted-data-write|db/cleanup.sql' \
+    --merge-risk --diff "$(newfile 'db/cleanup.sql' 'DELETE FROM posts WHERE id = 1;' | writediff)" "${verified[@]}"
+  # Raw SQL inside a PHP file (a migration, a repository) is a persisted-data write
+  # and a destructive migration like the same statement in a .sql file.
+  expect_line 'a raw DELETE FROM in a migration is a persisted-data write' \
+    'rollback-signal=persisted-data-write|database/migrations/2026_01_01_purge.php' \
+    --merge-risk --diff "$(newfile 'database/migrations/2026_01_01_purge.php' \
+      'public function up(): void' '{' "    DB::statement('DELETE FROM users WHERE inactive = 1');" '}' | writediff)" "${verified[@]}"
+  expect_line 'a raw UPDATE through DB::unprepared in a migration is costly' 'rollback=costly' \
+    --merge-risk --diff "$(newfile 'database/migrations/2026_01_01_reset.php' \
+      'public function up(): void' '{' "    DB::unprepared('UPDATE users SET active = 0');" '}' | writediff)" "${verified[@]}"
+  expect_line 'a TRUNCATE users statement in a migration is destructive' \
+    'rollback-signal=destructive-migration|database/migrations/2026_01_01_wipe_users.php' \
+    --merge-risk --diff "$(newfile 'database/migrations/2026_01_01_wipe_users.php' \
+      'public function up(): void' '{' "    DB::statement('TRUNCATE users');" '}' | writediff)" "${verified[@]}"
+  expect_line 'a raw DB::update in a repository is a persisted-data write' \
+    'rollback-signal=persisted-data-write|app/Repositories/UserRepository.php' \
+    --merge-risk --diff "$(newfile 'app/Repositories/UserRepository.php' "return DB::update('update users set active = 0');" | writediff)" "${verified[@]}"
+  expect_line 'a raw DB::delete in a repository is a persisted-data write' \
+    'rollback-signal=persisted-data-write|app/Repositories/OrderRepository.php' \
+    --merge-risk --diff "$(newfile 'app/Repositories/OrderRepository.php' "return DB::delete('delete from orders where id = 1');" | writediff)" "${verified[@]}"
+
+  expect_line 'a diff on stdin is accepted' 'merge-risk=low' --merge-risk --diff - "${verified[@]}" <"$fix"
+  expect_exit 'merge-risk without a diff is a usage error' 1 --merge-risk --coverage ok
+  expect_exit 'merge-risk refuses a file list' 1 --merge-risk --diff "$fix" --files "$fix"
+  expect_exit 'an unknown coverage value is a usage error' 1 --merge-risk --diff "$fix" --coverage maybe
+  expect_exit 'an unreadable diff is a usage error' 1 --merge-risk --diff "$tmp/does-not-exist.diff"
+
   # --- Input handling --------------------------------------------------------
   expect_line 'stdin file list is accepted' 'basis=diff' --files - --assignment "$tmp/clear.txt" <<<'README.md'
   expect_exit 'unknown flag is a usage error' 1 --nonsense
@@ -737,6 +1148,12 @@ self_test() {
 
 if [[ "${1:-}" == "--self-test" ]]; then
   self_test
+  exit $?
+fi
+
+if [[ "${1:-}" == "--merge-risk" ]]; then
+  shift
+  merge_risk "$@"
   exit $?
 fi
 

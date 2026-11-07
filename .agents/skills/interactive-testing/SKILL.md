@@ -1,6 +1,6 @@
 ---
 name: interactive-testing
-description: "Use when verifying user-visible project changes against an assignment and the actual code diff. Requires the testing agent's own interactive browser and returns evidence-backed results, including failures and blocked scenarios."
+description: "Use when verifying user-visible project changes against an assignment and the actual code diff. Requires the testing agent's own interactive browser, checks security risks, verifies suspected vulnerabilities, and drives confirmed threats through repair and re-testing."
 license: MIT
 metadata:
   author: "Petr Král (pekral.cz)"
@@ -9,11 +9,11 @@ metadata:
 ## Constraints
 
 - Apply `@rules/security/general.md` for the untrusted-content boundary.
-- The testing agent MUST use its own interactive browser session. In Codex, use the provided `cua_repl` browser tools and their documented browser APIs. A delegated agent must operate the browser itself; another agent's screenshots or test summary do not fulfil this requirement.
-- Shell-driven Playwright, headless scripts, HTTP requests, unit tests, source inspection, and generated screenshots never replace this walkthrough. They may supply supplementary evidence only. If an interactive browser tool is unavailable, return `Blocked`.
+- The testing agent MUST use its own interactive browser session. Every interactive-testing run drives the web browser available to the session. In Claude Code, use Claude in Chrome (the `mcp__claude-in-chrome__*` tools). When Claude in Chrome is not connected, use the desktop app's built-in browser (the `mcp__Claude_Browser__*` tools). In Codex, use the provided `cua_repl` browser tools and their documented browser APIs. A delegated agent must operate the browser itself; another agent's screenshots or test summary do not fulfil this requirement.
+- Shell-driven Playwright, headless scripts, HTTP requests, unit tests, source inspection, and generated screenshots never replace this walkthrough. They may supply supplementary evidence only. If no interactive browser tool is available, return `Blocked` and name the remediation, for example *connect the Claude in Chrome extension*.
 - Use the project URL supplied by the user or recorded in the consuming project's instructions or memory. If neither identifies the target, ask for it. Do not silently switch hosts, environments, or checkouts.
 - Sign in as *Sign-in and test accounts* below states. A missing login never ends the UI check, and it never makes you wait for the user.
-- Test the running application without changing its implementation, configuration, permissions, credentials, or database directly. The exceptions are the local preparation that *Local readiness* allows, a local test account that *Sign-in and test accounts* allows, and local test data that *Missing test data* allows. Report defects with reproduction steps. Fixing, publishing to a tracker, deploying, or merging requires a separate assignment.
+- Test the running application without changing its implementation, configuration, permissions, credentials, or database directly. The exceptions are the local preparation that *Local readiness* allows, a local test account that *Sign-in and test accounts* allows, local test data that *Missing test data* allows, and confirmed security fixes through *Check security and repair confirmed threats*. Other fixes, publishing to a tracker, deploying, or merging require a separate assignment.
 - Respect the browser tool's confirmation rules. Use reversible, clearly identified test data within the authorized workspace. Do not trigger AI processing, recurring jobs, external imports, emails, tracker comments, or destructive actions unless that specific effect is authorized for the scenario. Opening a menu is not evidence that its actions work.
 
 ## Use when
@@ -134,13 +134,25 @@ Check and prepare the local environment as *Local readiness* states, before the 
 7. Read recent console errors through the browser tool. Reproduce suspicious behavior once with a stable, fully loaded page. Separate reproducible failures, transient observations, environment blockers, and unproven attribution to the diff.
 8. For side-effecting flows without authorization, or whose prerequisites *Missing test data* cannot create, stop before the effect and mark that portion `Blocked`; do not mark the entire action passed because its button rendered.
 
-### 5. Restore test data and report evidence
+### 5. Check security and repair confirmed threats
+
+The goal is to protect the application against compromise. Run this check on every walkthrough, even when the assignment names no security criterion.
+
+1. Apply `@rules/security/backend.md` and `@rules/security/frontend.md` where the exercised surface uses them. Derive security scenarios from the flows, inputs, endpoints, and trust boundaries reached during the walkthrough. Include authentication, authorization and tenant isolation, input injection and output escaping, CSRF on state-changing requests, uploads and downloads, redirects and outbound URLs, and exposed secrets or sensitive data where applicable. Record why a check is not applicable or cannot run. This focused check is not a whole-repository security audit.
+2. Probe only the authorized local development or test instance, using this run's test accounts and records. Use minimal, reversible proofs; never extract real user data, execute destructive payloads, test denial of service, or probe third-party hosts. On a shared or remote target, record the active check as `Blocked` and name the local reproduction needed. Source inspection and targeted HTTP requests may supplement the browser walkthrough; they never replace its UI evidence.
+3. Treat each suspicious result as a candidate. Trace the attacker-controlled input to the security-sensitive action or data. Check the effective middleware, policies, validation, escaping, framework protections, and configuration. Reproduce the boundary failure with a minimal proof and record the expected denial versus observed access or effect. A scanner warning or suspicious code alone is not a confirmed vulnerability. Mark unverified candidates `needs validation`, with the missing verification step; reject candidates whose protections prevent exploitation.
+   When the tester's role forbids security classification, as `raphael`'s does, return the observed behavior and proof to the caller for `leonardo` to verify. The caller obtains that verdict before requesting a repair. The tester reports the attributed verdict and never makes its own security classification.
+4. Fix a confirmed, exploitable threat immediately, including one that predates the diff, before accepting the application. Use the smallest repair and a regression test through `@skills/resolve-issue/references/pre-existing-issue-handling.md`. A write-capable caller performs the repair. A read-only testing agent such as `raphael` returns the evidence and an immediate repair request to its caller for `donatello`; it never edits code or delegates beyond its role. The caller resumes the testing agent after the repair. This handoff is part of the current work and requires no new user assignment.
+   A review-only caller (`/report-code-review`) fixes nothing: it requests no repair, and the confirmed threat stays `Failed`. The review reports a threat on a changed line as a finding and keeps a threat that predates the diff out of the public comment. Keep vulnerability details out of public trackers as that reference requires.
+5. After a repair, record the new revision, refresh the local application through *Local readiness*, and repeat the original proof. Verify that the attack is denied and that the legitimate user flow still works through the interactive browser. Record the regression-test result as supplementary evidence. If repair or verification cannot finish, leave the finding `Failed` or `Blocked` with the exact next step. Never report a confirmed vulnerability as fixed before this re-test.
+
+### 6. Restore test data and report evidence
 
 1. Restore only values changed by this run and verify the restoration in the UI. Delete the test data this run created, per *Missing test data*. Stop the processes and restore the checkout, per *Local readiness*. Do not overwrite unrelated concurrent edits or delete existing user data. Report any remaining test records or side effects.
 2. Produce a verdict for every scenario: `Passed`, `Failed`, `Partial`, or `Blocked`. An unexecuted scenario is never `Passed`.
 3. For each failure, include exact URL, viewport, account role/record state, minimal steps, expected versus observed behavior, and a screenshot or concrete visible evidence. Redact secrets and avoid embedding unrelated user data.
 4. Report which scenarios were not exercised and the exact prerequisite needed to unblock each one.
-5. Overall `Passed` requires every required scenario to pass. Failures or blockers must remain explicit even when all automated tests are green.
+5. Overall `Passed` requires every required scenario, including applicable security checks and repair re-tests, to pass. An unresolved confirmed threat, a candidate that still needs validation, or a required blocked security check prevents `Passed`. Failures or blockers must remain explicit even when all automated tests are green. A passing focused check never establishes that the entire application is vulnerability-free.
 6. Keep the relevant browser tab open when handing a failure or a `Blocked` sign-in to the user. Otherwise follow the browser tool's cleanup rules.
 
 ## Output
@@ -150,6 +162,7 @@ Return a concise report in the user's language:
 - **Scope:** assignment, tested base/head and working-tree changes, project URL, account role/workspace, browser tool, viewport sizes, and every preparation step *Local readiness* ran.
 - **Result:** one row per scenario with expected behavior, actual interactions and observation, evidence, and verdict.
 - **Findings:** reproducible failures, transient observations, and environment blockers kept distinct; never claim a regression without evidence linking it to the change.
+- **Security:** checks exercised or skipped with reasons; candidates marked confirmed, rejected, or `needs validation`; redacted proof, affected boundary, impact, repair revision or handoff, regression-test result, and attack/legitimate-flow re-test verdict. Never publish secrets or exploitable details to a public tracker.
 - **Untested:** exact scenarios and missing prerequisites.
 - **Cleanup:** restored values, the restored checkout, processes this run started or restarted and left running, any remaining test artifacts, every test account this run created, and every test record this run created or left in place.
 - **Next step:** implementation fixes, access/data preparation, or acceptance when all required rows passed.
@@ -162,6 +175,7 @@ Report in the current task by default. Do not post messages to external trackers
 - The agent itself operated the interactive browser and observed the results.
 - Every acceptance criterion has an honest verdict backed by executed interactions or a named blocker.
 - Save/reload checks, relevant visual states, and recent browser errors were considered.
+- Applicable security boundaries were checked. Each candidate was verified or left explicitly unresolved. Every confirmed threat was repaired and re-tested, or remains `Failed` or `Blocked` with its repair handoff.
 - Changed test data and temporary browser settings are restored, or remaining effects are explicitly listed.
 - The report makes no claim of full acceptance while a required scenario is failed, partial, or blocked.
 

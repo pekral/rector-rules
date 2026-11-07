@@ -28,7 +28,7 @@ See `references/source-detection.md` for the detection table and rules.
 ## Preparation
 
 Before starting the resolution flow:
-- Switch to the default branch (resolved per `@rules/git/general.md` *Pull Policy* — `main` or `master`) and pull the latest changes so the working tree reflects the current state of the repository before creating the feature branch.
+- Switch to the default branch (resolved per `@rules/git/general.md` *Pull Policy* — `main` or `master`) and pull the latest changes so the working tree reflects the current state of the repository before creating the feature branch. Skip this step when the dispatch names a parallel-unit worktree: the branch already exists there.
 
 ## Required approach
 - Fully analyze the issue (description, comments, attachments)
