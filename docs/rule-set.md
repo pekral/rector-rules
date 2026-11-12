@@ -29,7 +29,7 @@ To change a decision, open an
 
 ## What the package installs
 
-`build/`, `.github/`, `assets/`, the dotfiles, `CHANGELOG.md`, and `UPGRADING.md` are marked `export-ignore`
-in `.gitattributes`. The rule set itself is `rector.php` and `rules/rules.php`; `composer require` also pulls
-down `composer.json`, `README.md`, `LICENSE`, this `docs/` directory, and the AI agent files (`AGENTS.md`,
-`.agents/`, `.codex/`), which are not marked `export-ignore`.
+`build/`, `docs/`, `.github/`, `assets/`, the dotfiles, `CHANGELOG.md`, and `UPGRADING.md` are marked
+`export-ignore` in `.gitattributes`. The rule set itself is `rector.php` and `rules/rules.php`; `composer require`
+also pulls down `composer.json`, `README.md`, `LICENSE`, and the AI agent files (`AGENTS.md`, `.agents/`,
+`.codex/`), which are not marked `export-ignore`.
