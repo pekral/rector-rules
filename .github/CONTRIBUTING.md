@@ -62,7 +62,7 @@ Contributing needs **PHP 8.5+** — the development dependencies require it. Usi
 | `composer check:missing-rules` | Report rules that are in neither file |
 | `composer phpcs` / `composer phpcs:fix` | Code style only |
 | `composer rector` / `composer rector:fix` | Rector on this repository's own sources |
-| `composer build` | Runs `composer check fix`, `composer check`, then `composer ai-olympus:install` |
+| `composer build` | Runs `composer fix` (rewrites files), `composer check`, then `composer ai-olympus:install` |
 | `composer ai-olympus:install` | Reinstall [pekral/ai-olympus](https://github.com/pekral/ai-olympus) agent rules and skills |
 
 `composer fix`, `composer phpcs:fix`, and `composer rector:fix` rewrite files in `rules/`, `build/`, and

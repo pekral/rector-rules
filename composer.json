@@ -56,7 +56,7 @@
     }
   },
   "scripts": {
-    "build": "composer check fix && composer check && composer ai-olympus:install",
+    "build": "composer fix && composer check && composer ai-olympus:install",
     "phpcs:fix": "vendor/bin/phpcbf --standard=vendor/pekral/phpcs-rules/ruleset.xml --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php || true",
     "phpcs": "vendor/bin/phpcs --standard=vendor/pekral/phpcs-rules rules/ build/ rector.php -sp",
     "check": "composer phpcs && composer rector && composer check:missing-rules",
