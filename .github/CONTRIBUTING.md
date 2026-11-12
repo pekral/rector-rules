@@ -60,6 +60,20 @@ Contributing needs **PHP 8.5+** — the development dependencies require it. Usi
 | `composer check` | Code style, Rector dry-run on this repository's own sources, and the missing-rule guard |
 | `composer fix` | Apply Rector and code-style fixes |
 | `composer check:missing-rules` | Report rules that are in neither file |
+| `composer phpcs` / `composer phpcs:fix` | Code style only |
+| `composer rector` / `composer rector:fix` | Rector on this repository's own sources |
+| `composer build` | Runs `composer check fix`, `composer check`, then `composer ai-olympus:install` |
+| `composer ai-olympus:install` | Reinstall [pekral/ai-olympus](https://github.com/pekral/ai-olympus) agent rules and skills |
+
+`composer fix`, `composer phpcs:fix`, and `composer rector:fix` rewrite files in `rules/`, `build/`, and
+`rector.php` in place.
+
+### CI
+
+Pull requests and pushes to `master` run the missing-rule guard, code style, the Rector dry run, and
+`composer audit` on PHP 8.5. A separate job on the declared minimum PHP 8.4 validates `composer.json`, checks
+that the runtime dependencies resolve, and lints `rules/rules.php`. A weekly job refreshes dependencies and
+opens a pull request; another audits dependencies for known vulnerabilities every Monday.
 
 ## Pull requests
 
